@@ -1,0 +1,4 @@
+#!/bin/sh
+
+# Use the parent gradlew
+exec ../gradlew -p . "$@"

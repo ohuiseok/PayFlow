@@ -1,0 +1,35 @@
+# Gradle
+.gradle/
+.gradle-home/
+**/build/
+**/.gradle/
+
+# Java
+out/
+*.class
+*.jar
+*.war
+*.ear
+
+# Logs
+*.log
+logs/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker/local data
+docker-data/
+mysql_data/
+kafka_data/
