@@ -38,6 +38,19 @@
 - [ ] 차감/증가 API는 referenceId를 받는다.
 - [ ] 같은 referenceId 중복 처리 정책을 고려한다.
 
+## 오픈뱅킹 구현 시
+
+- [ ] MockOpenBankingClient를 먼저 구현한다.
+- [ ] 성공, 명시 실패, timeout, 처리 중, bank_tran_id 중복을 mock으로 검증한다.
+- [ ] 충전은 출금이체 성공 후 wallet-service deposit까지 닫힌 루프로 만든다.
+- [ ] Idempotency-Key + requestHash로 API 재요청을 방어한다.
+- [ ] bank_tran_id unique 제약으로 은행망 중복을 방어한다.
+- [ ] wallet referenceType/referenceId로 지갑 중복 반영을 방어한다.
+- [ ] timeout, 처리 중, 중복 bank_tran_id는 결과조회 대상으로 남긴다.
+- [ ] UNKNOWN/BANK_PROCESSING 상태를 결과조회 워커로 확정한다.
+- [ ] 출금은 초기에 보상 근거를 남기고, hold 모델은 후속 확장으로 둔다.
+- [ ] 정보제공자 API는 초기 구현 범위에 넣지 않는다.
+
 ## 원장 구현 시
 
 - [ ] eventId 중복 처리를 한다.
@@ -58,4 +71,3 @@
 - [ ] `docker compose config --quiet`를 실행한다.
 - [ ] README 또는 구현 문서와 달라진 점이 있으면 문서를 갱신한다.
 - [ ] 최종 응답에 변경 파일과 검증 결과를 요약한다.
-

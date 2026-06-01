@@ -119,34 +119,54 @@ docs/implementation-plan/04-wallet-service.md
 
 ## 5. Open Banking Service
 
-- [ ] banking-service 프로젝트 생성
-- [ ] payflow_banking DB 설정
+- [x] banking-service 프로젝트 생성
+- [ ] payflow_banking DB 설정 확인
 - [ ] BankAccount 엔티티 구현
 - [ ] BankingTransfer 엔티티 구현
 - [ ] BankingApiLog 엔티티 구현
 - [ ] BankAccountStatus enum 구현
 - [ ] BankingTransferStatus enum 구현
 - [ ] Repository 구현
-- [ ] Idempotency-Key 검증 구현
-- [ ] request hash 생성 로직 구현
 - [ ] OpenBankingClient 인터페이스 구현
 - [ ] MockOpenBankingClient 구현
+- [ ] MockOpenBankingClient 성공 응답 시뮬레이션
+- [ ] MockOpenBankingClient 명시 실패 응답 시뮬레이션
+- [ ] MockOpenBankingClient timeout 응답 시뮬레이션
+- [ ] MockOpenBankingClient 처리 중 응답 시뮬레이션
+- [ ] MockOpenBankingClient bank_tran_id 중복 응답 시뮬레이션
 - [ ] KftcOpenBankingClient 테스트베드 profile 문서화
 - [ ] Wallet Feign Client 구현
 - [ ] 계좌 등록 API 구현
 - [ ] 충전 요청 API 구현
 - [ ] 오픈뱅킹 출금이체 성공 후 wallet-service deposit 연동
 - [ ] bank_tran_id/api_tran_id 저장
+- [ ] bank_tran_id unique 제약 구현
+- [ ] wallet referenceType/referenceId 기반 중복 반영 방어 확인
+- [ ] Idempotency-Key 검증 구현
+- [ ] request hash 생성 로직 구현
+- [ ] 같은 Idempotency-Key + 같은 body 기존 결과 반환
+- [ ] 같은 Idempotency-Key + 다른 body 409 반환
 - [ ] 오픈뱅킹 실패 상태 저장
 - [ ] 응답 불명 UNKNOWN 상태 저장
+- [ ] 처리 중 BANK_PROCESSING 상태 저장
+- [ ] 이체결과조회 API client 메서드 구현
+- [ ] UNKNOWN/BANK_PROCESSING 결과조회 워커 구현
+- [ ] 결과조회 성공 시 최종 상태 갱신
+- [ ] 결과조회 실패 시 FAILED 또는 COMPENSATION_REQUIRED 전이
 - [ ] 출금/환불 상태 모델 구현 또는 문서화
+- [ ] 출금 API 최소 구현
+- [ ] 출금 입금이체 실패 시 보상 근거 저장
+- [ ] 정보제공자 API는 2차 범위로 문서화
 - [ ] banking-service 테스트 작성
 - [ ] banking-service `bootJar` 확인
 
 완료 기준:
 
 ```text
-외부 은행망 성공이 확정된 충전만 wallet-service 잔액에 반영되고, bank_tran_id 기준으로 중복 반영되지 않는다.
+MockOpenBankingClient로 충전 성공/실패/불명/처리중/중복 시나리오를 검증한다.
+외부 은행망 성공이 확정된 충전만 wallet-service 잔액에 반영되고, bank_tran_id와 wallet reference 기준으로 중복 반영되지 않는다.
+UNKNOWN/BANK_PROCESSING 상태는 결과조회 워커로 최종 상태를 확정할 수 있다.
+출금은 최소 API와 보상 근거까지 남기고, 정보제공자 API는 2차 범위로 남긴다.
 ```
 
 관련 문서:

@@ -41,7 +41,12 @@ mock profile 제공
 - 실제 계좌번호 원문 저장
 - 복잡한 전자서명/인증서 운용
 - 대량 이체 운영 업무
+- 정보제공자 API
 ```
+
+정보제공자 API는 PayFlow가 선불전자지급수단 발행자로서 외부 이용기관에 선불목록조회, 선불잔액조회,
+선불거래내역조회를 제공하는 단계에서 필요하다. 초기 구현에서는 오픈뱅킹 "이용기관" 기능을 먼저 완성하고,
+정보제공자 기능은 별도 `provider-api` 또는 `banking-service`의 inbound adapter로 분리하는 것을 후순위로 둔다.
 
 ## 서비스 경계
 
@@ -284,6 +289,7 @@ banking-service/src/main/java/com/payflow/banking/infrastructure/openbanking
 public interface OpenBankingClient {
     OpenBankingWithdrawResponse requestWithdraw(OpenBankingWithdrawRequest request);
     OpenBankingDepositResponse requestDeposit(OpenBankingDepositRequest request);
+    OpenBankingTransferResultResponse getTransferResult(OpenBankingTransferResultRequest request);
 }
 ```
 
@@ -293,6 +299,20 @@ public interface OpenBankingClient {
 KftcOpenBankingClient
 MockOpenBankingClient
 ```
+
+`MockOpenBankingClient`는 실제 구현의 첫 단계로 만든다.
+
+시뮬레이션해야 하는 응답:
+
+```text
+성공
+명시 실패
+timeout 또는 네트워크 단절
+처리 중
+bank_tran_id 중복
+```
+
+mock 응답은 충전/출금 서비스 테스트에서 외부 은행망 없이 상태 전이를 검증하는 기준으로 사용한다.
 
 profile:
 
@@ -323,6 +343,19 @@ bank_tran_id는 UNIQUE로 저장한다.
 wallet-service 반영은 walletReferenceId로 중복 방어한다.
 ```
 
+멱등성은 세 겹으로 둔다.
+
+```text
+1. Idempotency-Key + requestHash
+   - API 재요청 방어
+
+2. bank_tran_id UNIQUE
+   - 은행망 거래 중복 방어
+
+3. wallet referenceType/referenceId
+   - 지갑 잔액 중복 반영 방어
+```
+
 ## 실패와 응답 불명
 
 오픈뱅킹 호출은 아래처럼 처리한다.
@@ -339,28 +372,55 @@ timeout 또는 네트워크 단절:
   UNKNOWN
   bank_tran_id 기준으로 조회/대사 필요
 
+처리 중 또는 중복 bank_tran_id:
+  BANK_PROCESSING 또는 UNKNOWN
+  이체결과조회 API로 최종 결과 확인
+
 은행 성공 후 wallet 반영 실패:
   COMPENSATION_REQUIRED
   wallet-service referenceId 기준으로 재반영 가능
 ```
 
+결과조회 워커는 `UNKNOWN`, `BANK_PROCESSING` 상태를 주기적으로 확인한다.
+
+```text
+1. bank_tran_id, bank_tran_date, amount로 이체결과조회 요청
+2. 최종 성공이면 BANK_SUCCEEDED 또는 COMPLETED로 전이
+3. 최종 실패이면 FAILED 또는 COMPENSATION_REQUIRED로 전이
+4. 계속 처리 중이면 nextResultCheckAt을 뒤로 미룸
+5. 재시도 한도 초과 시 운영자 확인 필요 상태로 남김
+```
+
 ## 구현 순서
 
-1. banking-service 프로젝트 생성
-2. application.yml과 profile 구성
-3. BankAccount 엔티티 작성
-4. BankingTransfer 엔티티 작성
-5. BankingApiLog 엔티티 작성
-6. Repository 작성
-7. request hash와 IdempotencyService 작성
-8. OpenBankingClient 인터페이스 작성
-9. MockOpenBankingClient 작성
-10. WalletClient 작성
-11. 충전 API 구현
-12. 충전 성공 후 wallet-service deposit 연동
-13. 응답 불명/실패 상태 저장
-14. 출금 상태 모델과 최소 API 구현
-15. 테스트 작성
+1. MockOpenBankingClient부터 구현
+   - 성공, 명시 실패, timeout, 처리 중, bank_tran_id 중복을 시뮬레이션한다.
+   - 외부 은행망 없이 상태 전이와 테스트를 먼저 닫는다.
+
+2. 충전만 먼저 완성
+   - 계좌 등록 상태 저장
+   - 충전 요청 생성
+   - 오픈뱅킹 출금이체 성공 확정
+   - wallet-service deposit 호출
+   - `COMPLETED`까지 닫힌 루프로 만든다.
+
+3. 멱등성 구현
+   - `Idempotency-Key + requestHash`로 API 재요청을 방어한다.
+   - `bank_tran_id` unique 제약으로 은행망 중복을 방어한다.
+   - wallet `referenceType/referenceId`로 지갑 중복 반영을 방어한다.
+
+4. 결과조회 워커 추가
+   - `UNKNOWN`, `BANK_PROCESSING` 상태를 주기적으로 조회한다.
+   - `/transfer/result` 결과에 따라 성공, 실패, 보상 필요 상태로 전이한다.
+
+5. 출금 API 추가
+   - 초기에는 wallet 차감 후 오픈뱅킹 입금이체를 요청한다.
+   - 입금이체 실패 또는 응답 불명 시 보상 근거를 남긴다.
+   - 이후 지갑 hold 모델로 확장할 수 있도록 상태를 분리한다.
+
+6. 정보제공자 API는 2차 범위로 분리
+   - 선불목록조회, 선불잔액조회, 선불거래내역조회 제공은 초기 구현 대상이 아니다.
+   - 필요 시 별도 `provider-api` 또는 inbound adapter로 설계한다.
 
 ## 테스트
 
@@ -369,15 +429,22 @@ timeout 또는 네트워크 단절:
 ```text
 계좌 등록 성공
 타인 walletId 계좌 등록 실패
+MockOpenBankingClient 성공 응답 시 은행 성공 상태 저장
+MockOpenBankingClient 명시 실패 응답 시 FAILED
+MockOpenBankingClient timeout 응답 시 UNKNOWN
+MockOpenBankingClient 처리 중 응답 시 BANK_PROCESSING
+MockOpenBankingClient bank_tran_id 중복 응답 시 결과조회 대상으로 전환
 충전 성공 시 BankingTransfer COMPLETED
 충전 성공 시 wallet-service deposit 호출
 같은 Idempotency-Key 재요청 시 같은 응답
 같은 Idempotency-Key 다른 body 요청 시 409
+bank_tran_id 중복 저장 방지
 오픈뱅킹 명시적 실패 시 FAILED
 오픈뱅킹 timeout 시 UNKNOWN
+A0007 또는 입금 처리 중 응답 시 결과조회 대상으로 전환
+결과조회 성공 응답 시 최종 상태 갱신
 은행 성공 후 wallet 반영 실패 시 COMPENSATION_REQUIRED
 wallet 반영 재시도 시 reference 기반 중복 증가 없음
 출금 요청에서 wallet 차감 실패 시 FAILED
 출금 입금이체 실패 시 COMPENSATION_REQUIRED
 ```
-
