@@ -14,6 +14,7 @@ user-service
 wallet-service
 banking-service
 transfer-service
+reward-service
 ledger-service
 settlement-service
 
@@ -30,16 +31,17 @@ nginx
 
 1. 잔액의 진실은 `wallet-service`만 가진다.
 2. 송금 상태의 진실은 `transfer-service`만 가진다.
-3. 원장의 진실은 `ledger-service`만 가진다.
-4. 외부 은행망 연동 상태의 진실은 `banking-service`만 가진다.
-5. 서비스는 다른 서비스의 DB를 직접 읽거나 쓰지 않는다.
-6. 모든 송금 요청은 `Idempotency-Key`를 필수로 요구한다.
-7. 외부 은행 API 성공이 확정되기 전에는 지갑 잔액을 변경하지 않는다.
-8. Kafka 이벤트는 DB 트랜잭션 안에서 직접 발행하지 않는다.
-9. Kafka 이벤트 발행은 Transactional Outbox Pattern으로 처리한다.
-10. 원장 데이터는 수정하지 않고, 보정 거래로만 정정한다.
-11. 실패 상태는 숨기지 말고 상태와 원인을 저장한다.
-12. 테스트는 정상 케이스보다 중복 요청, 동시 요청, 장애, 재시도를 더 중요하게 다룬다.
+3. 보상 미션과 캘린더 기록의 진실은 `reward-service`만 가진다.
+4. 원장의 진실은 `ledger-service`만 가진다.
+5. 외부 은행망 연동 상태의 진실은 `banking-service`만 가진다.
+6. 서비스는 다른 서비스의 DB를 직접 읽거나 쓰지 않는다.
+7. 모든 송금 요청은 `Idempotency-Key`를 필수로 요구한다.
+8. 외부 은행 API 성공이 확정되기 전에는 지갑 잔액을 변경하지 않는다.
+9. Kafka 이벤트는 DB 트랜잭션 안에서 직접 발행하지 않는다.
+10. Kafka 이벤트 발행은 Transactional Outbox Pattern으로 처리한다.
+11. 원장 데이터는 수정하지 않고, 보정 거래로만 정정한다.
+12. 실패 상태는 숨기지 말고 상태와 원인을 저장한다.
+13. 테스트는 정상 케이스보다 중복 요청, 동시 요청, 장애, 재시도를 더 중요하게 다룬다.
 
 ## 구현 순서
 
@@ -50,10 +52,10 @@ nginx
 02. DB 스키마와 마이그레이션 전략 결정
 03. user-service 최소 인증 구현
 04. wallet-service 지갑/잔액/이력 구현
-05. banking-service 오픈뱅킹 충전/출금 상태 모델 구현
-06. banking-service -> wallet-service 내부 충전 반영 구현
-07. transfer-service 송금 상태와 멱등성 구현
-08. Transfer -> Wallet 동기 호출 구현
+05. transfer-service 송금 상태와 멱등성 구현
+06. reward-service 용돈 미션/캘린더와 보상 지급 연동 구현
+07. banking-service 오픈뱅킹 충전/출금 상태 모델 구현
+08. banking-service -> wallet-service 내부 충전 반영 구현
 09. Redis 분산 락 적용
 10. Transactional Outbox 구현
 11. Kafka 이벤트 발행 구현
@@ -81,6 +83,10 @@ JWT 발급
 오픈뱅킹 테스트베드 기반 충전 상태 기록
 송금 요청
 송금 상태 조회
+용돈 미션 등록
+아이 완료 요청
+부모 승인 후 실제 용돈 지급
+용돈 캘린더 조회
 멱등성 처리
 분산 락
 Outbox 저장
@@ -94,6 +100,7 @@ Kafka 발행
 정산 배치
 수수료 계산
 오픈뱅킹 출금/환불
+reward-service 반복 미션/가족 관계 고도화
 장애 재처리
 Outbox publisher 스케줄링 고도화
 대사/reconciliation

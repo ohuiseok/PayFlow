@@ -1,4 +1,4 @@
-# 13. Local And Deploy
+# 15. Local And Deploy
 
 이 문서는 로컬 실행과 EC2 배포 전략이다.
 
@@ -39,7 +39,9 @@ docker compose --profile settlement up -d
 ```sql
 CREATE DATABASE payflow_user;
 CREATE DATABASE payflow_wallet;
+CREATE DATABASE payflow_banking;
 CREATE DATABASE payflow_transfer;
+CREATE DATABASE payflow_reward;
 CREATE DATABASE payflow_ledger;
 CREATE DATABASE payflow_settlement;
 ```
@@ -50,7 +52,9 @@ CREATE DATABASE payflow_settlement;
 CREATE USER 'payflow'@'%' IDENTIFIED BY 'payflow';
 GRANT ALL PRIVILEGES ON payflow_user.* TO 'payflow'@'%';
 GRANT ALL PRIVILEGES ON payflow_wallet.* TO 'payflow'@'%';
+GRANT ALL PRIVILEGES ON payflow_banking.* TO 'payflow'@'%';
 GRANT ALL PRIVILEGES ON payflow_transfer.* TO 'payflow'@'%';
+GRANT ALL PRIVILEGES ON payflow_reward.* TO 'payflow'@'%';
 GRANT ALL PRIVILEGES ON payflow_ledger.* TO 'payflow'@'%';
 GRANT ALL PRIVILEGES ON payflow_settlement.* TO 'payflow'@'%';
 FLUSH PRIVILEGES;
@@ -61,8 +65,8 @@ FLUSH PRIVILEGES;
 기본 사양:
 
 ```text
-EC2: t3.medium
-RAM: 4GB
+EC2: t3.large
+RAM: 8GB
 Storage: gp3 30GB 이상
 OS: Ubuntu 22.04 or 24.04
 ```
@@ -74,7 +78,9 @@ nginx
 api-gateway
 user-service
 wallet-service
+banking-service
 transfer-service
+reward-service
 ledger-service
 mysql
 redis
@@ -92,14 +98,16 @@ settlement-service
 기본 실행 제한 합산:
 
 ```text
-약 3.5GB
+현재 기본 실행 약 4.8GB
+reward-service 포함 약 5.3GB
+settlement-service 포함 약 5.7GB
 ```
 
 주의:
 
 ```text
-부하 테스트는 t3.medium에서 신뢰하기 어렵다.
-정확한 성능 테스트는 t3.large 이상에서 수행한다.
+부하 테스트는 t3.large 단일 인스턴스에서 신뢰하기 어렵다.
+정확한 성능 테스트는 t3.large보다 큰 인스턴스 또는 서비스 분리 환경에서 수행한다.
 ```
 
 ## Swap 권장
@@ -173,8 +181,8 @@ kafka
 user-service
 wallet-service
 transfer-service
+reward-service
 ledger-service
 api-gateway
 nginx
 ```
-

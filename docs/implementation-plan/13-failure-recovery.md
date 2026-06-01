@@ -1,4 +1,4 @@
-# 11. Failure Recovery
+# 13. Failure Recovery
 
 이 문서는 장애와 복구 시나리오를 정의한다.
 
@@ -133,6 +133,25 @@ READY outbox 재발행까지만 구현
 PROCESSING 복구는 5분 이상 stale 기준으로 문서화하고, 자동 복구는 후순위
 ```
 
+### 8. reward-service 승인 재시도
+
+상황:
+
+```text
+부모가 승인 버튼을 여러 번 누름
+reward-service가 transfer-service 호출 후 응답을 받기 전에 timeout
+PAYMENT_PENDING 상태에서 사용자가 다시 승인 요청
+```
+
+대응:
+
+```text
+reward-service는 이미 PAID인 미션을 다시 지급하지 않는다.
+transfer-service 호출에는 reward-payment-{taskId} Idempotency-Key를 사용한다.
+PAYMENT_PENDING 재시도도 같은 Idempotency-Key를 사용한다.
+transferId와 paidAt을 저장해 캘린더 기록과 지급 결과를 연결한다.
+```
+
 ## Resilience4j 설정 기준
 
 초기값:
@@ -164,4 +183,5 @@ wallet-service down -> Transfer FAILED
 sender 차감 성공 후 receiver 증가 실패 -> COMPENSATION_REQUIRED
 Outbox publisher 실패 -> READY 유지 또는 retryCount 증가
 Kafka 중복 이벤트 -> ledger 1회만 기록
+reward-service 승인 재시도 -> 아이 지갑 지급 1회
 ```

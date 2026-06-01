@@ -1,4 +1,4 @@
-# 08. Ledger Service
+# 10. Ledger Service
 
 `ledger-service`는 결제 회사 지원용 포트폴리오에서 매우 중요한 서비스다.
 
@@ -162,4 +162,3 @@ eventId 중복 소비 시 skip
 원장 조회 성공
 잘못된 amount 이벤트 실패
 ```
-

@@ -13,6 +13,7 @@ payflow_user
 payflow_wallet
 payflow_banking
 payflow_transfer
+payflow_reward
 payflow_ledger
 payflow_settlement
 ```
@@ -226,6 +227,42 @@ published_at DATETIME
 updated_at DATETIME
 ```
 
+### payflow_reward
+
+```text
+reward_tasks
+```
+
+reward_tasks:
+
+```text
+id BIGINT PK
+parent_user_id BIGINT
+child_user_id BIGINT
+parent_wallet_id BIGINT
+child_wallet_id BIGINT
+title VARCHAR(100)
+description VARCHAR(500)
+reward_amount DECIMAL(19,0)
+task_date DATE
+status VARCHAR(30)
+submitted_at DATETIME
+approved_at DATETIME
+paid_at DATETIME
+transfer_id BIGINT
+failure_reason VARCHAR(500)
+created_at DATETIME
+updated_at DATETIME
+```
+
+주의:
+
+```text
+reward-service는 user, wallet, transfer DB를 직접 조회하거나 변경하지 않는다.
+부모/아이 식별자와 지갑 ID는 참조 ID로만 저장한다.
+보상 지급은 transfer-service 송금 API를 통해서만 수행한다.
+```
+
 ### payflow_ledger
 
 ```text
@@ -324,6 +361,9 @@ idempotency_keys.idempotency_key UNIQUE
 outbox_events.status
 outbox_events(status, created_at)
 outbox_events.event_id UNIQUE
+reward_tasks(child_user_id, task_date)
+reward_tasks(parent_user_id, task_date)
+reward_tasks.status
 ledger_entries.transfer_id UNIQUE
 ledger_entries.event_id UNIQUE
 processed_events.event_id UNIQUE
@@ -338,6 +378,7 @@ settlement_items.transfer_id UNIQUE
 ```text
 transfer-service가 payflow_wallet.wallets 직접 조회
 banking-service가 payflow_wallet.wallets 직접 수정
+reward-service가 payflow_transfer.transfers 직접 수정
 ledger-service가 payflow_transfer.transfers 직접 조회
 settlement-service가 payflow_wallet.wallet_transactions 직접 조회
 ```

@@ -1,4 +1,4 @@
-# 12. Testing Strategy
+# 14. Testing Strategy
 
 이 문서는 테스트 전략이다.
 
@@ -12,6 +12,7 @@
 동시성
 Outbox 재발행
 원장 중복 방지
+보상 중복 지급 방지
 장애 상태 기록
 ```
 
@@ -37,6 +38,7 @@ request hash
 
 ```text
 송금 처리 흐름
+보상 미션 승인과 지급 흐름
 지갑 잔액 변경
 원장 기록
 정산 실행
@@ -98,6 +100,18 @@ Idempotency-Key 없음 실패
 같은 key 다른 body 실패
 wallet-service 실패 시 FAILED
 OutboxEvent 저장
+```
+
+### reward-service
+
+```text
+부모 미션 등록
+아이 완료 요청
+부모 승인 시 transfer-service 호출
+같은 미션 재승인 시 중복 지급 방지
+송금 실패 시 failureReason 저장
+월별 캘린더 합계 계산
+부모/아이 권한 불일치 실패
 ```
 
 ### ledger-service
@@ -169,4 +183,3 @@ PUBLISHED 변경
 ```
 
 초기 로컬 테스트에서는 Kafka 중단 자동화가 어려울 수 있으므로 producer mock으로 먼저 검증한다.
-

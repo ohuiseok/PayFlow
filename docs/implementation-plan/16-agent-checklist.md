@@ -1,4 +1,4 @@
-# 14. Agent Checklist
+# 16. Agent Checklist
 
 이 문서는 AI agent가 구현할 때 매번 확인해야 하는 체크리스트다.
 
@@ -50,6 +50,19 @@
 - [ ] UNKNOWN/BANK_PROCESSING 상태를 결과조회 워커로 확정한다.
 - [ ] 출금은 초기에 보상 근거를 남기고, hold 모델은 후속 확장으로 둔다.
 - [ ] 정보제공자 API는 초기 구현 범위에 넣지 않는다.
+
+## Reward Service 구현 시
+
+- [ ] reward-service가 user/wallet/transfer DB를 직접 읽거나 쓰지 않는다.
+- [ ] 보상 금액은 `BigDecimal`로 처리한다.
+- [ ] 미션 상태는 enum으로 관리한다.
+- [ ] 부모/아이 권한 검증을 API별로 수행한다.
+- [ ] 승인 API는 이미 `PAID`인 미션에 대해 중복 지급하지 않는다.
+- [ ] transfer-service 호출 시 `reward-payment-{taskId}` 형식의 고정 Idempotency-Key를 사용한다.
+- [ ] transfer-service 실패 또는 timeout 후 재시도해도 같은 task가 두 번 지급되지 않는다.
+- [ ] 캘린더 합계는 `PAID` 상태 미션만 기준으로 계산한다.
+- [ ] 지급 완료 후 transferId와 paidAt을 저장한다.
+- [ ] 데모 시나리오에서 부모 지갑 잔액 감소와 아이 지갑 잔액 증가를 확인한다.
 
 ## 원장 구현 시
 

@@ -1,4 +1,4 @@
-# 05. Open Banking Service
+# 07. Open Banking Service
 
 `banking-service`는 금융결제원 오픈뱅킹 테스트베드 또는 mock profile과 연동해 외부 은행 계좌와 PayFlow 지갑 사이의 자금 이동 상태를 관리한다.
 

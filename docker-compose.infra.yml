@@ -13,13 +13,14 @@ services:
       WALLET_DB_NAME: ${WALLET_DB_NAME:-payflow_wallet}
       BANKING_DB_NAME: ${BANKING_DB_NAME:-payflow_banking}
       TRANSFER_DB_NAME: ${TRANSFER_DB_NAME:-payflow_transfer}
+      REWARD_DB_NAME: ${REWARD_DB_NAME:-payflow_reward}
       LEDGER_DB_NAME: ${LEDGER_DB_NAME:-payflow_ledger}
       SETTLEMENT_DB_NAME: ${SETTLEMENT_DB_NAME:-payflow_settlement}
     ports:
       - "${MYSQL_PORT:-3306}:3306"
     command:
-      - --innodb-buffer-pool-size=${MYSQL_BUFFER_POOL_SIZE:-256M}
-      - --max-connections=${MYSQL_MAX_CONNECTIONS:-50}
+      - --innodb-buffer-pool-size=${MYSQL_BUFFER_POOL_SIZE:-384M}
+      - --max-connections=${MYSQL_MAX_CONNECTIONS:-80}
       - --performance-schema=OFF
     volumes:
       - mysql_dev_data:/var/lib/mysql
@@ -54,11 +55,13 @@ services:
       KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_CFG_NUM_PARTITIONS: ${KAFKA_NUM_PARTITIONS:-1}
       KAFKA_CFG_LOG_RETENTION_HOURS: ${KAFKA_LOG_RETENTION_HOURS:-24}
-      KAFKA_HEAP_OPTS: ${KAFKA_HEAP_OPTS:--Xms256m -Xmx512m}
+      KAFKA_HEAP_OPTS: ${KAFKA_HEAP_OPTS:--Xms384m -Xmx768m}
     volumes:
       - kafka_dev_data:/bitnami/kafka
-    mem_limit: ${KAFKA_MEM_LIMIT:-768m}
+    mem_limit: ${KAFKA_MEM_LIMIT:-1024m}
 
 volumes:
   mysql_dev_data:
+    name: ${MYSQL_DEV_VOLUME_NAME:-payflow_mysql_dev_data}
   kafka_dev_data:
+    name: ${KAFKA_DEV_VOLUME_NAME:-payflow_kafka_dev_data}

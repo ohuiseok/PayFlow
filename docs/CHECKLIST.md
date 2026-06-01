@@ -48,6 +48,7 @@ docs/implementation-plan/01-common-rules.md
 - [ ] user-service 테이블 설계
 - [ ] wallet-service 테이블 설계
 - [ ] transfer-service 테이블 설계
+- [ ] reward-service 테이블 설계
 - [ ] ledger-service 테이블 설계
 - [ ] settlement-service 테이블 설계
 - [ ] 초기 구현용 `ddl-auto=update` 확인
@@ -117,7 +118,76 @@ docs/implementation-plan/03-user-service.md
 docs/implementation-plan/04-wallet-service.md
 ```
 
-## 5. Open Banking Service
+## 5. Transfer Service
+
+- [ ] Transfer 엔티티 구현
+- [ ] TransferStatus enum 구현
+- [ ] IdempotencyKey 엔티티 구현
+- [ ] OutboxEvent 엔티티 구현
+- [ ] Repository 구현
+- [ ] request hash 생성 로직 구현
+- [ ] IdempotencyService 구현
+- [ ] Wallet Feign Client 구현
+- [ ] 송금 요청 API 구현
+- [ ] 송금 조회 API 구현
+- [ ] sender wallet 소유권 검증 구현
+- [ ] 송금 상태 전이 구현
+- [ ] COMPENSATION_REQUIRED 상태 구현
+- [ ] PROCESSING stale 복구 정책 구현 또는 문서화
+- [ ] 실패 상태 기록 구현
+- [ ] transfer-service 테스트 작성
+- [ ] transfer-service `bootJar` 확인
+
+완료 기준:
+
+```text
+송금 요청이 상태 기반으로 처리되고, 동일 Idempotency-Key 요청이 중복 차감되지 않는다.
+```
+
+관련 문서:
+
+```text
+docs/implementation-plan/05-transfer-service.md
+```
+
+## 6. Reward Service
+
+- [ ] reward-service 프로젝트 생성
+- [ ] payflow_reward DB 설정 확인
+- [ ] RewardTask 엔티티 구현
+- [ ] RewardTaskStatus enum 구현
+- [ ] RewardTaskRepository 구현
+- [ ] TransferClient 구현
+- [ ] 부모 미션 등록 API 구현
+- [ ] 아이 미션 목록/상세 조회 API 구현
+- [ ] 아이 완료 요청 API 구현
+- [ ] 부모 승인 API 구현
+- [ ] 부모 거절 API 구현
+- [ ] 승인 시 transfer-service 송금 연동
+- [ ] `reward-payment-{taskId}` Idempotency-Key 적용
+- [ ] 이미 PAID인 미션 재승인 시 기존 결과 반환
+- [ ] 송금 실패 시 failureReason 저장
+- [ ] 월별 캘린더 조회 API 구현
+- [ ] 월별 지급 완료 금액 합계 구현
+- [ ] Gateway reward-service route 추가
+- [ ] docker-compose reward-service 추가
+- [ ] reward-service 테스트 작성
+- [ ] reward-service `bootJar` 확인
+
+완료 기준:
+
+```text
+부모가 등록한 일을 아이가 완료 요청하고, 부모 승인 후 부모 지갑에서 아이 지갑으로 실제 용돈이 한 번만 지급된다.
+지급 완료된 미션은 아이 캘린더에 날짜별 기록과 월별 합계로 표시된다.
+```
+
+관련 문서:
+
+```text
+docs/implementation-plan/06-reward-service.md
+```
+
+## 7. Open Banking Service
 
 - [x] banking-service 프로젝트 생성
 - [ ] payflow_banking DB 설정 확인
@@ -172,42 +242,10 @@ UNKNOWN/BANK_PROCESSING 상태는 결과조회 워커로 최종 상태를 확정
 관련 문서:
 
 ```text
-docs/implementation-plan/05-open-banking-service.md
+docs/implementation-plan/07-open-banking-service.md
 ```
 
-## 6. Transfer Service
-
-- [ ] Transfer 엔티티 구현
-- [ ] TransferStatus enum 구현
-- [ ] IdempotencyKey 엔티티 구현
-- [ ] OutboxEvent 엔티티 구현
-- [ ] Repository 구현
-- [ ] request hash 생성 로직 구현
-- [ ] IdempotencyService 구현
-- [ ] Wallet Feign Client 구현
-- [ ] 송금 요청 API 구현
-- [ ] 송금 조회 API 구현
-- [ ] sender wallet 소유권 검증 구현
-- [ ] 송금 상태 전이 구현
-- [ ] COMPENSATION_REQUIRED 상태 구현
-- [ ] PROCESSING stale 복구 정책 구현 또는 문서화
-- [ ] 실패 상태 기록 구현
-- [ ] transfer-service 테스트 작성
-- [ ] transfer-service `bootJar` 확인
-
-완료 기준:
-
-```text
-송금 요청이 상태 기반으로 처리되고, 동일 Idempotency-Key 요청이 중복 차감되지 않는다.
-```
-
-관련 문서:
-
-```text
-docs/implementation-plan/05-transfer-service.md
-```
-
-## 7. Redis Lock
+## 8. Redis Lock
 
 - [ ] RedisLockManager 구현
 - [ ] 락 key 규칙 구현
@@ -227,10 +265,10 @@ docs/implementation-plan/05-transfer-service.md
 관련 문서:
 
 ```text
-docs/implementation-plan/06-redis-lock.md
+docs/implementation-plan/08-redis-lock.md
 ```
 
-## 8. Outbox And Kafka
+## 9. Outbox And Kafka
 
 - [ ] OutboxEvent 저장 로직 구현
 - [ ] TransferCompleted payload 정의
@@ -254,10 +292,10 @@ docs/implementation-plan/06-redis-lock.md
 관련 문서:
 
 ```text
-docs/implementation-plan/07-outbox-and-kafka.md
+docs/implementation-plan/09-outbox-and-kafka.md
 ```
 
-## 9. Ledger Service
+## 10. Ledger Service
 
 - [ ] LedgerEntry 엔티티 구현
 - [ ] LedgerLine 엔티티 구현
@@ -279,10 +317,10 @@ docs/implementation-plan/07-outbox-and-kafka.md
 관련 문서:
 
 ```text
-docs/implementation-plan/08-ledger-service.md
+docs/implementation-plan/10-ledger-service.md
 ```
 
-## 10. Settlement Service
+## 11. Settlement Service
 
 - [ ] SettlementTarget 엔티티 구현
 - [ ] SettlementDay 엔티티 구현
@@ -305,10 +343,10 @@ docs/implementation-plan/08-ledger-service.md
 관련 문서:
 
 ```text
-docs/implementation-plan/09-settlement-service.md
+docs/implementation-plan/11-settlement-service.md
 ```
 
-## 11. Gateway And Security
+## 12. Gateway And Security
 
 - [x] Gateway route 확인
 - [x] 인증 제외 경로 정의
@@ -330,10 +368,10 @@ docs/implementation-plan/09-settlement-service.md
 관련 문서:
 
 ```text
-docs/implementation-plan/10-gateway-and-security.md
+docs/implementation-plan/12-gateway-and-security.md
 ```
 
-## 12. 장애 복구
+## 13. 장애 복구
 
 - [ ] 동일 Idempotency-Key 반복 요청 테스트
 - [ ] 같은 지갑 동시 송금 테스트
@@ -355,14 +393,15 @@ docs/implementation-plan/10-gateway-and-security.md
 관련 문서:
 
 ```text
-docs/implementation-plan/11-failure-recovery.md
+docs/implementation-plan/13-failure-recovery.md
 ```
 
-## 13. 테스트
+## 14. 테스트
 
 - [ ] user-service 단위/통합 테스트
 - [ ] wallet-service 단위/통합 테스트
 - [ ] transfer-service 단위/통합 테스트
+- [ ] reward-service 단위/통합 테스트
 - [ ] ledger-service 단위/통합 테스트
 - [ ] settlement-service 단위/통합 테스트
 - [ ] Redis lock 테스트
@@ -380,10 +419,10 @@ docs/implementation-plan/11-failure-recovery.md
 관련 문서:
 
 ```text
-docs/implementation-plan/12-testing-strategy.md
+docs/implementation-plan/14-testing-strategy.md
 ```
 
-## 14. 로컬 실행과 배포
+## 15. 로컬 실행과 배포
 
 - [ ] 로컬 MySQL 사용 방식 확인
 - [ ] Docker MySQL 3307 포트 실행 방식 확인
@@ -405,10 +444,10 @@ docs/implementation-plan/12-testing-strategy.md
 관련 문서:
 
 ```text
-docs/implementation-plan/13-local-and-deploy.md
+docs/implementation-plan/15-local-and-deploy.md
 ```
 
-## 15. 최종 포트폴리오 정리
+## 16. 최종 포트폴리오 정리
 
 - [ ] README 최신화
 - [ ] 아키텍처 다이어그램 정리
@@ -418,6 +457,7 @@ docs/implementation-plan/13-local-and-deploy.md
 - [ ] 결제 정합성 설계 설명 추가
 - [ ] Outbox와 원장 설계 설명 추가
 - [ ] 정산 흐름 설명 추가
+- [ ] 용돈 캘린더 공모전 시나리오 설명 추가
 
 완료 기준:
 

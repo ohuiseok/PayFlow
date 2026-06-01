@@ -1,4 +1,4 @@
-# 09. Settlement Service
+# 11. Settlement Service
 
 `settlement-service`는 정산과 배치를 보여주는 확장 서비스다.
 
@@ -164,4 +164,3 @@ transfer.completed 이벤트 수신 시 정산 후보 저장
 이미 정산된 날짜 재실행 방지
 정산 결과 조회
 ```
-

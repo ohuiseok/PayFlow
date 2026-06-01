@@ -1,4 +1,4 @@
-# 07. Outbox And Kafka
+# 09. Outbox And Kafka
 
 이 문서는 Kafka 이벤트 발행 신뢰성을 위한 Transactional Outbox 구현 계획이다.
 
