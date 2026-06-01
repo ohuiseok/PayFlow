@@ -23,6 +23,12 @@ spring:
             - Path=/api/wallets/**
           filters:
             - StripPrefix=1
+        - id: banking-service
+          uri: ${BANKING_SERVICE_URI:http://localhost:8086}
+          predicates:
+            - Path=/api/bank/**
+          filters:
+            - StripPrefix=1
         - id: transfer-service
           uri: ${TRANSFER_SERVICE_URI:http://localhost:8083}
           predicates:

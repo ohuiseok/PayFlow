@@ -67,7 +67,7 @@ public class WalletService {
             boolean internalRequest
     ) {
         BigDecimal amount = normalizeAmount(request.amount());
-        String referenceType = request.referenceType().trim();
+        String referenceType = request.referenceType().name();
         String referenceId = request.referenceId().trim();
 
         return walletTransactionRepository.findByWalletIdAndTransactionTypeAndReferenceTypeAndReferenceId(

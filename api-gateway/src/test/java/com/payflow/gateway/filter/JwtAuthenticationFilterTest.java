@@ -29,6 +29,8 @@ class JwtAuthenticationFilterTest {
     void publicRequestRemovesExternalUserHeaders() {
         MockServerHttpRequest request = MockServerHttpRequest.post("/api/users")
                 .header("X-User-Id", "999")
+                .header("X-Internal-Request", "true")
+                .header("X-Internal-Secret", "spoofed")
                 .build();
         MockServerWebExchange exchange = MockServerWebExchange.from(request);
         AtomicReference<ServerWebExchange> captured = new AtomicReference<>();
@@ -36,6 +38,8 @@ class JwtAuthenticationFilterTest {
         filter.filter(exchange, captureExchange(captured)).block();
 
         assertThat(captured.get().getRequest().getHeaders().containsHeader("X-User-Id")).isFalse();
+        assertThat(captured.get().getRequest().getHeaders().containsHeader("X-Internal-Request")).isFalse();
+        assertThat(captured.get().getRequest().getHeaders().containsHeader("X-Internal-Secret")).isFalse();
     }
 
     @Test
@@ -44,6 +48,7 @@ class JwtAuthenticationFilterTest {
         MockServerHttpRequest request = MockServerHttpRequest.get("/api/users/1")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                 .header("X-User-Id", "999")
+                .header("X-Internal-Request", "true")
                 .build();
         MockServerWebExchange exchange = MockServerWebExchange.from(request);
         AtomicReference<ServerWebExchange> captured = new AtomicReference<>();
@@ -54,6 +59,7 @@ class JwtAuthenticationFilterTest {
         assertThat(headers.getFirst("X-User-Id")).isEqualTo("1");
         assertThat(headers.getFirst("X-User-Email")).isEqualTo("user@example.com");
         assertThat(headers.getFirst("X-User-Role")).isEqualTo("USER");
+        assertThat(headers.containsHeader("X-Internal-Request")).isFalse();
     }
 
     @Test

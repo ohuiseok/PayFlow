@@ -11,6 +11,7 @@ services:
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       USER_DB_NAME: ${USER_DB_NAME:-payflow_user}
       WALLET_DB_NAME: ${WALLET_DB_NAME:-payflow_wallet}
+      BANKING_DB_NAME: ${BANKING_DB_NAME:-payflow_banking}
       TRANSFER_DB_NAME: ${TRANSFER_DB_NAME:-payflow_transfer}
       LEDGER_DB_NAME: ${LEDGER_DB_NAME:-payflow_ledger}
       SETTLEMENT_DB_NAME: ${SETTLEMENT_DB_NAME:-payflow_settlement}

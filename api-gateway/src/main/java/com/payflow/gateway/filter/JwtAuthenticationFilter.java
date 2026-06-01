@@ -29,6 +29,8 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     private static final String X_USER_ID = "X-User-Id";
     private static final String X_USER_EMAIL = "X-User-Email";
     private static final String X_USER_ROLE = "X-User-Role";
+    private static final String X_INTERNAL_REQUEST = "X-Internal-Request";
+    private static final String X_INTERNAL_SECRET = "X-Internal-Secret";
 
     private final JwtTokenProvider jwtTokenProvider;
 
@@ -66,6 +68,8 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
                     headers.remove(X_USER_ID);
                     headers.remove(X_USER_EMAIL);
                     headers.remove(X_USER_ROLE);
+                    headers.remove(X_INTERNAL_REQUEST);
+                    headers.remove(X_INTERNAL_SECRET);
                 })
                 .build();
     }

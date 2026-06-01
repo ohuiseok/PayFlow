@@ -33,3 +33,5 @@ Thumbs.db
 docker-data/
 mysql_data/
 kafka_data/
+
+reference-docs/

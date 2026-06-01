@@ -29,3 +29,6 @@ management:
   endpoint:
     health:
       show-details: always
+
+internal:
+  secret: ${INTERNAL_SERVICE_SECRET:}

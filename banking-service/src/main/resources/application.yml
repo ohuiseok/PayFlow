@@ -1,0 +1,43 @@
+server:
+  port: ${SERVER_PORT:8086}
+
+spring:
+  application:
+    name: banking-service
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/payflow_banking?serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
+    username: ${SPRING_DATASOURCE_USERNAME:payflow}
+    password: ${SPRING_DATASOURCE_PASSWORD:payflow}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:update}
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+
+clients:
+  wallet-service:
+    url: ${WALLET_SERVICE_URL:http://localhost:8082}
+
+openbanking:
+  mode: ${OPENBANKING_MODE:mock}
+  base-url: ${OPENBANKING_BASE_URL:https://testapi.openbanking.or.kr}
+  client-id: ${OPENBANKING_CLIENT_ID:${API_CLIENT_ID:}}
+  client-secret: ${OPENBANKING_CLIENT_SECRET:${API_CLIENT_SECRET:}}
+  callback-url: ${OPENBANKING_CALLBACK_URL:${API_CALLBACK_URL:}}
+  client-use-code: ${OPENBANKING_CLIENT_USE_CODE:}
+  access-token: ${OPENBANKING_ACCESS_TOKEN:}
+
+internal:
+  secret: ${INTERNAL_SERVICE_SECRET:}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always

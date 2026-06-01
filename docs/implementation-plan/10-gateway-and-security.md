@@ -23,6 +23,7 @@ Docker Compose 서비스 이름으로 직접 라우팅한다.
 ```text
 /api/users/**       -> http://user-service:8081
 /api/wallets/**     -> http://wallet-service:8082
+/api/bank/**        -> http://banking-service:8086
 /api/transfers/**   -> http://transfer-service:8083
 /api/ledgers/**     -> http://ledger-service:8084
 /api/settlements/** -> http://settlement-service:8085
@@ -47,6 +48,7 @@ GET /actuator/health
 
 ```text
 /api/wallets/**
+/api/bank/**
 /api/transfers/**
 /api/ledgers/**
 /api/settlements/**
@@ -71,7 +73,7 @@ X-User-Id
 X-User-Email
 X-User-Role
 X-Internal-Request
-X-Service-Secret
+X-Internal-Secret
 ```
 
 그 다음 검증된 JWT claim으로 `X-User-*` 헤더를 다시 생성한다.

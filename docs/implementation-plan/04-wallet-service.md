@@ -181,10 +181,19 @@ ACTIVE 상태에서만 변경 가능
 지갑 생성 요청의 userId는 X-User-Id와 같아야 한다.
 잔액 조회는 지갑 소유자만 가능하다.
 개발/시연용 충전 API도 지갑 소유자만 가능하다.
-내부 송금용 withdraw/deposit API는 X-Internal-Request 또는 서비스 간 secret 검증 후 허용한다.
+내부 송금용 withdraw/deposit API는 X-Internal-Request와 서비스 간 secret 검증 후 허용한다.
 오픈뱅킹 충전/출금 반영도 내부 API로만 허용한다.
 내부 API에서는 userId를 신뢰하지 않고 walletId와 reference 정보만 처리한다.
 ```
+
+내부 API 필수 헤더:
+
+```http
+X-Internal-Request: true
+X-Internal-Secret: ${INTERNAL_SERVICE_SECRET}
+```
+
+Gateway는 외부 요청에서 `X-Internal-*` 헤더를 제거한다.
 
 ## 멱등성 규칙
 

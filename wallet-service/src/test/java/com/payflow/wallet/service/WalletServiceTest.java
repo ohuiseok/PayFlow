@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.payflow.wallet.dto.CreateWalletRequest;
 import com.payflow.wallet.dto.WalletBalanceChangeRequest;
 import com.payflow.wallet.entity.Wallet;
+import com.payflow.wallet.entity.WalletReferenceType;
 import com.payflow.wallet.entity.WalletTransactionType;
 import com.payflow.wallet.repository.WalletRepository;
 import com.payflow.wallet.repository.WalletTransactionRepository;
@@ -73,7 +74,7 @@ class WalletServiceTest {
 
         var response = walletService.deposit(
                 wallet.walletId(),
-                new WalletBalanceChangeRequest(new BigDecimal("10000"), "MANUAL_CHARGE", "1"),
+                new WalletBalanceChangeRequest(new BigDecimal("10000"), WalletReferenceType.MANUAL_CHARGE, "1"),
                 1L,
                 false
         );
@@ -90,7 +91,7 @@ class WalletServiceTest {
     @Test
     void duplicateDepositReferenceDoesNotIncreaseAgain() {
         var wallet = walletService.createWallet(new CreateWalletRequest(1L), 1L);
-        var request = new WalletBalanceChangeRequest(new BigDecimal("10000"), "MANUAL_CHARGE", "1");
+        var request = new WalletBalanceChangeRequest(new BigDecimal("10000"), WalletReferenceType.MANUAL_CHARGE, "1");
 
         walletService.deposit(wallet.walletId(), request, 1L, false);
         var response = walletService.deposit(wallet.walletId(), request, 1L, false);
@@ -105,14 +106,14 @@ class WalletServiceTest {
 
         walletService.deposit(
                 wallet.walletId(),
-                new WalletBalanceChangeRequest(new BigDecimal("10000"), "MANUAL_CHARGE", "1"),
+                new WalletBalanceChangeRequest(new BigDecimal("10000"), WalletReferenceType.MANUAL_CHARGE, "1"),
                 1L,
                 false
         );
 
         assertThatThrownBy(() -> walletService.deposit(
                 wallet.walletId(),
-                new WalletBalanceChangeRequest(new BigDecimal("20000"), "MANUAL_CHARGE", "1"),
+                new WalletBalanceChangeRequest(new BigDecimal("20000"), WalletReferenceType.MANUAL_CHARGE, "1"),
                 1L,
                 false
         ))
@@ -126,11 +127,11 @@ class WalletServiceTest {
         var wallet = walletService.createWallet(new CreateWalletRequest(1L), 1L);
         walletService.deposit(
                 wallet.walletId(),
-                new WalletBalanceChangeRequest(new BigDecimal("10000"), "MANUAL_CHARGE", "1"),
+                new WalletBalanceChangeRequest(new BigDecimal("10000"), WalletReferenceType.MANUAL_CHARGE, "1"),
                 1L,
                 false
         );
-        var request = new WalletBalanceChangeRequest(new BigDecimal("3000"), "TRANSFER", "1001");
+        var request = new WalletBalanceChangeRequest(new BigDecimal("3000"), WalletReferenceType.TRANSFER, "1001");
 
         walletService.withdraw(wallet.walletId(), request);
         var response = walletService.withdraw(wallet.walletId(), request);
@@ -145,7 +146,7 @@ class WalletServiceTest {
 
         assertThatThrownBy(() -> walletService.withdraw(
                 wallet.walletId(),
-                new WalletBalanceChangeRequest(new BigDecimal("1"), "TRANSFER", "1001")
+                new WalletBalanceChangeRequest(new BigDecimal("1"), WalletReferenceType.TRANSFER, "1001")
         ))
                 .isInstanceOf(BusinessException.class)
                 .extracting("errorCode")
@@ -161,7 +162,7 @@ class WalletServiceTest {
 
         assertThatThrownBy(() -> walletService.withdraw(
                 wallet.walletId(),
-                new WalletBalanceChangeRequest(new BigDecimal("1"), "TRANSFER", "1001")
+                new WalletBalanceChangeRequest(new BigDecimal("1"), WalletReferenceType.TRANSFER, "1001")
         ))
                 .isInstanceOf(BusinessException.class)
                 .extracting("errorCode")
@@ -184,7 +185,7 @@ class WalletServiceTest {
 
         assertThatThrownBy(() -> walletService.deposit(
                 wallet.walletId(),
-                new WalletBalanceChangeRequest(new BigDecimal("1.5"), "MANUAL_CHARGE", "1"),
+                new WalletBalanceChangeRequest(new BigDecimal("1.5"), WalletReferenceType.MANUAL_CHARGE, "1"),
                 1L,
                 false
         ))
@@ -198,7 +199,7 @@ class WalletServiceTest {
         var wallet = walletService.createWallet(new CreateWalletRequest(1L), 1L);
         walletService.deposit(
                 wallet.walletId(),
-                new WalletBalanceChangeRequest(new BigDecimal("100"), "MANUAL_CHARGE", "1"),
+                new WalletBalanceChangeRequest(new BigDecimal("100"), WalletReferenceType.MANUAL_CHARGE, "1"),
                 1L,
                 false
         );
@@ -216,7 +217,7 @@ class WalletServiceTest {
                     start.await();
                     walletService.withdraw(
                             wallet.walletId(),
-                            new WalletBalanceChangeRequest(new BigDecimal("80"), "TRANSFER", "T-" + reference)
+                            new WalletBalanceChangeRequest(new BigDecimal("80"), WalletReferenceType.TRANSFER, "T-" + reference)
                     );
                 } catch (Exception ignored) {
                 } finally {

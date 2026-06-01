@@ -8,7 +8,9 @@ import com.payflow.wallet.support.error.BusinessException;
 import com.payflow.wallet.support.error.ErrorCode;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -24,6 +26,9 @@ import org.springframework.web.bind.annotation.RestController;
 public class WalletController {
 
     private final WalletService walletService;
+
+    @Value("${internal.secret:}")
+    private String internalSecret;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -47,8 +52,10 @@ public class WalletController {
             @PathVariable Long walletId,
             @Valid @RequestBody WalletBalanceChangeRequest request,
             @RequestHeader(value = "X-User-Id", required = false) Long requestUserId,
-            @RequestHeader(value = "X-Internal-Request", defaultValue = "false") boolean internalRequest
+            @RequestHeader(value = "X-Internal-Request", defaultValue = "false") boolean internalRequest,
+            @RequestHeader(value = "X-Internal-Secret", required = false) String requestInternalSecret
     ) {
+        validateInternalRequest(internalRequest, requestInternalSecret);
         return walletService.deposit(walletId, request, requestUserId, internalRequest);
     }
 
@@ -56,11 +63,22 @@ public class WalletController {
     public WalletResponse withdraw(
             @PathVariable Long walletId,
             @Valid @RequestBody WalletBalanceChangeRequest request,
-            @RequestHeader(value = "X-Internal-Request", defaultValue = "false") boolean internalRequest
+            @RequestHeader(value = "X-Internal-Request", defaultValue = "false") boolean internalRequest,
+            @RequestHeader(value = "X-Internal-Secret", required = false) String requestInternalSecret
     ) {
         if (!internalRequest) {
             throw new BusinessException(ErrorCode.FORBIDDEN);
         }
+        validateInternalRequest(true, requestInternalSecret);
         return walletService.withdraw(walletId, request);
+    }
+
+    private void validateInternalRequest(boolean internalRequest, String requestInternalSecret) {
+        if (!internalRequest) {
+            return;
+        }
+        if (!StringUtils.hasText(internalSecret) || !internalSecret.equals(requestInternalSecret)) {
+            throw new BusinessException(ErrorCode.FORBIDDEN);
+        }
     }
 }
