@@ -75,6 +75,21 @@ Content-Type: application/json
 }
 ```
 
+오픈뱅킹 충전이 도입되면 외부 공개 충전 API는 개발/시연용으로만 유지한다.
+실제 포트폴리오 충전 시나리오는 `banking-service`가 오픈뱅킹 출금이체 성공을 확인한 뒤 내부 API로 호출한다.
+
+```http
+POST /wallets/{walletId}/deposit
+X-Internal-Request: true
+Content-Type: application/json
+
+{
+  "amount": 10000,
+  "referenceType": "OPEN_BANKING_CHARGE",
+  "referenceId": "M20260601123456789"
+}
+```
+
 ### 송금 차감
 
 내부 API로 시작한다. 외부 사용자가 직접 호출할 수 없게 Gateway에서 차단한다.
@@ -167,12 +182,14 @@ ACTIVE 상태에서만 변경 가능
 잔액 조회는 지갑 소유자만 가능하다.
 개발/시연용 충전 API도 지갑 소유자만 가능하다.
 내부 송금용 withdraw/deposit API는 X-Internal-Request 또는 서비스 간 secret 검증 후 허용한다.
+오픈뱅킹 충전/출금 반영도 내부 API로만 허용한다.
 내부 API에서는 userId를 신뢰하지 않고 walletId와 reference 정보만 처리한다.
 ```
 
 ## 멱등성 규칙
 
 wallet-service는 transfer-service의 retry와 네트워크 재시도에 대비해 reference 기반 멱등성을 가진다.
+같은 규칙은 banking-service의 오픈뱅킹 충전/출금 반영에도 적용한다.
 
 중복 기준:
 
@@ -195,6 +212,8 @@ UNIQUE(wallet_id, transaction_type, reference_type, reference_id)
 같은 reference로 같은 요청이 다시 오면 기존 WalletTransaction 기준으로 성공 응답을 반환한다.
 같은 reference로 amount가 다르면 409 Conflict를 반환한다.
 referenceType/referenceId가 없는 잔액 변경 요청은 실패시킨다.
+OPEN_BANKING_CHARGE referenceId는 bank_tran_id 또는 api_tran_id를 사용한다.
+OPEN_BANKING_WITHDRAWAL referenceId는 bankingTransferId 또는 bank_tran_id를 사용한다.
 ```
 
 ## 트랜잭션 규칙

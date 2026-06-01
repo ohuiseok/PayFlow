@@ -11,6 +11,7 @@
 ```text
 payflow_user
 payflow_wallet
+payflow_banking
 payflow_transfer
 payflow_ledger
 payflow_settlement
@@ -102,6 +103,74 @@ created_at DATETIME
 ```text
 wallet-service는 user DB를 조회하지 않는다.
 userId는 외부 서비스에서 받은 참조 ID로만 저장한다.
+```
+
+### payflow_banking
+
+```text
+bank_accounts
+banking_transfers
+banking_api_logs
+```
+
+bank_accounts:
+
+```text
+id BIGINT PK
+user_id BIGINT
+wallet_id BIGINT
+bank_code VARCHAR(10)
+account_number_masked VARCHAR(50)
+account_holder_name VARCHAR(100)
+fintech_use_num VARCHAR(100)
+status VARCHAR(30)
+created_at DATETIME
+updated_at DATETIME
+```
+
+banking_transfers:
+
+```text
+id BIGINT PK
+transfer_type VARCHAR(30)
+user_id BIGINT
+wallet_id BIGINT
+amount DECIMAL(19,0)
+status VARCHAR(30)
+idempotency_key VARCHAR(255)
+request_hash VARCHAR(255)
+bank_tran_id VARCHAR(100) UNIQUE
+api_tran_id VARCHAR(100)
+api_response_code VARCHAR(20)
+bank_response_code VARCHAR(20)
+failure_reason VARCHAR(500)
+wallet_reference_id VARCHAR(100)
+requested_at DATETIME
+completed_at DATETIME
+created_at DATETIME
+updated_at DATETIME
+```
+
+banking_api_logs:
+
+```text
+id BIGINT PK
+banking_transfer_id BIGINT
+api_name VARCHAR(100)
+request_id VARCHAR(100)
+response_code VARCHAR(20)
+bank_response_code VARCHAR(20)
+raw_response TEXT
+created_at DATETIME
+```
+
+주의:
+
+```text
+banking-service는 wallet DB를 직접 조회하거나 변경하지 않는다.
+오픈뱅킹 출금이체 성공이 확정된 뒤 wallet-service 내부 deposit API를 호출한다.
+bank_tran_id와 api_tran_id는 외부 은행망 추적과 응답 불명 복구 근거로 저장한다.
+계좌번호 원문은 저장하지 않고 마스킹 값 또는 테스트 식별자만 저장한다.
 ```
 
 ### payflow_transfer
@@ -242,6 +311,13 @@ users.email UNIQUE
 wallets.user_id UNIQUE
 wallet_transactions.wallet_id
 wallet_transactions(wallet_id, transaction_type, reference_type, reference_id) UNIQUE
+bank_accounts.user_id
+bank_accounts.wallet_id
+bank_accounts.fintech_use_num
+banking_transfers.idempotency_key UNIQUE
+banking_transfers.bank_tran_id UNIQUE
+banking_transfers.status
+banking_transfers.wallet_reference_id UNIQUE
 transfers.idempotency_key UNIQUE
 transfers.status
 idempotency_keys.idempotency_key UNIQUE
@@ -261,6 +337,7 @@ settlement_items.transfer_id UNIQUE
 
 ```text
 transfer-service가 payflow_wallet.wallets 직접 조회
+banking-service가 payflow_wallet.wallets 직접 수정
 ledger-service가 payflow_transfer.transfers 직접 조회
 settlement-service가 payflow_wallet.wallet_transactions 직접 조회
 ```

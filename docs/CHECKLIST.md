@@ -117,7 +117,45 @@ docs/implementation-plan/03-user-service.md
 docs/implementation-plan/04-wallet-service.md
 ```
 
-## 5. Transfer Service
+## 5. Open Banking Service
+
+- [ ] banking-service 프로젝트 생성
+- [ ] payflow_banking DB 설정
+- [ ] BankAccount 엔티티 구현
+- [ ] BankingTransfer 엔티티 구현
+- [ ] BankingApiLog 엔티티 구현
+- [ ] BankAccountStatus enum 구현
+- [ ] BankingTransferStatus enum 구현
+- [ ] Repository 구현
+- [ ] Idempotency-Key 검증 구현
+- [ ] request hash 생성 로직 구현
+- [ ] OpenBankingClient 인터페이스 구현
+- [ ] MockOpenBankingClient 구현
+- [ ] KftcOpenBankingClient 테스트베드 profile 문서화
+- [ ] Wallet Feign Client 구현
+- [ ] 계좌 등록 API 구현
+- [ ] 충전 요청 API 구현
+- [ ] 오픈뱅킹 출금이체 성공 후 wallet-service deposit 연동
+- [ ] bank_tran_id/api_tran_id 저장
+- [ ] 오픈뱅킹 실패 상태 저장
+- [ ] 응답 불명 UNKNOWN 상태 저장
+- [ ] 출금/환불 상태 모델 구현 또는 문서화
+- [ ] banking-service 테스트 작성
+- [ ] banking-service `bootJar` 확인
+
+완료 기준:
+
+```text
+외부 은행망 성공이 확정된 충전만 wallet-service 잔액에 반영되고, bank_tran_id 기준으로 중복 반영되지 않는다.
+```
+
+관련 문서:
+
+```text
+docs/implementation-plan/05-open-banking-service.md
+```
+
+## 6. Transfer Service
 
 - [ ] Transfer 엔티티 구현
 - [ ] TransferStatus enum 구현
@@ -149,7 +187,7 @@ docs/implementation-plan/04-wallet-service.md
 docs/implementation-plan/05-transfer-service.md
 ```
 
-## 6. Redis Lock
+## 7. Redis Lock
 
 - [ ] RedisLockManager 구현
 - [ ] 락 key 규칙 구현
@@ -172,7 +210,7 @@ docs/implementation-plan/05-transfer-service.md
 docs/implementation-plan/06-redis-lock.md
 ```
 
-## 7. Outbox And Kafka
+## 8. Outbox And Kafka
 
 - [ ] OutboxEvent 저장 로직 구현
 - [ ] TransferCompleted payload 정의
@@ -199,7 +237,7 @@ docs/implementation-plan/06-redis-lock.md
 docs/implementation-plan/07-outbox-and-kafka.md
 ```
 
-## 8. Ledger Service
+## 9. Ledger Service
 
 - [ ] LedgerEntry 엔티티 구현
 - [ ] LedgerLine 엔티티 구현
@@ -224,7 +262,7 @@ docs/implementation-plan/07-outbox-and-kafka.md
 docs/implementation-plan/08-ledger-service.md
 ```
 
-## 9. Settlement Service
+## 10. Settlement Service
 
 - [ ] SettlementTarget 엔티티 구현
 - [ ] SettlementDay 엔티티 구현
@@ -250,7 +288,7 @@ docs/implementation-plan/08-ledger-service.md
 docs/implementation-plan/09-settlement-service.md
 ```
 
-## 10. Gateway And Security
+## 11. Gateway And Security
 
 - [x] Gateway route 확인
 - [x] 인증 제외 경로 정의
@@ -275,7 +313,7 @@ docs/implementation-plan/09-settlement-service.md
 docs/implementation-plan/10-gateway-and-security.md
 ```
 
-## 11. 장애 복구
+## 12. 장애 복구
 
 - [ ] 동일 Idempotency-Key 반복 요청 테스트
 - [ ] 같은 지갑 동시 송금 테스트
@@ -300,7 +338,7 @@ docs/implementation-plan/10-gateway-and-security.md
 docs/implementation-plan/11-failure-recovery.md
 ```
 
-## 12. 테스트
+## 13. 테스트
 
 - [ ] user-service 단위/통합 테스트
 - [ ] wallet-service 단위/통합 테스트
@@ -325,7 +363,7 @@ docs/implementation-plan/11-failure-recovery.md
 docs/implementation-plan/12-testing-strategy.md
 ```
 
-## 13. 로컬 실행과 배포
+## 14. 로컬 실행과 배포
 
 - [ ] 로컬 MySQL 사용 방식 확인
 - [ ] Docker MySQL 3307 포트 실행 방식 확인
@@ -350,7 +388,7 @@ docs/implementation-plan/12-testing-strategy.md
 docs/implementation-plan/13-local-and-deploy.md
 ```
 
-## 14. 최종 포트폴리오 정리
+## 15. 최종 포트폴리오 정리
 
 - [ ] README 최신화
 - [ ] 아키텍처 다이어그램 정리

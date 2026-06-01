@@ -3,6 +3,7 @@
 `transfer-service`는 송금 요청의 상태를 관리하고, wallet-service를 호출해 돈의 이동을 오케스트레이션한다.
 
 중요: `transfer-service`는 잔액을 직접 변경하지 않는다.
+외부 은행 계좌 출금/입금은 담당하지 않는다. 은행망 연동은 `banking-service`가 맡고, `transfer-service`는 이미 충전된 PayFlow 지갑 간 송금만 처리한다.
 
 ## 목표
 
