@@ -110,7 +110,8 @@ OutboxEvent 저장
 부모 승인 시 transfer-service 호출
 같은 미션 재승인 시 중복 지급 방지
 송금 실패 시 failureReason 저장
-월별 캘린더 합계 계산
+missionDate 기반 월별 미션 캘린더 조회
+PAID 기준 캐시북 수입 합계 계산
 부모/아이 권한 불일치 실패
 ```
 

@@ -11,7 +11,9 @@
 
 ```text
 오픈뱅킹 계좌 등록 상태 저장
+충전 계좌 목록/등록/삭제 API
 충전 요청 생성
+크레딧 충전 결과 조회
 오픈뱅킹 출금이체 요청
 출금이체 성공 후 wallet-service 충전 요청
 지갑 출금/환불 요청 생성
@@ -71,21 +73,28 @@ transfer-service
 
 ## API
 
-### 계좌 등록
+최종 외부 API는 `docs/api-spec.md`의 Credit API를 따른다. Gateway 외부 경로는 `/api/credits/**`이고, banking-service 내부 경로는 `/credits/**`를 우선한다.
+
+### 충전 계좌 목록 조회
+
+```http
+GET /credits/bank-accounts
+X-User-Id: 1
+```
+
+### 충전 계좌 등록
 
 초기에는 테스트베드 또는 mock 값으로 계좌 식별자를 등록한다.
 
 ```http
-POST /bank/accounts
+POST /credits/bank-accounts
 X-User-Id: 1
 Content-Type: application/json
 
 {
-  "walletId": 1,
-  "bankCode": "097",
+  "bankName": "국민",
   "accountNumber": "1234567890123",
-  "accountHolderName": "홍길동",
-  "fintechUseNum": "199166681057555555555555"
+  "accountHolderName": "홍길동"
 }
 ```
 
@@ -93,28 +102,41 @@ Content-Type: application/json
 
 ```json
 {
-  "bankAccountId": 1,
-  "userId": 1,
-  "walletId": 1,
-  "bankCode": "097",
-  "accountNumberMasked": "1234*********",
-  "status": "ACTIVE"
+  "bankAccountId": "bank-account-001",
+  "bankName": "국민",
+  "maskedAccountNumber": "1234*********",
+  "primary": true
 }
 ```
 
-### 지갑 충전
+### 충전 계좌 삭제
+
+```http
+DELETE /credits/bank-accounts/{bankAccountId}
+X-User-Id: 1
+```
+
+응답: `204 No Content`
+
+### 부모 크레딧 요약
+
+```http
+GET /credits/parent/summary
+X-User-Id: 1
+```
+
+### 크레딧 충전 요청
 
 사용자 은행 계좌에서 출금해 PayFlow 지갑에 충전한다.
 
 ```http
-POST /bank/charges
+POST /credits/charges
 X-User-Id: 1
 Idempotency-Key: 20260601-user1-charge-001
 Content-Type: application/json
 
 {
-  "walletId": 1,
-  "bankAccountId": 1,
+  "bankAccountId": "bank-account-001",
   "amount": 10000
 }
 ```
@@ -123,11 +145,28 @@ Content-Type: application/json
 
 ```json
 {
-  "bankingTransferId": 1001,
+  "chargeId": "charge-20260601-0001",
+  "status": "PROCESSING",
+  "amount": 10000
+}
+```
+
+### 크레딧 충전 결과 조회
+
+```http
+GET /credits/charges/{chargeId}
+X-User-Id: 1
+```
+
+응답:
+
+```json
+{
+  "chargeId": "charge-20260601-0001",
   "status": "COMPLETED",
   "amount": 10000,
   "walletId": 1,
-  "bankTranId": "M20260601123456789"
+  "balanceAfter": 10000
 }
 ```
 
@@ -139,7 +178,7 @@ PayFlow 지갑 잔액을 사용자 은행 계좌로 출금한다.
 상태와 보상 근거를 남기는 방식으로 설계한다.
 
 ```http
-POST /bank/withdrawals
+POST /credits/withdrawals
 X-User-Id: 1
 Idempotency-Key: 20260601-user1-withdrawal-001
 Content-Type: application/json
@@ -398,8 +437,10 @@ timeout 또는 네트워크 단절:
    - 외부 은행망 없이 상태 전이와 테스트를 먼저 닫는다.
 
 2. 충전만 먼저 완성
-   - 계좌 등록 상태 저장
+   - 충전 계좌 목록/등록/삭제 API 구현
+   - 부모 크레딧 요약 API 구현
    - 충전 요청 생성
+   - 충전 결과 조회 API 구현
    - 오픈뱅킹 출금이체 성공 확정
    - wallet-service deposit 호출
    - `COMPLETED`까지 닫힌 루프로 만든다.
@@ -428,6 +469,9 @@ timeout 또는 네트워크 단절:
 
 ```text
 계좌 등록 성공
+계좌 목록 조회 성공
+계좌 삭제 성공
+부모 크레딧 요약 조회 성공
 타인 walletId 계좌 등록 실패
 MockOpenBankingClient 성공 응답 시 은행 성공 상태 저장
 MockOpenBankingClient 명시 실패 응답 시 FAILED
@@ -435,6 +479,7 @@ MockOpenBankingClient timeout 응답 시 UNKNOWN
 MockOpenBankingClient 처리 중 응답 시 BANK_PROCESSING
 MockOpenBankingClient bank_tran_id 중복 응답 시 결과조회 대상으로 전환
 충전 성공 시 BankingTransfer COMPLETED
+충전 결과 조회 시 상태와 balanceAfter 반환
 충전 성공 시 wallet-service deposit 호출
 같은 Idempotency-Key 재요청 시 같은 응답
 같은 Idempotency-Key 다른 body 요청 시 409

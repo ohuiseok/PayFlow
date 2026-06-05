@@ -1,0 +1,21 @@
+<svg width="390" height="844" viewBox="0 0 390 844" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="390" height="844" fill="#F7F9FA"/>
+  <text x="24" y="58" fill="#66717C" font-family="Arial, sans-serif" font-size="14" font-weight="700">반려 사유</text>
+  <text x="24" y="98" fill="#151B22" font-family="Arial, sans-serif" font-size="28" font-weight="800">다시 제출해볼까요?</text>
+  <rect x="24" y="132" width="342" height="112" rx="14" fill="#FFFFFF" stroke="#E4E9EE"/>
+  <text x="48" y="170" fill="#26313C" font-family="Arial, sans-serif" font-size="20" font-weight="800">수학 문제집 3쪽</text>
+  <text x="48" y="202" fill="#66717C" font-family="Arial, sans-serif" font-size="15">보상 3,000원</text>
+  <rect x="250" y="164" width="92" height="28" rx="14" fill="#FDECEC"/>
+  <text x="270" y="183" fill="#D84F45" font-family="Arial, sans-serif" font-size="12" font-weight="800">반려됨</text>
+  <rect x="24" y="284" width="342" height="142" rx="12" fill="#FDECEC" stroke="#F3C4C0"/>
+  <text x="48" y="322" fill="#D84F45" font-family="Arial, sans-serif" font-size="16" font-weight="800">부모 반려 사유</text>
+  <text x="48" y="358" fill="#26313C" font-family="Arial, sans-serif" font-size="17" font-weight="800">마지막 페이지 사진이 잘 안 보여.</text>
+  <text x="48" y="390" fill="#66717C" font-family="Arial, sans-serif" font-size="15">다시 찍어서 보내주면 확인할게.</text>
+  <rect x="24" y="466" width="342" height="116" rx="10" fill="#FFFFFF" stroke="#E4E9EE"/>
+  <text x="48" y="502" fill="#26313C" font-family="Arial, sans-serif" font-size="17" font-weight="800">재제출 메모</text>
+  <text x="48" y="534" fill="#66717C" font-family="Arial, sans-serif" font-size="15">사진을 다시 첨부했어요.</text>
+  <rect x="24" y="618" width="342" height="58" rx="10" fill="#F2F4F6"/>
+  <text x="139" y="654" fill="#26313C" font-family="Arial, sans-serif" font-size="17" font-weight="800">사진 다시 첨부</text>
+  <rect x="24" y="712" width="342" height="60" rx="10" fill="#1F7A5C"/>
+  <text x="151" y="749" fill="#FFFFFF" font-family="Arial, sans-serif" font-size="18" font-weight="800">재제출</text>
+</svg>

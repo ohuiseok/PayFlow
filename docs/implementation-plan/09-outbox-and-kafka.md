@@ -148,6 +148,43 @@ transfer.failed
 ledger.recorded
 ```
 
+## Retry와 DLQ
+
+Outbox publisher의 retry와 Kafka consumer의 retry는 분리해서 본다.
+
+```text
+Outbox publisher retry:
+- Kafka 발행 자체가 실패한 경우
+- outbox_events.retryCount 증가
+- 한도 초과 시 FAILED 상태로 남김
+
+Kafka consumer retry:
+- Kafka 발행은 성공했지만 consumer 처리 중 실패한 경우
+- consumer retry 후에도 실패하면 DLQ topic으로 보냄
+```
+
+초기 DLQ topic:
+
+```text
+transfer.completed.dlq
+transfer.failed.dlq
+ledger.recorded.dlq
+```
+
+DLQ payload에는 원본 이벤트와 실패 원인을 함께 남긴다.
+
+```text
+eventId
+originalTopic
+consumerGroup
+failureReason
+attempts
+failedAt
+payload
+```
+
+DLQ는 자동 성공 처리가 아니라 운영자가 원인을 확인하고 재처리할 수 있게 하는 마지막 안전망이다.
+
 개발 환경:
 
 ```text

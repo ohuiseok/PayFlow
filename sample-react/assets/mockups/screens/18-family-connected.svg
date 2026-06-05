@@ -1,0 +1,21 @@
+<svg width="390" height="844" viewBox="0 0 390 844" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="390" height="844" fill="#F7F9FA"/>
+  <text x="24" y="58" fill="#66717C" font-family="Arial, sans-serif" font-size="14" font-weight="700">가족 연결 완료</text>
+  <rect x="133" y="128" width="124" height="124" rx="62" fill="#EAF6EF"/>
+  <text x="174" y="207" fill="#1F7A5C" font-family="Arial, sans-serif" font-size="52" font-weight="800">✓</text>
+  <text x="87" y="312" fill="#151B22" font-family="Arial, sans-serif" font-size="30" font-weight="800">가족 연결이 완료됐어요</text>
+  <text x="73" y="344" fill="#66717C" font-family="Arial, sans-serif" font-size="16">이제 부모가 보낸 미션을 받을 수 있습니다.</text>
+
+  <rect x="24" y="402" width="342" height="118" rx="14" fill="#FFFFFF" stroke="#E4E9EE"/>
+  <circle cx="72" cy="461" r="28" fill="#EAF6EF"/>
+  <text x="63" y="470" fill="#1F7A5C" font-family="Arial, sans-serif" font-size="24" font-weight="800">부</text>
+  <text x="118" y="452" fill="#26313C" font-family="Arial, sans-serif" font-size="20" font-weight="800">지훈</text>
+  <text x="118" y="482" fill="#66717C" font-family="Arial, sans-serif" font-size="15">부모 계정 · 연결 완료</text>
+
+  <rect x="24" y="558" width="342" height="92" rx="10" fill="#EEF5FC" stroke="#CFE0F4"/>
+  <text x="48" y="592" fill="#2B6CB0" font-family="Arial, sans-serif" font-size="15" font-weight="800">다음에 할 일</text>
+  <text x="48" y="622" fill="#26313C" font-family="Arial, sans-serif" font-size="17" font-weight="800">새 미션이 도착하면 알림으로 알려드려요.</text>
+
+  <rect x="24" y="710" width="342" height="60" rx="10" fill="#1F7A5C"/>
+  <text x="139" y="747" fill="#FFFFFF" font-family="Arial, sans-serif" font-size="18" font-weight="800">미션 홈으로</text>
+</svg>

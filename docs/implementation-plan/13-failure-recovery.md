@@ -110,6 +110,32 @@ eventId unique
 이미 처리한 이벤트 skip
 ```
 
+### 6-1. Kafka consumer 반복 실패와 DLQ
+
+상황:
+
+```text
+transfer.completed 이벤트는 발행됐지만 ledger-service consumer가 계속 실패
+consumer 재시도 후에도 원장 기록 불가
+```
+
+대응:
+
+```text
+consumer retry 한도 적용
+한도 초과 시 *.dlq topic으로 원본 이벤트와 실패 원인 발행
+DLQ payload에 eventId, originalTopic, consumerGroup, attempts, failureReason 저장
+운영자 또는 재처리 API가 DLQ 이벤트를 기준으로 원인 확인 후 재처리
+```
+
+검증:
+
+```text
+일시 실패는 retry 후 성공
+반복 실패는 DLQ에 남음
+DLQ로 이동해도 원본 eventId 기준 consumer 멱등성은 유지
+```
+
 ### 7. transfer-service 재시작
 
 상황:
@@ -147,9 +173,9 @@ PAYMENT_PENDING 상태에서 사용자가 다시 승인 요청
 
 ```text
 reward-service는 이미 PAID인 미션을 다시 지급하지 않는다.
-transfer-service 호출에는 reward-payment-{taskId} Idempotency-Key를 사용한다.
+transfer-service 호출에는 reward-payment-mission-{missionId} Idempotency-Key를 사용한다.
 PAYMENT_PENDING 재시도도 같은 Idempotency-Key를 사용한다.
-transferId와 paidAt을 저장해 캘린더 기록과 지급 결과를 연결한다.
+transferId와 paidAt을 저장해 캐시북 수입 기록, 미션 캘린더 상태, 지급 결과를 연결한다.
 ```
 
 ## Resilience4j 설정 기준
@@ -183,5 +209,6 @@ wallet-service down -> Transfer FAILED
 sender 차감 성공 후 receiver 증가 실패 -> COMPENSATION_REQUIRED
 Outbox publisher 실패 -> READY 유지 또는 retryCount 증가
 Kafka 중복 이벤트 -> ledger 1회만 기록
+Kafka consumer 반복 실패 -> DLQ에 원본 이벤트와 실패 원인 저장
 reward-service 승인 재시도 -> 아이 지갑 지급 1회
 ```

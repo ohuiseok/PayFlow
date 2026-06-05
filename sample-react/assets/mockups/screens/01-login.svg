@@ -1,0 +1,19 @@
+<svg width="390" height="844" viewBox="0 0 390 844" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="390" height="844" fill="#F7F9FA"/>
+  <rect x="24" y="54" width="342" height="736" rx="32" fill="#FFFFFF" stroke="#E4E9EE"/>
+  <text x="48" y="122" fill="#1F7A5C" font-family="Arial, sans-serif" font-size="14" font-weight="800">PayFlow Family</text>
+  <text x="48" y="174" fill="#151B22" font-family="Arial, sans-serif" font-size="34" font-weight="800">미션으로 배우는 돈</text>
+  <text x="48" y="205" fill="#66717C" font-family="Arial, sans-serif" font-size="16">부모가 미션을 만들고 자녀가 보상을 벌어요.</text>
+  <rect x="48" y="270" width="294" height="58" rx="8" fill="#F8FAFB" stroke="#DDE4EA"/>
+  <text x="66" y="305" fill="#75818D" font-family="Arial, sans-serif" font-size="16">이메일 또는 휴대폰</text>
+  <rect x="48" y="346" width="294" height="58" rx="8" fill="#F8FAFB" stroke="#DDE4EA"/>
+  <text x="66" y="381" fill="#75818D" font-family="Arial, sans-serif" font-size="16">비밀번호</text>
+  <rect x="48" y="438" width="294" height="58" rx="8" fill="#20262D"/>
+  <text x="170" y="474" fill="#FFFFFF" font-family="Arial, sans-serif" font-size="17" font-weight="800">로그인</text>
+  <text x="103" y="536" fill="#66717C" font-family="Arial, sans-serif" font-size="16">처음이신가요?</text>
+  <text x="210" y="536" fill="#1F7A5C" font-family="Arial, sans-serif" font-size="16" font-weight="800">회원가입</text>
+  <rect x="48" y="618" width="294" height="94" rx="10" fill="#EAF6EF"/>
+  <text x="68" y="653" fill="#1F7A5C" font-family="Arial, sans-serif" font-size="16" font-weight="800">역할 선택</text>
+  <text x="68" y="682" fill="#4D5964" font-family="Arial, sans-serif" font-size="15">부모 계정은 충전과 승인</text>
+  <text x="68" y="707" fill="#4D5964" font-family="Arial, sans-serif" font-size="15">자녀 계정은 미션 제출과 캐시북</text>
+</svg>

@@ -29,6 +29,18 @@
 - [ ] 잔액 차감은 wallet-service를 통해서만 한다.
 - [ ] 송금 성공 시 OutboxEvent를 저장한다.
 - [ ] Kafka는 DB 트랜잭션 안에서 직접 발행하지 않는다.
+- [ ] 상태 전이는 허용된 경로만 통과하게 한다.
+- [ ] 실패 상태에는 failureReason을 남긴다.
+- [ ] sender 차감 성공 후 receiver 증가 실패는 COMPENSATION_REQUIRED로 남긴다.
+
+## 결제 핵심 5요소 구현 시
+
+- [ ] 상태 머신은 enum과 전이 검증 로직을 함께 구현한다.
+- [ ] Idempotency는 key만 저장하지 말고 requestHash와 기존 response까지 저장한다.
+- [ ] Outbox는 비즈니스 DB 트랜잭션 안에 저장하고 Kafka 발행은 별도 publisher가 처리한다.
+- [ ] Retry는 네트워크성 오류에 제한하고, 비즈니스 오류에는 적용하지 않는다.
+- [ ] DLQ에는 원본 이벤트, consumer group, 실패 원인, 시도 횟수를 남긴다.
+- [ ] Mock PG는 성공뿐 아니라 실패, timeout, 처리 중, 거래 ID 중복을 시뮬레이션한다.
 
 ## 지갑 구현 시
 
@@ -54,15 +66,30 @@
 ## Reward Service 구현 시
 
 - [ ] reward-service가 user/wallet/transfer DB를 직접 읽거나 쓰지 않는다.
+- [ ] 가족 연결 API는 부모/아이 역할과 연결 상태를 검증한다.
+- [ ] 초대 코드는 만료 시간을 가진다.
+- [ ] 가족 연결 해제 시 진행 중 미션 처리 정책을 적용한다.
 - [ ] 보상 금액은 `BigDecimal`로 처리한다.
 - [ ] 미션 상태는 enum으로 관리한다.
 - [ ] 부모/아이 권한 검증을 API별로 수행한다.
+- [ ] 미션 수정/취소는 허용된 상태에서만 가능하다.
+- [ ] 제출/재제출 시 제출 메모와 evidenceImageUrl을 저장한다.
 - [ ] 승인 API는 이미 `PAID`인 미션에 대해 중복 지급하지 않는다.
-- [ ] transfer-service 호출 시 `reward-payment-{taskId}` 형식의 고정 Idempotency-Key를 사용한다.
-- [ ] transfer-service 실패 또는 timeout 후 재시도해도 같은 task가 두 번 지급되지 않는다.
-- [ ] 캘린더 합계는 `PAID` 상태 미션만 기준으로 계산한다.
+- [ ] transfer-service 호출 시 `reward-payment-mission-{missionId}` 형식의 고정 Idempotency-Key를 사용한다.
+- [ ] transfer-service 실패 또는 timeout 후 재시도해도 같은 mission이 두 번 지급되지 않는다.
+- [ ] 캐시북 합계는 `PAID` 상태 미션만 기준으로 계산한다.
+- [ ] 보상 지급 완료 시 캐시북 수입 기록을 한 번만 생성한다.
+- [ ] 알림 목록/읽음 처리 API를 구현한다.
+- [ ] 인증 사진 업로드 URL API는 담당 아이만 호출할 수 있다.
 - [ ] 지급 완료 후 transferId와 paidAt을 저장한다.
 - [ ] 데모 시나리오에서 부모 지갑 잔액 감소와 아이 지갑 잔액 증가를 확인한다.
+
+## User/Settings 구현 시
+
+- [ ] 회원가입 요청에 `role`을 받고 JWT claim에도 role을 넣는다.
+- [ ] 프로필 조회/수정 API를 구현한다.
+- [ ] 알림 설정 조회/수정 API를 구현한다.
+- [ ] 로그아웃은 JWT 블랙리스트 사용 여부를 정책으로 정하고 구현 또는 문서화한다.
 
 ## 원장 구현 시
 
