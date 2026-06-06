@@ -853,7 +853,7 @@ resultCheckCount >= maxResultCheckCount이면 상태는 BANK_SUCCESS_BUT_WALLET_
 ```
 
 MVP에서는 운영자 확인 전용 API를 만들지 않는다.
-운영자는 DB의 `BANK_SUCCESS_BUT_WALLET_FAILED` 상태, `resultCheckCount`, `lastError`, `BankingApiLog`를 기준으로 확인한다.
+운영자는 DB의 `BANK_SUCCESS_BUT_WALLET_FAILED` 상태, `resultCheckCount`, `failureReason`, `BankingApiLog.errorMessage`를 기준으로 확인한다.
 보강/2차에서 `/internal/banking/transfers/retry-required` 같은 내부 운영 API를 추가할 수 있다.
 
 결과조회 재시도 간격은 초기에는 단순 정책으로 둔다.

@@ -154,7 +154,7 @@ GET /settlements/daily/2026-05-30
 
 ## 테스트
 
-필수 테스트:
+보강/2차 필수 테스트:
 
 ```text
 transfer.completed 이벤트 수신 시 정산 후보 저장

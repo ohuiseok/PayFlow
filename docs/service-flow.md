@@ -116,6 +116,7 @@ Client
 - 로그인 이후 API는 `Authorization: Bearer {token}`을 사용합니다.
 - MVP에서는 기본 회원가입/로그인/JWT/사용자 조회를 우선합니다.
 - 역할 기반 화면 진입, 프로필 수정, 알림 설정은 보강/2차로 구현합니다.
+- MVP에서 부모/자녀 권한은 user role claim이 아니라 family 관계의 `parentUserId`, `childUserId` 기준으로 판단합니다.
 
 ## 2. 가족 연결
 
