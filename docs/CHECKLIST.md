@@ -10,6 +10,24 @@
 [x] 완료
 ```
 
+우선순위 기준:
+
+```text
+MVP 필수: 결제 핵심 흐름을 다음 단계로 진행하기 위해 반드시 필요한 기능
+보강/2차: 화면 완성도, 운영 편의, 확장 기능에 가깝고 MVP 이후 구현해도 되는 기능
+```
+
+현재 구현 우선순위:
+
+```text
+1. user/wallet/gateway 최소 기반 완성
+2. transfer-service 송금, 상태, 멱등성 구현
+3. Outbox/Kafka와 ledger-service 원장 기록 구현
+4. banking-service Mock PG 충전 흐름 구현
+5. reward-service 가족/미션/용돈 지급 흐름 구현
+6. settlement, 알림, 파일, 프로필/설정 등 보강 기능 구현
+```
+
 ## 0. 프로젝트 기본 상태
 
 - [x] MSA 기본 폴더 구조 생성
@@ -28,12 +46,18 @@ docs/implementation-plan/01-common-rules.md
 
 ## 1. 공통 규칙
 
+MVP 필수:
+
 - [x] 공통 예외 구조 정의
 - [x] 공통 ErrorCode 규칙 정의
 - [x] GlobalExceptionHandler 서비스별 적용
 - [x] 공통 응답 포맷 결정
-- [ ] 날짜/시간 처리 규칙 적용
-- [ ] 금액 BigDecimal 처리 규칙 적용
+- [x] 금액 BigDecimal 처리 규칙을 wallet-service에 우선 적용
+
+보강/2차:
+
+- [ ] 날짜/시간 처리 규칙 전 서비스 적용
+- [ ] 금액 BigDecimal 처리 규칙 전 서비스 적용
 - [ ] 서비스별 패키지 구조 정리
 
 관련 문서:
@@ -44,14 +68,19 @@ docs/implementation-plan/01-common-rules.md
 
 ## 2. DB와 마이그레이션
 
-- [ ] 서비스별 DB 생성 확인
+MVP 필수:
+
+- [x] 서비스별 DB 생성 스크립트 확인
 - [x] user-service 테이블 설계
 - [x] wallet-service 테이블 설계
 - [x] transfer-service 테이블 설계
 - [x] reward-service 테이블 설계
 - [x] ledger-service 테이블 설계
 - [x] settlement-service 테이블 설계
-- [ ] 초기 구현용 `ddl-auto=update` 확인
+- [x] 초기 구현용 `ddl-auto=update` 확인
+
+보강/2차:
+
 - [ ] Flyway 도입 여부 결정
 - [ ] 최종 단계에서 `ddl-auto=validate` 전환
 
@@ -63,29 +92,37 @@ docs/implementation-plan/02-database-and-migration.md
 
 ## 3. User Service
 
+MVP 필수:
+
 - [x] User 엔티티 구현
 - [x] UserStatus enum 구현
-- [ ] UserRole enum 구현
-- [ ] NotificationPreference 엔티티 구현
 - [x] UserRepository 구현
-- [ ] NotificationPreferenceRepository 구현
 - [x] PasswordEncoder 설정
 - [x] JWT 발급 유틸 구현
-- [ ] 역할 포함 회원가입 API 구현
+- [x] 기본 회원가입 API 구현
 - [x] 로그인 API 구현
 - [x] 사용자 조회 API 구현
+- [x] user-service 테스트 작성
+- [x] user-service `bootJar` 확인
+
+보강/2차:
+
+- [ ] UserRole enum 구현
+- [ ] 역할 포함 회원가입 API 구현
+- [ ] JWT role claim 반영
+- [ ] NotificationPreference 엔티티 구현
+- [ ] NotificationPreferenceRepository 구현
 - [ ] 프로필 조회 API 구현
 - [ ] 프로필 수정 API 구현
 - [ ] 알림 설정 조회 API 구현
 - [ ] 알림 설정 변경 API 구현
 - [ ] 로그아웃 정책 구현 또는 문서화
-- [x] user-service 테스트 작성
-- [x] user-service `bootJar` 확인
 
 완료 기준:
 
 ```text
-역할 포함 회원가입, 로그인, JWT 발급, 사용자 조회, 프로필/설정 API가 동작한다.
+MVP 기준으로는 기본 회원가입, 로그인, JWT 발급, 사용자 조회가 동작하면 다음 단계로 진행할 수 있다.
+역할, 프로필, 알림 설정, 로그아웃 정책은 보강/2차 범위로 구현한다.
 ```
 
 관련 문서:
@@ -128,6 +165,8 @@ docs/implementation-plan/04-wallet-service.md
 
 ## 5. Transfer Service
 
+MVP 필수:
+
 - [ ] Transfer 엔티티 구현
 - [ ] TransferStatus enum 구현
 - [ ] IdempotencyKey 엔티티 구현
@@ -141,15 +180,21 @@ docs/implementation-plan/04-wallet-service.md
 - [ ] sender wallet 소유권 검증 구현
 - [ ] 송금 상태 전이 구현
 - [ ] COMPENSATION_REQUIRED 상태 구현
-- [ ] PROCESSING stale 복구 정책 구현 또는 문서화
 - [ ] 실패 상태 기록 구현
 - [ ] transfer-service 테스트 작성
 - [x] transfer-service `bootJar` 확인
 
+보강/2차:
+
+- [ ] PROCESSING stale 복구 정책 구현 또는 문서화
+- [ ] Redis 분산 락 적용
+- [ ] 송금 복구/보상 배치 구현
+
 완료 기준:
 
 ```text
-송금 요청이 상태 기반으로 처리되고, 동일 Idempotency-Key 요청이 중복 차감되지 않는다.
+MVP 기준으로는 송금 요청이 상태 기반으로 처리되고, 동일 Idempotency-Key 요청이 중복 차감되지 않는다.
+stale PROCESSING 자동 복구와 고도화된 보상 처리는 보강/2차 범위로 둔다.
 ```
 
 관련 문서:
@@ -159,6 +204,8 @@ docs/implementation-plan/05-transfer-service.md
 ```
 
 ## 6. Reward Service
+
+MVP 필수:
 
 - [ ] reward-service 프로젝트 생성
 - [ ] payflow_reward DB 설정 확인
@@ -198,21 +245,25 @@ docs/implementation-plan/05-transfer-service.md
 - [ ] 송금 실패 시 failureReason 저장
 - [ ] 자녀 캐시북 요약 API 구현
 - [ ] 자녀 캐시북 내역 API 구현
-- [ ] 자녀 캐시북 지출 기록 API 구현
-- [ ] 부모 지급/정산 내역 API 구현
-- [ ] 알림 안 읽은 개수 API 구현
-- [ ] 알림 목록/읽음/전체 읽음 API 구현
-- [ ] 미션 인증 사진 업로드 URL API 구현
 - [ ] Gateway reward-service route 추가
 - [ ] docker-compose reward-service 추가
 - [ ] reward-service 테스트 작성
 - [ ] reward-service `bootJar` 확인
 
+보강/2차:
+
+- [ ] 자녀 캐시북 지출 기록 API 구현
+- [ ] 부모 지급/정산 내역 API 구현
+- [ ] 알림 안 읽은 개수 API 구현
+- [ ] 알림 목록/읽음/전체 읽음 API 구현
+- [ ] 미션 인증 사진 업로드 URL API 구현
+
 완료 기준:
 
 ```text
-부모가 등록한 일을 아이가 완료 요청하고, 부모 승인 후 부모 지갑에서 아이 지갑으로 실제 용돈이 한 번만 지급된다.
-지급 완료된 미션은 아이 캐시북에 기록되고, 부모 지급/정산 내역과 알림에서 확인된다.
+MVP 기준으로는 부모가 등록한 일을 아이가 완료 요청하고, 부모 승인 후 부모 지갑에서 아이 지갑으로 실제 용돈이 한 번만 지급된다.
+지급 완료된 미션은 아이 캐시북에 기록된다.
+부모 지급/정산 내역, 알림, 파일 업로드는 보강/2차 범위로 둔다.
 미션은 missionDate 기준으로 캘린더에 표시된다.
 ```
 
@@ -224,8 +275,10 @@ docs/implementation-plan/06-reward-service.md
 
 ## 7. Open Banking Service
 
+MVP 필수:
+
 - [x] banking-service 프로젝트 생성
-- [ ] payflow_banking DB 설정 확인
+- [x] payflow_banking DB 설정 확인
 - [ ] BankAccount 엔티티 구현
 - [ ] BankingTransfer 엔티티 구현
 - [ ] BankingApiLog 엔티티 구현
@@ -262,12 +315,15 @@ docs/implementation-plan/06-reward-service.md
 - [ ] UNKNOWN/BANK_PROCESSING 결과조회 워커 구현
 - [ ] 결과조회 성공 시 최종 상태 갱신
 - [ ] 결과조회 실패 시 FAILED 또는 COMPENSATION_REQUIRED 전이
+- [ ] banking-service 테스트 작성
+- [x] banking-service `bootJar` 확인
+
+보강/2차:
+
 - [ ] 출금/환불 상태 모델 구현 또는 문서화
 - [ ] 출금 API 최소 구현
 - [ ] 출금 입금이체 실패 시 보상 근거 저장
 - [ ] 정보제공자 API는 2차 범위로 문서화
-- [ ] banking-service 테스트 작성
-- [x] banking-service `bootJar` 확인
 
 완료 기준:
 
@@ -275,7 +331,7 @@ docs/implementation-plan/06-reward-service.md
 MockOpenBankingClient로 충전 성공/실패/불명/처리중/중복 시나리오를 검증한다.
 외부 은행망 성공이 확정된 충전만 wallet-service 잔액에 반영되고, bank_tran_id와 wallet reference 기준으로 중복 반영되지 않는다.
 UNKNOWN/BANK_PROCESSING 상태는 결과조회 워커로 최종 상태를 확정할 수 있다.
-출금은 최소 API와 보상 근거까지 남기고, 정보제공자 API는 2차 범위로 남긴다.
+출금, 환불, 정보제공자 API는 보강/2차 범위로 남긴다.
 ```
 
 관련 문서:
@@ -285,6 +341,8 @@ docs/implementation-plan/07-open-banking-service.md
 ```
 
 ## 8. Redis Lock
+
+보강/2차:
 
 - [ ] RedisLockManager 구현
 - [ ] 락 key 규칙 구현
@@ -298,7 +356,8 @@ docs/implementation-plan/07-open-banking-service.md
 완료 기준:
 
 ```text
-같은 지갑에 대한 동시 송금에서도 잔액 정합성이 깨지지 않는다.
+wallet-service row lock과 reference 멱등성으로 MVP 정합성을 먼저 보장한다.
+Redis 분산 락은 같은 지갑에 대한 동시 송금 제어를 더 명시적으로 만들기 위한 보강/2차 범위로 둔다.
 ```
 
 관련 문서:
@@ -367,6 +426,8 @@ docs/implementation-plan/10-ledger-service.md
 
 ## 11. Settlement Service
 
+보강/2차:
+
 - [ ] SettlementTarget 엔티티 구현
 - [ ] SettlementDay 엔티티 구현
 - [ ] SettlementItem 엔티티 구현
@@ -382,7 +443,7 @@ docs/implementation-plan/10-ledger-service.md
 완료 기준:
 
 ```text
-일별 거래를 집계하고 수수료를 계산한 정산 결과를 저장한다.
+MVP 결제 흐름 이후, 일별 거래를 집계하고 수수료를 계산한 정산 결과를 저장한다.
 ```
 
 관련 문서:
@@ -393,15 +454,9 @@ docs/implementation-plan/11-settlement-service.md
 
 ## 12. Gateway And Security
 
+MVP 필수:
+
 - [x] Gateway route 확인
-- [ ] `/api/credits/**` route 추가
-- [ ] `/api/families/**` route 추가
-- [ ] `/api/missions/**` route 추가
-- [ ] `/api/cashbook/**` route 추가
-- [ ] `/api/parent-history/**` route 추가
-- [ ] `/api/notifications/**` route 추가
-- [ ] `/api/files/**` route 추가
-- [ ] `/api/settings/**` route 추가
 - [x] 인증 제외 경로 정의
 - [x] JWT 인증 필터 구현
 - [x] JWT 검증 실패 처리
@@ -412,10 +467,22 @@ docs/implementation-plan/11-settlement-service.md
 - [x] Gateway 테스트 작성
 - [x] api-gateway `bootJar` 확인
 
+보강/2차:
+
+- [ ] `/api/credits/**` route 추가
+- [ ] `/api/families/**` route 추가
+- [ ] `/api/missions/**` route 추가
+- [ ] `/api/cashbook/**` route 추가
+- [ ] `/api/parent-history/**` route 추가
+- [ ] `/api/notifications/**` route 추가
+- [ ] `/api/files/**` route 추가
+- [ ] `/api/settings/**` route 추가
+
 완료 기준:
 
 ```text
-인증이 필요한 API는 Gateway에서 JWT를 검증하고 내부 서비스로 사용자 정보를 전달한다.
+MVP 기준으로는 인증이 필요한 API를 Gateway에서 JWT로 검증하고 내부 서비스로 사용자 정보를 전달한다.
+reward/settings/files 관련 라우트는 해당 서비스 구현 시 함께 추가한다.
 ```
 
 관련 문서:
