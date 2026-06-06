@@ -397,25 +397,29 @@ X-Internal-Secret: {INTERNAL_SERVICE_SECRET}
 | `07-parent-approval.svg` | 부모 승인/반려 |
 | `13-reject-resubmit.svg` | 반려 사유 조회, 재제출 |
 | `08-cashbook.svg` | 자녀 캐시북 |
-| `09-parent-history.svg` | 부모 지급/정산 내역 |
-| `15-notifications.svg` | 알림 목록 |
-| `16-settings-profile.svg` | 프로필, 가족, 설정 |
+| `09-parent-history.svg` | 보강/2차: 부모 지급/정산 내역 |
+| `15-notifications.svg` | 보강/2차: 알림 목록 |
+| `16-settings-profile.svg` | 보강/2차: 프로필, 가족, 설정 |
 
 추가로 화면에 직접 크게 드러나지는 않지만 구현에 필요한 API:
 
 - 충전 계좌 목록/등록/삭제
-- 미션 인증 사진 업로드 URL 발급
 - 미션 수정/취소
+
+보강/2차 API:
+
+- 미션 인증 사진 업로드 URL 발급
 - 자녀 캐시북 지출 기록
 - 알림 안 읽은 개수, 전체 읽음 처리
 - 프로필 수정, 알림 설정 변경
 - 가족 연결 해제
 
-## User 확장 API
+## User 확장 API, 보강/2차
 
 ### 역할 포함 회원가입
 
-현재 회원가입 API에 `role` 필드를 추가합니다.
+MVP에서는 기본 회원가입/로그인/JWT/사용자 조회를 우선합니다.
+역할 기반 화면 진입이 필요해지는 보강/2차에서 회원가입 API에 `role` 필드를 추가합니다.
 
 ```http
 POST /api/users
@@ -986,7 +990,6 @@ Content-Type: application/json
 ```http
 POST /api/missions/{missionId}/approve
 Authorization: Bearer {parentAccessToken}
-Idempotency-Key: reward-payment-{missionSubmissionId}
 ```
 
 응답:
@@ -1006,6 +1009,8 @@ Idempotency-Key: reward-payment-{missionSubmissionId}
 
 - 승인 API 경로는 `missionId`를 사용하지만, 보상 지급 멱등키는 승인 대상 제출 건의 `missionSubmissionId`로 만든다.
 - 예: `missionSubmissionId = 9001`이면 `Idempotency-Key = reward-payment-9001`.
+- 이 멱등키는 클라이언트가 생성해 보내는 값이 아니라 reward-service가 내부적으로 생성해 transfer-service에 전달하는 값이다.
+- 승인 대상 제출 건은 현재 `SUBMITTED` 상태인 최신 `missionSubmissionId`로 확정한다.
 
 - 부모 지갑에서 `rewardAmount` 출금
 - 자녀 지갑에 `rewardAmount` 입금
@@ -1427,11 +1432,26 @@ Authorization: Bearer {accessToken}
 | REJECTED | 거절됨 | 부모가 연결 거절 |
 | EXPIRED | 만료됨 | 초대 코드 만료 |
 
-### ChargeStatus
+### ChargeStatus, 화면 표시용
+
+화면은 아래처럼 단순한 충전 상태를 사용한다.
 
 | 값 | 화면 라벨 | 설명 |
 |---|---|---|
 | REQUESTED | 요청 완료 | 충전 요청 생성 |
+| PROCESSING | 처리 중 | 은행망 또는 wallet 반영 처리 중 |
+| COMPLETED | 완료 | 충전 완료 |
+| FAILED | 실패 | 충전 실패 |
+| UNKNOWN | 확인 필요 | 결과조회 또는 운영자 확인 필요 |
+| RETRY_REQUIRED | 재처리 필요 | 은행 성공 후 wallet 반영 재처리 필요 |
+
+### BankingTransferStatus, 서버 enum
+
+서버는 충전/출금의 세부 상태를 `BankingTransferStatus`로 저장한다.
+
+| 값 | 화면 라벨 | 설명 |
+|---|---|---|
+| REQUESTED | 요청 완료 | 충전/출금 요청 생성 |
 | BANK_REQUESTED | 처리 중 | 오픈뱅킹 또는 mock PG 요청 직전/요청 중 |
 | BANK_PROCESSING | 처리 중 | 은행망 처리 중 또는 결과조회 대기 |
 | BANK_SUCCEEDED | 은행 성공 | 은행 거래 성공 확정, wallet 반영 전 |

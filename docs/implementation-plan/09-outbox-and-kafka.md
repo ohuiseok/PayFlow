@@ -233,6 +233,6 @@ Kafka 발행 실패 시 retryCount 증가
 retry 한도 초과 시 FAILED 변경
 여러 publisher가 동시에 실행되어도 같은 row를 중복 선점하지 않음
 stale PUBLISHING 이벤트 READY 복구
-같은 eventId 중복 발행 시 consumer 한 번만 처리
+같은 sourceEventId 중복 수신 시 consumer 한 번만 처리
 READY 이벤트 여러 건 batch 처리
 ```

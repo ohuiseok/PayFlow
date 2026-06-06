@@ -32,6 +32,15 @@ Outbox 재발행
 request hash
 ```
 
+보강/2차 대상:
+
+```text
+수수료 계산
+Redis 분산 락
+정산 배치
+알림/파일 업로드 URL
+```
+
 ### Application Service Test
 
 대상:
@@ -41,7 +50,14 @@ request hash
 보상 미션 승인과 지급 흐름
 지갑 잔액 변경
 원장 기록
+```
+
+보강/2차 대상:
+
+```text
 정산 실행
+알림 목록/읽음 처리
+파일 업로드 URL 발급
 ```
 
 ### Repository Test
@@ -62,11 +78,11 @@ outbox READY 조회
 ```text
 Testcontainers
 MySQL
-Redis
 Kafka
 ```
 
 초기에는 모든 서비스 통합보다 서비스별 통합 테스트부터 작성한다.
+Redis 기반 분산 락 테스트는 보강/2차에서 추가한다.
 
 ## 서비스별 필수 테스트
 
@@ -120,11 +136,13 @@ PAID 기준 캐시북 수입 합계 계산
 ```text
 transfer.completed 이벤트 소비
 원장 라인 2개 생성
-eventId 중복 skip
+sourceEventId 중복 skip
 원장 조회
 ```
 
 ### settlement-service
+
+보강/2차 테스트다.
 
 ```text
 정산 후보 저장

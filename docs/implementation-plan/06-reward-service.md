@@ -161,6 +161,17 @@ Idempotency-Key: reward-payment-{missionSubmissionId}
 `reward-service`는 `missionSubmissionId` 기준으로 이미 지급 요청이 처리됐는지 먼저 확인하고, `transfer-service`에도 고정된 idempotency key를 전달한다.
 한 미션에 재제출이 여러 번 생길 수 있으므로 지급 멱등성은 최종 승인 대상 제출 건인 `missionSubmissionId`를 기준으로 잡는다.
 
+승인 대상 제출 건 확정 규칙:
+
+```text
+1. missionId로 미션을 조회한다.
+2. 미션 상태가 SUBMITTED인지 확인한다.
+3. 해당 미션의 최신 SUBMITTED RewardTaskSubmission 1건을 조회한다.
+4. 그 submission.id를 missionSubmissionId로 사용한다.
+5. Idempotency-Key = reward-payment-{missionSubmissionId}로 transfer-service를 호출한다.
+6. 같은 미션이 반려 후 재제출되면 새 submission.id가 생기므로 이전 승인 시도와 구분된다.
+```
+
 ### 5. 부모 반려와 아이 재제출
 
 ```text

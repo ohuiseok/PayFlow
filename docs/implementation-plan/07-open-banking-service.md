@@ -831,12 +831,17 @@ wallet 반영 재처리 워커는 `BANK_SUCCESS_BUT_WALLET_FAILED` 상태를 주
 
 ```text
 1. status = BANK_SUCCESS_BUT_WALLET_FAILED 조회
-2. nextResultCheckAt <= now 인 거래만 선점
-3. walletReferenceType = OPEN_BANKING_CHARGE, walletReferenceId = bankTranId로 deposit 재호출
-4. 성공하면 COMPLETED
-5. 실패하면 resultCheckCount 증가, nextResultCheckAt을 뒤로 미룸
-6. 반복 실패 시 운영자 확인 대상으로 남김
+2. nextResultCheckAt <= now 인 거래만 대상으로 잡음
+3. DB transaction 안에서 status를 WALLET_REFLECTING으로 변경해 선점
+4. 이미 다른 worker가 선점해 status가 바뀐 건은 skip
+5. walletReferenceType = OPEN_BANKING_CHARGE, walletReferenceId = bankTranId로 deposit 재호출
+6. 성공하면 COMPLETED
+7. 실패하면 BANK_SUCCESS_BUT_WALLET_FAILED로 되돌리고 resultCheckCount 증가, nextResultCheckAt을 뒤로 미룸
+8. 반복 실패 시 운영자 확인 대상으로 남김
 ```
+
+선점 쿼리는 `id`, `status`, `updatedAt` 조건을 함께 사용한다.
+여러 banking-service 인스턴스가 떠 있어도 같은 거래를 동시에 재처리하지 않도록 optimistic update 또는 pessimistic lock 중 하나를 적용한다.
 
 결과조회 재시도 간격은 초기에는 단순 정책으로 둔다.
 

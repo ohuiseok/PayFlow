@@ -238,6 +238,7 @@ MVP 필수:
 - [ ] 아이 재제출 API 구현
 - [ ] 부모 승인 API 구현
 - [ ] 부모 거절 API 구현
+- [ ] 승인 대상 최신 SUBMITTED missionSubmissionId 확정 로직 구현
 - [ ] 승인 시 transfer-service 송금 연동
 - [ ] `reward-payment-{missionSubmissionId}` Idempotency-Key 적용
 - [ ] 이미 PAID인 미션 재승인 시 기존 결과 반환
@@ -317,6 +318,7 @@ MVP 필수:
 - [ ] 처리 중 BANK_PROCESSING 상태 저장
 - [ ] 은행 성공 후 wallet 반영 실패 시 BANK_SUCCESS_BUT_WALLET_FAILED 상태 저장
 - [ ] BANK_SUCCESS_BUT_WALLET_FAILED 재처리 워커 구현
+- [ ] 재처리 worker 선점 시 WALLET_REFLECTING 상태 전이 구현
 - [ ] 재처리 시 같은 bank_tran_id로 wallet-service deposit 재호출
 - [ ] 이체결과조회 API client 메서드 구현
 - [ ] 이체결과조회 check_type/org_bank_tran_id/org_bank_tran_date/org_tran_amt 매핑 구현
@@ -417,7 +419,7 @@ docs/implementation-plan/09-outbox-and-kafka.md
 - [ ] ProcessedEvent 엔티티 구현
 - [ ] Repository 구현
 - [ ] transfer.completed Kafka Consumer 구현
-- [ ] eventId 중복 처리 구현
+- [ ] sourceEventId 중복 처리 구현
 - [ ] 원장 라인 2개 생성 구현
 - [ ] 송금별 원장 조회 API 구현
 - [ ] ledger-service 테스트 작성
