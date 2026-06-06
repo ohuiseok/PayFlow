@@ -91,10 +91,15 @@ erDiagram
         BIGINT id PK
         BIGINT user_id
         BIGINT wallet_id
-        VARCHAR bank_code
+        VARCHAR user_seq_no
+        VARCHAR fintech_use_num
+        VARCHAR bank_code_std
+        VARCHAR bank_name
+        VARCHAR account_alias
         VARCHAR account_number_masked
         VARCHAR account_holder_name
-        VARCHAR fintech_use_num
+        VARCHAR inquiry_agree_yn
+        VARCHAR transfer_agree_yn
         VARCHAR status
         DATETIME created_at
         DATETIME updated_at
@@ -105,16 +110,24 @@ erDiagram
         VARCHAR transfer_type
         BIGINT user_id
         BIGINT wallet_id
+        BIGINT bank_account_id
         DECIMAL amount
         VARCHAR status
         VARCHAR idempotency_key
         VARCHAR request_hash
         VARCHAR bank_tran_id UK
+        VARCHAR bank_tran_date
+        VARCHAR tran_dtime
         VARCHAR api_tran_id
-        VARCHAR api_response_code
-        VARCHAR bank_response_code
+        VARCHAR api_tran_dtm
+        VARCHAR api_rsp_code
+        VARCHAR bank_rsp_code
         VARCHAR failure_reason
+        VARCHAR wallet_reference_type
         VARCHAR wallet_reference_id UK
+        INT result_check_count
+        DATETIME next_result_check_at
+        DATETIME last_result_checked_at
         DATETIME requested_at
         DATETIME completed_at
         DATETIME created_at
@@ -126,9 +139,12 @@ erDiagram
         BIGINT banking_transfer_id
         VARCHAR api_name
         VARCHAR request_id
-        VARCHAR response_code
-        VARCHAR bank_response_code
-        TEXT raw_response
+        INT http_status
+        VARCHAR api_rsp_code
+        VARCHAR bank_rsp_code
+        TEXT request_payload_masked
+        TEXT response_payload_masked
+        VARCHAR error_message
         DATETIME created_at
     }
 
@@ -270,7 +286,7 @@ erDiagram
     LEDGER_ENTRIES {
         BIGINT id PK
         BIGINT transfer_id UK
-        VARCHAR event_id UK
+        VARCHAR source_event_id UK
         VARCHAR entry_type
         DECIMAL total_amount
         DATETIME created_at
@@ -287,7 +303,7 @@ erDiagram
 
     PROCESSED_EVENTS {
         BIGINT id PK
-        VARCHAR event_id UK
+        VARCHAR source_event_id UK
         VARCHAR consumer_name
         DATETIME processed_at
     }
@@ -346,32 +362,41 @@ erDiagram
 
 ## 테이블 요약
 
+상태 기준:
+
+```text
+MVP 구현됨: 현재 코드에 구현되어 있고 MVP 기준을 충족한다.
+MVP 일부 구현: 현재 코드에 일부 구현되어 있으나 planned 컬럼 또는 보강 기능이 남아 있다.
+MVP 설계: 다음 MVP 구현 대상이다.
+보강/2차 설계: MVP 이후 구현한다.
+```
+
 | DB | 테이블 | 상태 | 책임 |
 |---|---|---|---|
-| payflow_user | users | 일부 구현 | 사용자 인증 정보, 역할, 상태 |
-| payflow_user | notification_preferences | 설계 | 사용자별 알림 수신 설정 |
-| payflow_wallet | wallets | 구현 | 사용자별 지갑 잔액 |
-| payflow_wallet | wallet_transactions | 구현 | 지갑 잔액 변경 이력과 중복 반영 방어 |
-| payflow_banking | bank_accounts | 설계 | 충전/출금용 외부 계좌 식별자 |
-| payflow_banking | banking_transfers | 설계 | 오픈뱅킹 충전/출금/환불 상태 |
-| payflow_banking | banking_api_logs | 설계 | 외부 은행망 API 요청/응답 로그 |
-| payflow_transfer | transfers | 설계 | 지갑 간 송금 요청과 상태 |
-| payflow_transfer | idempotency_keys | 설계 | 송금 API 멱등성 저장소 |
-| payflow_transfer | outbox_events | 설계 | Kafka 이벤트 발행 신뢰성 저장소 |
-| payflow_reward | families | 설계 | 부모-자녀 연결 |
-| payflow_reward | family_invitations | 설계 | 부모 초대 코드 |
-| payflow_reward | family_link_requests | 설계 | 자녀 연결 요청 |
-| payflow_reward | reward_tasks | 설계 | 미션, 보상금, 지급 상태 |
-| payflow_reward | reward_task_submissions | 설계 | 자녀 미션 완료 제출 이력 |
-| payflow_reward | cashbook_entries | 설계 | 자녀 수입/지출 캐시북 |
-| payflow_reward | notifications | 설계 | 미션/보상/충전 알림 |
-| payflow_reward | file_upload_requests | 설계 | 미션 인증 사진 업로드 URL 발급 이력 |
-| payflow_ledger | ledger_entries | 설계 | 송금 단위 원장 헤더 |
-| payflow_ledger | ledger_lines | 설계 | 차감/증가 원장 라인 |
-| payflow_ledger | processed_events | 설계 | Kafka consumer 멱등성 |
-| payflow_settlement | settlement_targets | 설계 | 정산 대상 송금 후보 |
-| payflow_settlement | settlement_days | 설계 | 일별 정산 합계 |
-| payflow_settlement | settlement_items | 설계 | 일별 정산 상세 항목 |
+| payflow_user | users | MVP 일부 구현 | 사용자 인증 정보, 역할, 상태 |
+| payflow_user | notification_preferences | 보강/2차 설계 | 사용자별 알림 수신 설정 |
+| payflow_wallet | wallets | MVP 구현됨 | 사용자별 지갑 잔액 |
+| payflow_wallet | wallet_transactions | MVP 구현됨 | 지갑 잔액 변경 이력과 중복 반영 방어 |
+| payflow_banking | bank_accounts | MVP 설계 | 충전용 외부 계좌 식별자 |
+| payflow_banking | banking_transfers | MVP 설계 | 오픈뱅킹 충전 상태와 출금/환불 확장 상태 |
+| payflow_banking | banking_api_logs | MVP 설계 | 외부 은행망 API 요청/응답 마스킹 로그 |
+| payflow_transfer | transfers | MVP 설계 | 지갑 간 송금 요청과 상태 |
+| payflow_transfer | idempotency_keys | MVP 설계 | 송금 API 멱등성 저장소 |
+| payflow_transfer | outbox_events | MVP 설계 | Kafka 이벤트 발행 신뢰성 저장소 |
+| payflow_reward | families | MVP 설계 | 부모-자녀 연결 |
+| payflow_reward | family_invitations | MVP 설계 | 부모 초대 코드 |
+| payflow_reward | family_link_requests | MVP 설계 | 자녀 연결 요청 |
+| payflow_reward | reward_tasks | MVP 설계 | 미션, 보상금, 지급 상태 |
+| payflow_reward | reward_task_submissions | MVP 설계 | 자녀 미션 완료 제출 이력 |
+| payflow_reward | cashbook_entries | MVP 설계 | 자녀 수입 캐시북, 지출은 보강/2차 |
+| payflow_reward | notifications | 보강/2차 설계 | 미션/보상/충전 알림 |
+| payflow_reward | file_upload_requests | 보강/2차 설계 | 미션 인증 사진 업로드 URL 발급 이력 |
+| payflow_ledger | ledger_entries | MVP 설계 | 송금 단위 원장 헤더 |
+| payflow_ledger | ledger_lines | MVP 설계 | 차감/증가 원장 라인 |
+| payflow_ledger | processed_events | MVP 설계 | Kafka consumer 멱등성 |
+| payflow_settlement | settlement_targets | 보강/2차 설계 | 정산 대상 송금 후보 |
+| payflow_settlement | settlement_days | 보강/2차 설계 | 일별 정산 합계 |
+| payflow_settlement | settlement_items | 보강/2차 설계 | 일별 정산 상세 항목 |
 
 ## payflow_user
 
@@ -385,12 +410,12 @@ erDiagram
 | email | VARCHAR(255) | UNIQUE, NOT NULL | 로그인 이메일 |
 | password | VARCHAR(255) | NOT NULL | 암호화된 비밀번호 |
 | name | VARCHAR(100) | NOT NULL | 사용자 이름 |
-| role | VARCHAR(30) | NOT NULL, planned | PARENT, CHILD |
+| role | VARCHAR(30) | NOT NULL, 보강/2차 | PARENT, CHILD |
 | status | VARCHAR(30) | NOT NULL | ACTIVE, LOCKED, WITHDRAWN |
 | created_at | DATETIME | NOT NULL | 생성 시각 |
 | updated_at | DATETIME | NOT NULL | 수정 시각 |
 
-현재 코드에는 `role`이 아직 없고, 구현문서/API spec 기준으로 추가 예정이다.
+현재 코드에는 `role`이 아직 없다. MVP에서는 기본 회원가입/로그인/사용자 조회를 우선하고, 역할 기반 화면/권한은 보강/2차로 추가한다.
 
 ### notification_preferences
 
@@ -448,10 +473,15 @@ erDiagram
 | id | BIGINT | PK | 계좌 ID |
 | user_id | BIGINT | NOT NULL | 사용자 ID 논리 참조 |
 | wallet_id | BIGINT | NOT NULL | 연결 지갑 ID 논리 참조 |
-| bank_code | VARCHAR(10) | NOT NULL | 은행 코드 |
+| user_seq_no | VARCHAR(50) |  | 오픈뱅킹 사용자 일련번호 |
+| fintech_use_num | VARCHAR(100) | INDEX 권장 | 오픈뱅킹 핀테크 이용번호 |
+| bank_code_std | VARCHAR(10) | NOT NULL | 은행 표준 코드 |
+| bank_name | VARCHAR(100) | NOT NULL | 은행명 |
+| account_alias | VARCHAR(100) |  | 계좌 별명 |
 | account_number_masked | VARCHAR(50) | NOT NULL | 마스킹된 계좌번호 |
 | account_holder_name | VARCHAR(100) | NOT NULL | 예금주명 |
-| fintech_use_num | VARCHAR(100) | INDEX 권장 | 오픈뱅킹 핀테크 이용번호 |
+| inquiry_agree_yn | CHAR(1) | NOT NULL | 조회 동의 여부 |
+| transfer_agree_yn | CHAR(1) | NOT NULL | 출금이체 동의 여부 |
 | status | VARCHAR(30) | NOT NULL | ACTIVE, LOCKED, DELETED |
 | created_at | DATETIME | NOT NULL | 생성 시각 |
 | updated_at | DATETIME | NOT NULL | 수정 시각 |
@@ -466,16 +496,24 @@ erDiagram
 | transfer_type | VARCHAR(30) | NOT NULL | CHARGE, WITHDRAWAL, REFUND |
 | user_id | BIGINT | NOT NULL | 사용자 ID 논리 참조 |
 | wallet_id | BIGINT | NOT NULL | 지갑 ID 논리 참조 |
+| bank_account_id | BIGINT | NOT NULL | 외부 계좌 ID |
 | amount | DECIMAL(19,0) | NOT NULL | 요청 금액 |
-| status | VARCHAR(30) | NOT NULL | REQUESTED, BANK_PROCESSING, BANK_SUCCEEDED, WALLET_REFLECTING, COMPLETED, FAILED, UNKNOWN, COMPENSATION_REQUIRED |
+| status | VARCHAR(30) | NOT NULL | REQUESTED, BANK_REQUESTED, BANK_PROCESSING, BANK_SUCCEEDED, WALLET_REFLECTING, COMPLETED, FAILED, UNKNOWN, BANK_SUCCESS_BUT_WALLET_FAILED, COMPENSATION_REQUIRED |
 | idempotency_key | VARCHAR(255) | UNIQUE 권장 | API 멱등키 |
 | request_hash | VARCHAR(255) | NOT NULL | 요청 body hash |
 | bank_tran_id | VARCHAR(100) | UNIQUE | 은행망 거래 ID |
+| bank_tran_date | VARCHAR(8) |  | 원거래 거래일자, 결과조회 기준 |
+| tran_dtime | VARCHAR(14) | NOT NULL | 오픈뱅킹 요청일시 |
 | api_tran_id | VARCHAR(100) |  | 은행망 API 거래 ID |
-| api_response_code | VARCHAR(20) |  | API 응답 코드 |
-| bank_response_code | VARCHAR(20) |  | 은행 응답 코드 |
+| api_tran_dtm | VARCHAR(30) |  | 오픈뱅킹센터 처리시각 |
+| api_rsp_code | VARCHAR(20) |  | API 응답 코드 |
+| bank_rsp_code | VARCHAR(20) |  | 은행 응답 코드 |
 | failure_reason | VARCHAR(500) |  | 실패 원인 |
+| wallet_reference_type | VARCHAR(50) |  | wallet-service reference type |
 | wallet_reference_id | VARCHAR(100) | UNIQUE | wallet-service 반영 중복 방어 기준 |
+| result_check_count | INT | NOT NULL | 결과조회 시도 횟수 |
+| next_result_check_at | DATETIME |  | 다음 결과조회 예정 시각 |
+| last_result_checked_at | DATETIME |  | 마지막 결과조회 시각 |
 | requested_at | DATETIME | NOT NULL | 요청 시각 |
 | completed_at | DATETIME |  | 완료 시각 |
 | created_at | DATETIME | NOT NULL | 생성 시각 |
@@ -491,9 +529,12 @@ erDiagram
 | banking_transfer_id | BIGINT | FK within DB | 뱅킹 거래 ID |
 | api_name | VARCHAR(100) | NOT NULL | API 이름 |
 | request_id | VARCHAR(100) | NOT NULL | 요청 추적 ID |
-| response_code | VARCHAR(20) |  | API 응답 코드 |
-| bank_response_code | VARCHAR(20) |  | 은행 응답 코드 |
-| raw_response | TEXT |  | 원문 응답 |
+| http_status | INT |  | HTTP 상태 코드 |
+| api_rsp_code | VARCHAR(20) |  | API 응답 코드 |
+| bank_rsp_code | VARCHAR(20) |  | 은행 응답 코드 |
+| request_payload_masked | TEXT |  | 마스킹된 요청 전문 |
+| response_payload_masked | TEXT |  | 마스킹된 응답 전문 |
+| error_message | VARCHAR(500) |  | 통신/파싱 오류 메시지 |
 | created_at | DATETIME | NOT NULL | 생성 시각 |
 
 ## payflow_transfer
@@ -542,7 +583,7 @@ erDiagram
 | aggregate_id | BIGINT | NOT NULL | aggregate ID |
 | event_type | VARCHAR(100) | NOT NULL | 이벤트 타입 |
 | payload | TEXT | NOT NULL | 이벤트 payload |
-| status | VARCHAR(30) | NOT NULL | READY, PUBLISHED, FAILED |
+| status | VARCHAR(30) | NOT NULL | READY, PUBLISHING, PUBLISHED, FAILED |
 | retry_count | INT | NOT NULL | 발행 재시도 횟수 |
 | last_error | TEXT |  | 마지막 실패 원인 |
 | created_at | DATETIME | NOT NULL | 생성 시각 |
@@ -689,7 +730,7 @@ erDiagram
 |---|---|---|---|
 | id | BIGINT | PK | 원장 헤더 ID |
 | transfer_id | BIGINT | UNIQUE, NOT NULL | 송금 ID 논리 참조 |
-| event_id | VARCHAR(100) | UNIQUE, NOT NULL | Kafka 이벤트 ID |
+| source_event_id | VARCHAR(100) | UNIQUE, NOT NULL | Kafka 이벤트 ID, transfer-service OutboxEvent.eventId |
 | entry_type | VARCHAR(50) | NOT NULL | 원장 유형 |
 | total_amount | DECIMAL(19,0) | NOT NULL | 총 금액 |
 | created_at | DATETIME | NOT NULL | 생성 시각 |
@@ -714,7 +755,7 @@ Kafka consumer 중복 처리를 막기 위한 처리 이력이다.
 | 컬럼 | 타입 | 제약 | 설명 |
 |---|---|---|---|
 | id | BIGINT | PK | 처리 이력 ID |
-| event_id | VARCHAR(100) | UNIQUE, NOT NULL | Kafka 이벤트 ID |
+| source_event_id | VARCHAR(100) | UNIQUE, NOT NULL | Kafka 이벤트 ID, consumer 멱등성 기준 |
 | consumer_name | VARCHAR(100) | NOT NULL | consumer 이름 |
 | processed_at | DATETIME | NOT NULL | 처리 시각 |
 
@@ -786,8 +827,8 @@ Kafka consumer 중복 처리를 막기 위한 처리 이력이다.
 | reward_tasks | INDEX(status) | 제출/지급 상태 조회 |
 | cashbook_entries | INDEX(child_user_id, created_at) | 자녀 캐시북 조회 |
 | notifications | INDEX(user_id, read_at), INDEX(user_id, created_at) | 알림 목록/안 읽은 개수 |
-| ledger_entries | UNIQUE(transfer_id), UNIQUE(event_id) | 송금별 원장/이벤트 중복 방지 |
-| processed_events | UNIQUE(event_id) | consumer 멱등성 |
+| ledger_entries | UNIQUE(transfer_id), UNIQUE(source_event_id) | 송금별 원장/이벤트 중복 방지 |
+| processed_events | UNIQUE(source_event_id) | consumer 멱등성 |
 | settlement_targets | UNIQUE(transfer_id) | 정산 후보 중복 방지 |
 | settlement_days | UNIQUE(settlement_date) | 같은 날짜 중복 정산 방지 |
 | settlement_items | UNIQUE(transfer_id) | 같은 송금 중복 정산 방지 |
@@ -803,10 +844,10 @@ Kafka consumer 중복 처리를 막기 위한 처리 이력이다.
 | WalletReferenceType | MANUAL_CHARGE, TRANSFER, OPEN_BANKING_CHARGE, OPEN_BANKING_WITHDRAWAL, OPEN_BANKING_REFUND |
 | BankAccountStatus | ACTIVE, LOCKED, DELETED |
 | BankingTransferType | CHARGE, WITHDRAWAL, REFUND |
-| BankingTransferStatus | REQUESTED, BANK_PROCESSING, BANK_SUCCEEDED, WALLET_REFLECTING, COMPLETED, FAILED, UNKNOWN, COMPENSATION_REQUIRED |
+| BankingTransferStatus | REQUESTED, BANK_REQUESTED, BANK_PROCESSING, BANK_SUCCEEDED, WALLET_REFLECTING, COMPLETED, FAILED, UNKNOWN, BANK_SUCCESS_BUT_WALLET_FAILED, COMPENSATION_REQUIRED |
 | TransferStatus | REQUESTED, PROCESSING, COMPLETED, FAILED, COMPENSATION_REQUIRED, ROLLED_BACK, ROLLBACK_FAILED |
 | IdempotencyStatus | PROCESSING, COMPLETED, FAILED |
-| OutboxStatus | READY, PUBLISHED, FAILED |
+| OutboxStatus | READY, PUBLISHING, PUBLISHED, FAILED |
 | FamilyInvitationStatus | ACTIVE, USED, EXPIRED |
 | FamilyLinkStatus | REQUESTED, APPROVED, REJECTED, CANCELED |
 | MissionStatus | REGISTERED, SUBMITTED, PAYMENT_PENDING, PAYMENT_FAILED, PAID, REJECTED, CANCELED |

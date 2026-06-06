@@ -52,6 +52,36 @@ TransferCompleted payload:
 }
 ```
 
+TransferFailed payload:
+
+```json
+{
+  "eventId": "uuid",
+  "transferId": 1001,
+  "senderWalletId": 1,
+  "receiverWalletId": 2,
+  "amount": 10000,
+  "status": "FAILED",
+  "failureReason": "INSUFFICIENT_BALANCE",
+  "failedAt": "2026-05-30T12:00:00"
+}
+```
+
+`COMPENSATION_REQUIRED`는 단순 실패보다 더 위험한 상태이므로 `transfer.failed` payload에 그대로 담아 후속 서비스와 운영자가 구분할 수 있게 한다.
+
+```json
+{
+  "eventId": "uuid",
+  "transferId": 1002,
+  "senderWalletId": 1,
+  "receiverWalletId": 2,
+  "amount": 10000,
+  "status": "COMPENSATION_REQUIRED",
+  "failureReason": "RECEIVER_DEPOSIT_FAILED_AFTER_SENDER_WITHDRAW",
+  "failedAt": "2026-05-30T12:01:00"
+}
+```
+
 ## Outbox 상태
 
 ```text
@@ -136,8 +166,8 @@ Outbox는 at-least-once 발행이다.
 consumer 쪽 방어:
 
 ```text
-processed_events.event_id UNIQUE
-이미 처리한 eventId면 skip
+processed_events.source_event_id UNIQUE
+이미 처리한 sourceEventId면 skip
 ```
 
 ## Kafka topic

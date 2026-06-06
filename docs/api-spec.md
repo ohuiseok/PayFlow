@@ -207,6 +207,34 @@ Authorization: Bearer {accessToken}
 
 - 지갑 소유자만 조회할 수 있습니다.
 
+### 내부 지갑 조회
+
+내부 서비스 간 직접 호출용 API입니다. Gateway 경유 외부 호출 대상이 아닙니다.
+`transfer-service`는 송금 전 sender/receiver 지갑의 존재, 소유자, 상태를 확인할 때 이 API를 사용합니다.
+
+```http
+GET /internal/wallets/{walletId}
+X-Internal-Request: true
+X-Internal-Secret: {INTERNAL_SERVICE_SECRET}
+```
+
+응답: `200 OK`
+
+```json
+{
+  "walletId": 100,
+  "userId": 1,
+  "balance": 85000,
+  "status": "ACTIVE"
+}
+```
+
+제약:
+
+- 내부 요청만 허용됩니다.
+- 외부에서 Gateway를 통해 호출할 수 없습니다.
+- `X-Internal-Secret`이 없거나 다르면 `FORBIDDEN`이 반환됩니다.
+
 ### 지갑 입금
 
 ```http
@@ -270,7 +298,7 @@ X-Internal-Secret: {INTERNAL_SERVICE_SECRET}
 {
   "amount": 3000,
   "referenceType": "TRANSFER",
-  "referenceId": "reward-payment-mission-001"
+  "referenceId": "transfer-5000"
 }
 ```
 
@@ -322,28 +350,28 @@ X-Internal-Secret: {INTERNAL_SERVICE_SECRET}
 
 ## Gateway 라우트 현황
 
-아래 라우트는 Gateway에 등록되어 있습니다.
+아래 라우트는 Gateway에 등록되어 있거나 MVP에서 우선 등록할 라우트입니다.
 
 | 외부 경로 | 대상 서비스 | 현재 API 구현 상태 |
 |---|---|---|
 | `/api/users/**` | user-service | 구현됨 |
 | `/api/wallets/**` | wallet-service | 구현됨 |
-| `/api/bank/**` | banking-service | 컨트롤러 미구현 |
+| `/api/credits/**` | banking-service | MVP 공개 충전 API |
+| `/api/bank/**` | banking-service | 전환/내부 테스트용 legacy 경로 |
 | `/api/transfers/**` | transfer-service | 컨트롤러 미구현 |
 | `/api/ledgers/**` | ledger-service | 컨트롤러 미구현 |
-| `/api/settlements/**` | settlement-service | 컨트롤러 미구현 |
+| `/api/settlements/**` | settlement-service | 보강/2차 |
 
 추가 필요 라우트:
 
 | 외부 경로 | 권장 서비스 | 용도 |
 |---|---|---|
 | `/api/families/**` | family/reward-service | 부모-자녀 연결 |
-| `/api/credits/**` | banking/wallet-service | 부모 크레딧 충전 |
 | `/api/missions/**` | reward-service | 미션 등록, 제출, 승인, 반려 |
 | `/api/cashbook/**` | reward/wallet-service | 자녀 캐시북 |
-| `/api/notifications/**` | notification/reward-service | 알림 |
-| `/api/settings/**` | user-service | 프로필/설정 |
-| `/api/files/**` | file/reward-service | 미션 인증 사진 업로드 URL |
+| `/api/notifications/**` | notification/reward-service | 보강/2차 알림 |
+| `/api/settings/**` | user-service | 보강/2차 프로필/설정 |
+| `/api/files/**` | file/reward-service | 보강/2차 미션 인증 사진 업로드 URL |
 
 ## 목업 화면 기준 구현 예정 API
 
@@ -642,6 +670,7 @@ Authorization: Bearer {parentAccessToken}
 ```http
 POST /api/credits/charges
 Authorization: Bearer {parentAccessToken}
+Idempotency-Key: 20260605-user1-charge-001
 Content-Type: application/json
 ```
 
@@ -663,6 +692,13 @@ Content-Type: application/json
   "status": "PROCESSING"
 }
 ```
+
+정책:
+
+- `Idempotency-Key`는 필수입니다.
+- 같은 key와 같은 body는 기존 충전 요청 결과를 반환합니다.
+- 같은 key와 다른 body는 `409 Conflict`를 반환합니다.
+- 외부 은행망 성공이 확정되기 전에는 wallet-service 입금을 호출하지 않습니다.
 
 ### 크레딧 충전 결과 조회
 
@@ -950,7 +986,7 @@ Content-Type: application/json
 ```http
 POST /api/missions/{missionId}/approve
 Authorization: Bearer {parentAccessToken}
-Idempotency-Key: reward-payment-mission-1000
+Idempotency-Key: reward-payment-{missionSubmissionId}
 ```
 
 응답:
@@ -958,6 +994,7 @@ Idempotency-Key: reward-payment-mission-1000
 ```json
 {
   "missionId": 1000,
+  "missionSubmissionId": 9001,
   "status": "PAID",
   "transferId": 5000,
   "rewardAmount": 3000,
@@ -966,6 +1003,9 @@ Idempotency-Key: reward-payment-mission-1000
 ```
 
 처리 방향:
+
+- 승인 API 경로는 `missionId`를 사용하지만, 보상 지급 멱등키는 승인 대상 제출 건의 `missionSubmissionId`로 만든다.
+- 예: `missionSubmissionId = 9001`이면 `Idempotency-Key = reward-payment-9001`.
 
 - 부모 지갑에서 `rewardAmount` 출금
 - 자녀 지갑에 `rewardAmount` 입금
@@ -1392,9 +1432,14 @@ Authorization: Bearer {accessToken}
 | 값 | 화면 라벨 | 설명 |
 |---|---|---|
 | REQUESTED | 요청 완료 | 충전 요청 생성 |
-| PROCESSING | 처리 중 | 외부 충전 처리 중 |
-| COMPLETED | 완료 | 충전 성공 |
-| FAILED | 실패 | 충전 실패 |
+| BANK_REQUESTED | 처리 중 | 오픈뱅킹 또는 mock PG 요청 직전/요청 중 |
+| BANK_PROCESSING | 처리 중 | 은행망 처리 중 또는 결과조회 대기 |
+| BANK_SUCCEEDED | 은행 성공 | 은행 거래 성공 확정, wallet 반영 전 |
+| WALLET_REFLECTING | 반영 중 | wallet-service 입금 반영 중 |
+| COMPLETED | 완료 | 은행 성공과 wallet 반영 완료 |
+| FAILED | 실패 | 은행 거래 실패 또는 wallet 반영 전 실패 |
+| UNKNOWN | 확인 필요 | timeout/응답 미수신으로 결과조회 필요 |
+| BANK_SUCCESS_BUT_WALLET_FAILED | 재처리 필요 | 은행 성공 후 wallet-service 입금 반영 실패 |
 
 ### WithdrawalStatus
 

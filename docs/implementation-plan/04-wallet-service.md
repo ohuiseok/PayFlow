@@ -221,7 +221,8 @@ UNIQUE(wallet_id, transaction_type, reference_type, reference_id)
 같은 reference로 같은 요청이 다시 오면 기존 WalletTransaction 기준으로 성공 응답을 반환한다.
 같은 reference로 amount가 다르면 409 Conflict를 반환한다.
 referenceType/referenceId가 없는 잔액 변경 요청은 실패시킨다.
-OPEN_BANKING_CHARGE referenceId는 bank_tran_id 또는 api_tran_id를 사용한다.
+OPEN_BANKING_CHARGE referenceId는 bank_tran_id를 우선 사용한다.
+api_tran_id는 외부 API 추적용으로 저장할 수 있지만 wallet 중복 방어 기준으로 쓰지 않는다.
 OPEN_BANKING_WITHDRAWAL referenceId는 bankingTransferId 또는 bank_tran_id를 사용한다.
 ```
 
@@ -245,13 +246,14 @@ OPEN_BANKING_WITHDRAWAL referenceId는 bankingTransferId 또는 bank_tran_id를 
 초기 구현:
 
 ```text
-DB 트랜잭션 + pessimistic lock 또는 Redis lock 중 하나 선택
+DB 트랜잭션 + pessimistic row lock을 MVP 기본으로 사용한다.
+Redis lock은 보강/2차에서 transfer-service에 추가한다.
 ```
 
 권장 구현:
 
 ```text
-Redis lock은 transfer-service에서 지갑 단위로 잡는다.
+보강/2차에서 Redis lock은 transfer-service에서 지갑 단위로 잡는다.
 wallet-service에서는 DB row lock으로 마지막 방어선을 둔다.
 ```
 

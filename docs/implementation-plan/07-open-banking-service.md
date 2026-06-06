@@ -323,6 +323,7 @@ WALLET_REFLECTING
 COMPLETED
 FAILED
 UNKNOWN
+BANK_SUCCESS_BUT_WALLET_FAILED
 COMPENSATION_REQUIRED
 ```
 
@@ -337,6 +338,7 @@ WALLET_REFLECTING      wallet-service 입금/차감 반영 중
 COMPLETED              은행 거래와 wallet 반영까지 완료
 FAILED                 은행 거래 실패 또는 wallet 차감 전 실패
 UNKNOWN                timeout/응답 미수신 등 결과조회 필요
+BANK_SUCCESS_BUT_WALLET_FAILED 은행 성공은 확정됐지만 wallet-service 반영 실패, 재처리 필요
 COMPENSATION_REQUIRED  이미 돈이 한쪽에서 움직여 보상/재처리 필요
 ```
 
@@ -538,7 +540,10 @@ org_tran_amt       = amount
    - referenceType: OPEN_BANKING_CHARGE
    - referenceId: bankTranId
 12. wallet 반영 성공이면 COMPLETED 저장
-13. 응답 반환
+13. wallet 반영 실패이면 BANK_SUCCESS_BUT_WALLET_FAILED 저장
+    - nextResultCheckAt 설정
+    - failureReason 저장
+14. 응답 반환
 ```
 
 응답 불명/처리 중:
@@ -552,8 +557,11 @@ nextResultCheckAt과 resultCheckCount를 설정해 결과조회 워커 대상에
 은행 성공 후 wallet 반영 실패:
 
 ```text
-BANK_SUCCEEDED 상태에서 wallet-service deposit이 실패하면 COMPENSATION_REQUIRED로 둔다.
-walletReferenceId = bankTranId 이므로 재시도해도 wallet-service reference 중복 방어가 가능해야 한다.
+BANK_SUCCEEDED 또는 WALLET_REFLECTING 상태에서 wallet-service deposit이 실패하면 BANK_SUCCESS_BUT_WALLET_FAILED로 둔다.
+walletReferenceType = OPEN_BANKING_CHARGE, walletReferenceId = bankTranId로 저장한다.
+재처리 워커는 같은 bankTranId로 wallet-service deposit을 다시 호출한다.
+wallet-service는 referenceType/referenceId unique 제약으로 중복 입금을 막아야 한다.
+재처리 성공 시 COMPLETED로 변경한다.
 ```
 
 ## 출금 처리 흐름
@@ -764,7 +772,7 @@ A0323 이용기관에 등록된 사용자 계좌 아님
   FAILED
 
 은행 성공 후 wallet 반영 실패:
-  COMPENSATION_REQUIRED
+  BANK_SUCCESS_BUT_WALLET_FAILED
 
 출금 성공:
   COMPLETED
@@ -797,7 +805,7 @@ timeout 또는 네트워크 단절:
   이체결과조회 API로 최종 결과 확인
 
 은행 성공 후 wallet 반영 실패:
-  COMPENSATION_REQUIRED
+  BANK_SUCCESS_BUT_WALLET_FAILED
   wallet-service referenceId 기준으로 재반영 가능
 ```
 
@@ -817,6 +825,17 @@ timeout 또는 네트워크 단절:
 9. 최종 실패 + WITHDRAWAL이면 COMPENSATION_REQUIRED
 10. 계속 처리 중이면 resultCheckCount 증가, nextResultCheckAt을 뒤로 미룸
 11. 재시도 한도 초과 시 운영자 확인 필요 상태로 남김
+```
+
+wallet 반영 재처리 워커는 `BANK_SUCCESS_BUT_WALLET_FAILED` 상태를 주기적으로 확인한다.
+
+```text
+1. status = BANK_SUCCESS_BUT_WALLET_FAILED 조회
+2. nextResultCheckAt <= now 인 거래만 선점
+3. walletReferenceType = OPEN_BANKING_CHARGE, walletReferenceId = bankTranId로 deposit 재호출
+4. 성공하면 COMPLETED
+5. 실패하면 resultCheckCount 증가, nextResultCheckAt을 뒤로 미룸
+6. 반복 실패 시 운영자 확인 대상으로 남김
 ```
 
 결과조회 재시도 간격은 초기에는 단순 정책으로 둔다.
@@ -851,6 +870,7 @@ timeout 또는 네트워크 단절:
 4. 결과조회 워커 추가
    - `UNKNOWN`, `BANK_PROCESSING` 상태를 주기적으로 조회한다.
    - `/transfer/result` 결과에 따라 성공, 실패, 보상 필요 상태로 전이한다.
+   - `BANK_SUCCESS_BUT_WALLET_FAILED` 상태는 은행 결과조회가 아니라 wallet deposit 재시도 대상으로 처리한다.
 
 5. 출금 API 추가
    - 초기에는 wallet 차감 후 오픈뱅킹 입금이체를 요청한다.
@@ -886,7 +906,7 @@ bank_tran_id 중복 저장 방지
 오픈뱅킹 timeout 시 UNKNOWN
 A0007 또는 입금 처리 중 응답 시 결과조회 대상으로 전환
 결과조회 성공 응답 시 최종 상태 갱신
-은행 성공 후 wallet 반영 실패 시 COMPENSATION_REQUIRED
+은행 성공 후 wallet 반영 실패 시 BANK_SUCCESS_BUT_WALLET_FAILED
 wallet 반영 재시도 시 reference 기반 중복 증가 없음
 출금 요청에서 wallet 차감 실패 시 FAILED
 출금 입금이체 실패 시 COMPENSATION_REQUIRED

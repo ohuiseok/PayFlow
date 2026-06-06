@@ -156,11 +156,18 @@ status VARCHAR(30)
 idempotency_key VARCHAR(255)
 request_hash VARCHAR(255)
 bank_tran_id VARCHAR(100) UNIQUE
+bank_tran_date VARCHAR(8)
+tran_dtime VARCHAR(14)
 api_tran_id VARCHAR(100)
-api_response_code VARCHAR(20)
-bank_response_code VARCHAR(20)
+api_tran_dtm VARCHAR(30)
+api_rsp_code VARCHAR(20)
+bank_rsp_code VARCHAR(20)
 failure_reason VARCHAR(500)
+wallet_reference_type VARCHAR(50)
 wallet_reference_id VARCHAR(100)
+result_check_count INT
+next_result_check_at DATETIME
+last_result_checked_at DATETIME
 requested_at DATETIME
 completed_at DATETIME
 created_at DATETIME
@@ -174,9 +181,12 @@ id BIGINT PK
 banking_transfer_id BIGINT
 api_name VARCHAR(100)
 request_id VARCHAR(100)
-response_code VARCHAR(20)
-bank_response_code VARCHAR(20)
-raw_response TEXT
+http_status INT
+api_rsp_code VARCHAR(20)
+bank_rsp_code VARCHAR(20)
+request_payload_masked TEXT
+response_payload_masked TEXT
+error_message VARCHAR(500)
 created_at DATETIME
 ```
 
@@ -186,6 +196,7 @@ created_at DATETIME
 banking-service는 wallet DB를 직접 조회하거나 변경하지 않는다.
 오픈뱅킹 출금이체 성공이 확정된 뒤 wallet-service 내부 deposit API를 호출한다.
 bank_tran_id와 api_tran_id는 외부 은행망 추적과 응답 불명 복구 근거로 저장한다.
+충전에서 은행 성공 후 wallet 반영이 실패하면 status는 BANK_SUCCESS_BUT_WALLET_FAILED로 두고, wallet_reference_id = bank_tran_id 기준으로 재처리한다.
 계좌번호 원문은 저장하지 않고 마스킹 값 또는 테스트 식별자만 저장한다.
 ```
 
@@ -373,7 +384,8 @@ created_at DATETIME
 reward-service는 user, wallet, transfer DB를 직접 조회하거나 변경하지 않는다.
 부모/아이 식별자와 지갑 ID는 참조 ID로만 저장한다.
 보상 지급은 transfer-service 송금 API를 통해서만 수행한다.
-가족 연결, 미션, 캐시북, 알림, 인증 사진 URL은 초기에는 reward DB에 함께 둔다.
+MVP에서는 가족 연결, 미션, 캐시북을 reward DB에 둔다.
+알림과 인증 사진 업로드 URL은 보강/2차에서 reward DB에 함께 둘 수 있다.
 트래픽이나 책임이 커지면 notification-service/file-service/family-service로 분리한다.
 ```
 
@@ -390,7 +402,7 @@ ledger_entries:
 ```text
 id BIGINT PK
 transfer_id BIGINT UNIQUE
-event_id VARCHAR(100) UNIQUE
+source_event_id VARCHAR(100) UNIQUE
 entry_type VARCHAR(50)
 total_amount DECIMAL(19,0)
 created_at DATETIME
@@ -418,7 +430,7 @@ processed_events:
 
 ```text
 id BIGINT PK
-event_id VARCHAR(100) UNIQUE
+source_event_id VARCHAR(100) UNIQUE
 consumer_name VARCHAR(100)
 processed_at DATETIME
 ```
@@ -479,8 +491,8 @@ reward_tasks(child_user_id, mission_date)
 reward_tasks(parent_user_id, mission_date)
 reward_tasks.status
 ledger_entries.transfer_id UNIQUE
-ledger_entries.event_id UNIQUE
-processed_events.event_id UNIQUE
+ledger_entries.source_event_id UNIQUE
+processed_events.source_event_id UNIQUE
 settlement_days.settlement_date UNIQUE
 settlement_items.transfer_id UNIQUE
 ```

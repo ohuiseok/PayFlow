@@ -106,7 +106,7 @@ Publisher 재시도
 
 ```text
 consumer별 processed_events 테이블
-eventId unique
+sourceEventId unique
 이미 처리한 이벤트 skip
 ```
 
@@ -173,7 +173,7 @@ PAYMENT_PENDING 상태에서 사용자가 다시 승인 요청
 
 ```text
 reward-service는 이미 PAID인 미션을 다시 지급하지 않는다.
-transfer-service 호출에는 reward-payment-mission-{missionId} Idempotency-Key를 사용한다.
+transfer-service 호출에는 reward-payment-{missionSubmissionId} Idempotency-Key를 사용한다.
 PAYMENT_PENDING 재시도도 같은 Idempotency-Key를 사용한다.
 transferId와 paidAt을 저장해 캐시북 수입 기록, 미션 캘린더 상태, 지급 결과를 연결한다.
 ```

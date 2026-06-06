@@ -12,7 +12,7 @@
 
 ## 목표
 
-구현할 기능:
+MVP 필수 기능:
 
 ```text
 부모가 보상 미션을 등록한다.
@@ -22,9 +22,17 @@
 반려된 미션은 아이가 재제출할 수 있다.
 승인되면 부모 지갑에서 아이 지갑으로 실제 용돈이 송금된다.
 지급 완료된 미션은 캐시북에 기록된다.
+아이와 연결된 부모가 캐시북 요약/내역을 조회한다.
+월별 missionDate 기준 미션 캘린더를 조회한다.
+```
+
+보강/2차 기능:
+
+```text
 부모 지급/정산 내역을 조회한다.
 알림 목록과 읽음 처리를 제공한다.
 미션 인증 사진 업로드 URL을 발급한다.
+아이의 수동 지출 기록을 추가한다.
 ```
 
 구현하지 않을 기능:
@@ -50,8 +58,8 @@ reward-service
 - 부모 승인/거절
 - 보상 지급 요청
 - 캐시북 조회/기록
-- 알림 조회/읽음 처리
-- 인증 사진 업로드 URL 발급
+- 보강/2차: 알림 조회/읽음 처리
+- 보강/2차: 인증 사진 업로드 URL 발급
 
 transfer-service
 - 부모 지갑 -> 아이 지갑 송금
@@ -83,7 +91,9 @@ API Gateway
   +-- reward-service
 ```
 
-초기 구현에서는 `reward-service`가 OpenFeign으로 `transfer-service`를 호출한다. 알림과 파일 업로드 URL은 별도 서비스로 분리하지 않고 reward-service 내부 모듈로 먼저 구현한다. 보상 지급 성공 이벤트를 별도로 구독하는 구조는 2차 범위로 둔다.
+초기 구현에서는 `reward-service`가 OpenFeign으로 `transfer-service`를 호출한다.
+알림과 파일 업로드 URL은 별도 서비스로 분리하지 않고 reward-service 내부 모듈로 둘 수 있지만, MVP에서는 구현하지 않는다.
+보상 지급 성공 이벤트를 별도로 구독하는 구조도 2차 범위로 둔다.
 
 ## 핵심 흐름
 
@@ -138,23 +148,25 @@ DELETE /families/{familyId}
 3. transfer-service에 부모 지갑 -> 아이 지갑 송금을 요청한다.
 4. 송금 성공 응답을 받으면 transferId를 저장한다.
 5. 상태를 PAID로 변경하고 paidAt을 저장한다.
-6. 아이 캐시북 수입 기록과 알림을 생성한다.
+6. 아이 캐시북 수입 기록을 생성한다.
+7. 보강/2차에서 아이에게 보상 지급 알림을 생성한다.
 ```
 
 승인 API는 반드시 멱등하게 동작해야 한다. 같은 미션에 대해 승인 버튼이 두 번 눌려도 보상은 한 번만 지급되어야 한다.
 
 ```text
-Idempotency-Key: reward-payment-mission-{missionId}
+Idempotency-Key: reward-payment-{missionSubmissionId}
 ```
 
-`reward-service`는 `missionId` 기준으로 이미 `PAID`인지 먼저 확인하고, `transfer-service`에도 고정된 idempotency key를 전달한다.
+`reward-service`는 `missionSubmissionId` 기준으로 이미 지급 요청이 처리됐는지 먼저 확인하고, `transfer-service`에도 고정된 idempotency key를 전달한다.
+한 미션에 재제출이 여러 번 생길 수 있으므로 지급 멱등성은 최종 승인 대상 제출 건인 `missionSubmissionId`를 기준으로 잡는다.
 
 ### 5. 부모 반려와 아이 재제출
 
 ```text
 1. 부모가 반려 사유를 입력한다.
 2. reward-service가 상태를 REJECTED로 변경하고 rejectionReason을 저장한다.
-3. 아이에게 반려 알림을 만든다.
+3. 보강/2차에서 아이에게 반려 알림을 만든다.
 4. 아이는 사진/메모를 수정해 resubmit API를 호출한다.
 5. 상태는 다시 SUBMITTED가 된다.
 ```
@@ -206,7 +218,7 @@ PAYMENT_FAILED -> PAYMENT_PENDING
 PAYMENT_PENDING -> PAID
 ```
 
-송금 실패 시 `PAYMENT_FAILED`와 `failureReason`을 저장하고, 같은 `reward-payment-mission-{missionId}` 멱등키로 재시도한다. 테스트에서는 송금 실패 후 재시도해도 중복 지급이 발생하지 않는지 확인한다.
+송금 실패 시 `PAYMENT_FAILED`와 `failureReason`을 저장하고, 같은 `reward-payment-{missionSubmissionId}` 멱등키로 재시도한다. 테스트에서는 송금 실패 후 재시도해도 중복 지급이 발생하지 않는지 확인한다.
 
 ## 데이터 모델
 
@@ -325,7 +337,7 @@ entryType
 createdAt
 ```
 
-### Notification
+### Notification, 보강/2차
 
 ```text
 id
@@ -337,7 +349,7 @@ readAt
 createdAt
 ```
 
-### FileUploadRequest
+### FileUploadRequest, 보강/2차
 
 ```text
 id
@@ -385,14 +397,14 @@ POST /missions/{missionId}/resubmit
 승인 API는 반드시 아래 멱등키를 사용한다.
 
 ```http
-Idempotency-Key: reward-payment-mission-{missionId}
+Idempotency-Key: reward-payment-{missionSubmissionId}
 ```
 
 내부 transfer-service 호출:
 
 ```http
 POST /transfers
-Idempotency-Key: reward-payment-mission-{missionId}
+Idempotency-Key: reward-payment-{missionSubmissionId}
 X-User-Id: {parentUserId}
 Content-Type: application/json
 
@@ -426,7 +438,7 @@ POST /cashbook/children/{childUserId}/entries
 GET /parent-history/rewards
 ```
 
-### 알림
+### 알림, 보강/2차
 
 ```http
 GET /notifications/unread-count
@@ -444,14 +456,14 @@ PATCH /notifications/read-all
    - 이미 PAID면 기존 지급 결과를 반환한다.
 
 2. transfer-service Idempotency-Key
-   - reward-payment-mission-{missionId}를 사용한다.
-   - 같은 mission은 같은 송금 결과를 반환한다.
+   - reward-payment-{missionSubmissionId}를 사용한다.
+   - 같은 제출 승인 건은 같은 송금 결과를 반환한다.
 
 3. wallet-service reference
    - transfer-service의 reference 기반 지갑 반영 중복 방지에 의존한다.
 ```
 
-승인 요청이 실패하거나 타임아웃이 발생했을 때는 `PAYMENT_PENDING` 상태와 `transferId` 여부를 기준으로 재조회/재시도한다. 동일 미션의 재시도는 같은 idempotency key를 사용해야 한다.
+승인 요청이 실패하거나 타임아웃이 발생했을 때는 `PAYMENT_PENDING` 상태와 `transferId` 여부를 기준으로 재조회/재시도한다. 동일 제출 승인 건의 재시도는 같은 idempotency key를 사용해야 한다.
 
 ## 테스트
 
@@ -472,9 +484,15 @@ PATCH /notifications/read-all
 PAID 미션은 캐시북에 수입 기록으로 표시된다.
 캐시북 요약은 지급 완료 미션 기준으로 계산된다.
 월별 미션 캘린더는 missionDate 기준으로 조회된다.
+부모/아이 권한이 맞지 않으면 403으로 실패한다.
+```
+
+보강/2차 테스트:
+
+```text
 알림 목록/읽음 처리가 동작한다.
 인증 사진 업로드 URL 발급 권한을 검증한다.
-부모/아이 권한이 맞지 않으면 403으로 실패한다.
+아이 수동 지출 기록이 캐시북에 반영된다.
 ```
 
 통합 테스트에서는 transfer-service를 mock client로 대체해도 된다. 다만 최종 smoke test에서는 실제 `transfer-service`, `wallet-service`와 연결해 부모 지갑에서 아이 지갑으로 잔액이 이동하는지 확인한다.
@@ -487,25 +505,28 @@ PAID 미션은 캐시북에 수입 기록으로 표시된다.
 3. payflow_reward DB 추가
 4. Family, FamilyInvitation, FamilyLinkRequest 구현
 5. RewardTask, RewardTaskSubmission, CashbookEntry 구현
-6. Notification, FileUploadRequest 구현
-7. Repository 구현
-8. TransferClient 구현
-9. 가족 연결 API 구현
-10. 미션 등록/수정/취소 API 구현
-11. 미션 목록/상세 조회 API 구현
-12. 월별 미션 캘린더 API 구현
-13. 완료 제출/재제출 API 구현
-14. 승인/거절 API 구현
-15. 승인 시 transfer-service 송금 연동
-16. 승인 멱등성 처리
-17. 캐시북 요약/내역/지출 기록 API 구현
-18. 부모 지급/정산 내역 API 구현
-19. 알림 목록/읽음 API 구현
-20. 인증 사진 업로드 URL API 구현
-21. Gateway route 추가
-22. docker-compose reward-service 추가
-23. 단위/통합 테스트 작성
-24. README 또는 데모 시나리오 갱신
+6. Repository 구현
+7. TransferClient 구현
+8. 가족 연결 API 구현
+9. 미션 등록/수정/취소 API 구현
+10. 미션 목록/상세 조회 API 구현
+11. 월별 미션 캘린더 API 구현
+12. 완료 제출/재제출 API 구현
+13. 승인/거절 API 구현
+14. 승인 시 transfer-service 송금 연동
+15. 승인 멱등성 처리
+16. 캐시북 요약/내역 API 구현
+17. Gateway route 추가
+18. docker-compose reward-service 추가
+19. 단위/통합 테스트 작성
+20. README 또는 데모 시나리오 갱신
+
+보강/2차:
+21. Notification, FileUploadRequest 구현
+22. 부모 지급/정산 내역 API 구현
+23. 알림 목록/읽음 API 구현
+24. 인증 사진 업로드 URL API 구현
+25. 캐시북 지출 기록 API 구현
 ```
 
 ## 데모 시나리오

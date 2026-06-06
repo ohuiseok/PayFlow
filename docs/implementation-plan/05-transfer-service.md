@@ -127,6 +127,7 @@ status
 retryCount
 lastError
 createdAt
+updatedAt
 publishedAt
 ```
 
@@ -134,6 +135,7 @@ OutboxStatus:
 
 ```text
 READY
+PUBLISHING
 PUBLISHED
 FAILED
 ```
@@ -149,6 +151,59 @@ senderWalletId와 receiverWalletId가 같으면 실패시킨다.
 transfer-service는 wallet-service의 소유권 확인 API 또는 내부 조회 API를 통해 지갑 정보를 확인한다.
 Gateway가 전달한 X-User-Id가 없으면 요청을 거부한다.
 ```
+
+## wallet-service 내부 API 계약
+
+`transfer-service`는 다른 서비스 DB를 직접 조회하지 않는다.
+송금 전 지갑 존재, 상태, 소유자를 확인하기 위해 wallet-service 내부 조회 API를 사용한다.
+
+```http
+GET /internal/wallets/{walletId}
+X-Internal-Request: true
+X-Internal-Secret: {INTERNAL_SERVICE_SECRET}
+```
+
+응답:
+
+```json
+{
+  "walletId": 1,
+  "userId": 10,
+  "balance": 10000,
+  "status": "ACTIVE"
+}
+```
+
+검증 규칙:
+
+```text
+senderWalletId 조회 결과 userId == X-User-Id 여야 한다.
+sender wallet status == ACTIVE 여야 한다.
+receiver wallet status == ACTIVE 여야 한다.
+senderWalletId != receiverWalletId 여야 한다.
+```
+
+내부 변경 API 호출 시 공통 헤더:
+
+```http
+X-Internal-Request: true
+X-Internal-Secret: {INTERNAL_SERVICE_SECRET}
+```
+
+송금 wallet reference 규칙:
+
+```text
+sender withdraw:
+  referenceType = TRANSFER
+  referenceId = transfer-{transferId}
+
+receiver deposit:
+  referenceType = TRANSFER
+  referenceId = transfer-{transferId}
+```
+
+현재 wallet-service 중복 방어 기준은 `walletId + transactionType + referenceType + referenceId` 이므로 같은 `transfer-{transferId}`를 출금/입금 양쪽에 사용해도 된다.
+이 규칙 덕분에 transfer-service가 wallet-service 호출을 재시도하거나 복구 작업을 수행해도 같은 지갑에 같은 거래가 중복 반영되지 않는다.
 
 ## 상태 전이 규칙
 

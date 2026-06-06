@@ -50,25 +50,57 @@ nginx
 ## 구현 순서
 
 반드시 아래 순서로 구현한다.
+현재 기준 문서는 `docs/CHECKLIST.md`이며, 이 문서는 그 우선순위를 요약한다.
 
 ```text
-01. 공통 개발 규칙과 패키지 규칙 정리
-02. DB 스키마와 마이그레이션 전략 결정
-03. user-service 인증, 역할, 프로필, 설정 기반 구현
-04. wallet-service 지갑/잔액/이력 구현
-05. transfer-service 송금 상태와 멱등성 구현
-06. reward-service 가족 연결, 미션, 캐시북, 보상 지급 연동 구현
-07. banking-service 크레딧 충전/계좌/오픈뱅킹 상태 모델 구현
-08. Redis 분산 락 적용
-09. Transactional Outbox와 Kafka 이벤트 발행 구현
-10. ledger-service 원장 기록 구현
-11. settlement-service 정산 배치 구현
-12. API Gateway 인증/라우팅 보강
-13. 장애/재시도/복구 시나리오 구현
-14. 테스트 시나리오 작성
-15. 로컬 실행과 배포 문서 정리
-16. Agent 체크리스트 기준으로 구현 완료 전 점검
-17. 결제 핵심 5요소 고도화 로드맵 반영
+01. user-service, wallet-service, api-gateway 최소 기반 유지 및 검증
+02. transfer-service 송금 상태 머신과 Idempotency 구현
+03. transfer-service OutboxEvent 저장 구현
+04. Outbox publisher와 Kafka 이벤트 발행 구현
+05. ledger-service transfer.completed 소비와 원장 기록 구현
+06. banking-service Mock PG/OpenBanking 충전 흐름 구현
+07. reward-service 가족 연결, 미션, 캐시북, 보상 지급 연동 구현
+08. 장애/재시도/복구 시나리오를 transfer/banking/outbox에 반영
+09. Gateway reward/credits/settings/files 라우팅 보강
+10. settlement-service 정산 배치 구현
+11. 로컬 실행, 배포, 포트폴리오 문서 정리
+```
+
+이미 MVP 기준을 충족한 기반:
+
+```text
+user-service:
+- 기본 회원가입
+- 로그인
+- JWT 발급
+- 사용자 조회
+
+wallet-service:
+- 지갑 생성
+- 잔액 조회
+- 입금/출금
+- 잔액 변경 이력
+- reference 기반 중복 반영 방어
+- DB row lock 기반 잔액 정합성
+
+api-gateway:
+- 기본 서비스 라우팅
+- JWT 검증
+- X-User-* 헤더 주입
+- 외부 X-User-*, X-Internal-* 헤더 제거
+```
+
+보강/2차로 미룬 항목:
+
+```text
+user-service 역할/프로필/알림 설정
+Redis 분산 락
+오픈뱅킹 출금/환불
+정보제공자 API
+정산 배치와 수수료 고도화
+알림/파일 업로드 URL
+Push 알림 외부 연동
+배포 자동화와 부하 테스트
 ```
 
 ## 현재 구현 기반과 다음 고도화 방향
@@ -105,43 +137,47 @@ docs/implementation-plan/17-payment-core-hardening-roadmap.md
 
 처음부터 너무 넓히지 않는다.
 
-1차 완성 범위:
+MVP 필수 범위:
 
 ```text
 회원가입
-역할 선택
 로그인
 JWT 발급
-프로필/설정 조회
-가족 연결
 지갑 생성
-잔액 충전
 잔액 조회
-오픈뱅킹 테스트베드 기반 충전 상태 기록
-부모 크레딧 충전
+지갑 입금/출금
+잔액 변경 이력
+reference 기반 중복 반영 방어
 송금 요청
 송금 상태 조회
+송금 Idempotency-Key 처리
+sender 차감 성공 후 receiver 입금 실패 시 COMPENSATION_REQUIRED 기록
+Outbox 저장
+Kafka 발행
+원장 기록
+Mock PG 또는 오픈뱅킹 테스트베드 기반 충전 상태 기록
+부모 크레딧 충전
+가족 연결
 용돈 미션 등록
 아이 완료 요청
 부모 승인 후 실제 용돈 지급
 반려와 재제출
 아이 캐시북 조회
-부모 지급/정산 내역 조회
-알림 목록/읽음 처리
-인증 사진 업로드 URL 발급
-멱등성 처리
-분산 락
-Outbox 저장
-Kafka 발행
-원장 기록
 ```
 
-2차 확장 범위:
+보강/2차 확장 범위:
 
 ```text
+역할 선택
+프로필/설정 조회
+알림 목록/읽음 처리
+인증 사진 업로드 URL 발급
+부모 지급/정산 내역 조회
+Redis 분산 락
 정산 배치
 수수료 계산
 오픈뱅킹 출금/환불
+정보제공자 API
 반복 미션
 가족 관계 고도화
 Push 알림 외부 연동

@@ -23,16 +23,16 @@ Docker Compose 서비스 이름으로 직접 라우팅한다.
 ```text
 /api/users/**       -> http://user-service:8081
 /api/wallets/**     -> http://wallet-service:8082
-/api/bank/**        -> http://banking-service:8086
 /api/credits/**     -> http://banking-service:8086
+/api/bank/**        -> http://banking-service:8086, 전환/내부 테스트용 legacy 경로
 /api/transfers/**   -> http://transfer-service:8083
 /api/families/**    -> http://reward-service:8087
 /api/missions/**    -> http://reward-service:8087
 /api/cashbook/**    -> http://reward-service:8087
-/api/parent-history/** -> http://reward-service:8087
-/api/notifications/** -> http://reward-service:8087
-/api/files/**       -> http://reward-service:8087
-/api/settings/**    -> http://user-service:8081
+/api/parent-history/** -> http://reward-service:8087, 보강/2차
+/api/notifications/** -> http://reward-service:8087, 보강/2차
+/api/files/**       -> http://reward-service:8087, 보강/2차
+/api/settings/**    -> http://user-service:8081, 보강/2차
 /api/ledgers/**     -> http://ledger-service:8084
 /api/settlements/** -> http://settlement-service:8085
 ```
@@ -56,16 +56,16 @@ GET /actuator/health
 
 ```text
 /api/wallets/**
-/api/bank/**
 /api/credits/**
+/api/bank/**, 전환/내부 테스트용 legacy 경로
 /api/transfers/**
 /api/families/**
 /api/missions/**
 /api/cashbook/**
-/api/parent-history/**
-/api/notifications/**
-/api/files/**
-/api/settings/**
+/api/parent-history/**, 보강/2차
+/api/notifications/**, 보강/2차
+/api/files/**, 보강/2차
+/api/settings/**, 보강/2차
 /api/ledgers/**
 /api/settlements/**
 ```

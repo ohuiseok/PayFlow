@@ -75,7 +75,7 @@
 - [ ] 미션 수정/취소는 허용된 상태에서만 가능하다.
 - [ ] 제출/재제출 시 제출 메모와 evidenceImageUrl을 저장한다.
 - [ ] 승인 API는 이미 `PAID`인 미션에 대해 중복 지급하지 않는다.
-- [ ] transfer-service 호출 시 `reward-payment-mission-{missionId}` 형식의 고정 Idempotency-Key를 사용한다.
+- [ ] transfer-service 호출 시 `reward-payment-{missionSubmissionId}` 형식의 고정 Idempotency-Key를 사용한다.
 - [ ] transfer-service 실패 또는 timeout 후 재시도해도 같은 mission이 두 번 지급되지 않는다.
 - [ ] 캐시북 합계는 `PAID` 상태 미션만 기준으로 계산한다.
 - [ ] 보상 지급 완료 시 캐시북 수입 기록을 한 번만 생성한다.

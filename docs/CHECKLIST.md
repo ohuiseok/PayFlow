@@ -175,6 +175,8 @@ MVP 필수:
 - [ ] request hash 생성 로직 구현
 - [ ] IdempotencyService 구현
 - [ ] Wallet Feign Client 구현
+- [ ] wallet-service 내부 지갑 조회 API 계약 적용
+- [ ] 송금 wallet referenceId 규칙 적용
 - [ ] 송금 요청 API 구현
 - [ ] 송금 조회 API 구현
 - [ ] sender wallet 소유권 검증 구현
@@ -215,13 +217,10 @@ MVP 필수:
 - [ ] RewardTask 엔티티 구현
 - [ ] RewardTaskSubmission 엔티티 구현
 - [ ] CashbookEntry 엔티티 구현
-- [ ] Notification 엔티티 구현
-- [ ] FileUploadRequest 엔티티 구현
 - [ ] RewardTaskStatus enum 구현
 - [ ] RewardTaskRepository 구현
 - [ ] FamilyRepository 구현
 - [ ] CashbookEntryRepository 구현
-- [ ] NotificationRepository 구현
 - [ ] TransferClient 구현
 - [ ] 부모 초대 코드 생성 API 구현
 - [ ] 자녀 초대 코드 확인 API 구현
@@ -240,7 +239,7 @@ MVP 필수:
 - [ ] 부모 승인 API 구현
 - [ ] 부모 거절 API 구현
 - [ ] 승인 시 transfer-service 송금 연동
-- [ ] `reward-payment-mission-{missionId}` Idempotency-Key 적용
+- [ ] `reward-payment-{missionSubmissionId}` Idempotency-Key 적용
 - [ ] 이미 PAID인 미션 재승인 시 기존 결과 반환
 - [ ] 송금 실패 시 failureReason 저장
 - [ ] 자녀 캐시북 요약 API 구현
@@ -252,6 +251,9 @@ MVP 필수:
 
 보강/2차:
 
+- [ ] Notification 엔티티 구현
+- [ ] FileUploadRequest 엔티티 구현
+- [ ] NotificationRepository 구현
 - [ ] 자녀 캐시북 지출 기록 API 구현
 - [ ] 부모 지급/정산 내역 API 구현
 - [ ] 알림 안 읽은 개수 API 구현
@@ -313,6 +315,9 @@ MVP 필수:
 - [ ] 오픈뱅킹 실패 상태 저장
 - [ ] 응답 불명 UNKNOWN 상태 저장
 - [ ] 처리 중 BANK_PROCESSING 상태 저장
+- [ ] 은행 성공 후 wallet 반영 실패 시 BANK_SUCCESS_BUT_WALLET_FAILED 상태 저장
+- [ ] BANK_SUCCESS_BUT_WALLET_FAILED 재처리 워커 구현
+- [ ] 재처리 시 같은 bank_tran_id로 wallet-service deposit 재호출
 - [ ] 이체결과조회 API client 메서드 구현
 - [ ] 이체결과조회 check_type/org_bank_tran_id/org_bank_tran_date/org_tran_amt 매핑 구현
 - [ ] UNKNOWN/BANK_PROCESSING 결과조회 워커 구현
@@ -376,6 +381,7 @@ docs/implementation-plan/08-redis-lock.md
 - [ ] OutboxEvent 저장 로직 구현
 - [ ] TransferCompleted payload 정의
 - [ ] TransferFailed payload 정의
+- [ ] COMPENSATION_REQUIRED payload 구분
 - [ ] Kafka Producer 설정
 - [ ] OutboxEventPublisher 구현
 - [ ] OutboxEventScheduler 구현

@@ -11,7 +11,7 @@
 ```text
 transfer.completed 이벤트 소비
 차변/대변 원장 기록
-eventId 기반 consumer 멱등성 처리
+sourceEventId 기반 consumer 멱등성 처리
 원장 조회
 원장 합계 검증
 ```
@@ -59,7 +59,7 @@ IN
 ```text
 id
 transferId
-eventId
+sourceEventId
 entryType
 totalAmount
 createdAt
@@ -80,7 +80,7 @@ createdAt
 
 ```text
 id
-eventId
+sourceEventId
 consumerName
 processedAt
 ```
@@ -89,7 +89,7 @@ processedAt
 
 ```text
 1. Kafka event 수신
-2. processed_events에서 eventId 조회
+2. processed_events에서 sourceEventId 조회
 3. 이미 있으면 skip
 4. LedgerEntry 생성
 5. LedgerLine 2개 생성
@@ -98,6 +98,7 @@ processedAt
 ```
 
 모든 작업은 하나의 DB 트랜잭션에서 처리한다.
+`sourceEventId`는 transfer-service OutboxEvent의 `eventId`를 그대로 저장한 값이며, `processed_events.source_event_id`에 unique 제약을 둔다.
 
 ## 원장 조회 API
 
@@ -112,7 +113,7 @@ GET /ledgers/transfers/{transferId}
 ```json
 {
   "transferId": 1001,
-  "eventId": "uuid",
+  "sourceEventId": "uuid",
   "totalAmount": 10000,
   "lines": [
     {
@@ -136,7 +137,7 @@ GET /ledgers/transfers/{transferId}
 ```text
 sender line amount == receiver line amount
 totalAmount == line amount
-eventId unique
+sourceEventId unique
 transferId unique 또는 중복 방지
 ```
 
@@ -158,7 +159,7 @@ transferId unique 또는 중복 방지
 ```text
 transfer.completed 이벤트 수신 시 원장 기록
 line 2개 생성 확인
-eventId 중복 소비 시 skip
+sourceEventId 중복 소비 시 skip
 원장 조회 성공
 잘못된 amount 이벤트 실패
 ```
