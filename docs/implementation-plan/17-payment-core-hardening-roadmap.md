@@ -115,7 +115,7 @@ Idempotency-Key 필수
 request body hash 저장
 같은 key + 같은 body -> 기존 응답 반환
 같은 key + 다른 body -> 409 Conflict
-PROCESSING 상태 재요청 -> 202 Accepted 또는 409 Conflict 중 정책 선택
+PROCESSING 상태 재요청 -> 202 Accepted와 현재 진행 상태 반환
 ```
 
 저장 대상:
@@ -172,7 +172,7 @@ transfer.failed
 
 ```text
 Outbox는 at-least-once 발행을 전제로 한다.
-consumer는 eventId 기준으로 멱등 처리한다.
+consumer는 sourceEventId 기준으로 멱등 처리한다.
 Kafka 발행 실패는 송금 성공을 되돌리지 않는다.
 발행 실패는 outbox 상태와 retryCount로 남긴다.
 ```

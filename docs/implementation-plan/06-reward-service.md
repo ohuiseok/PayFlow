@@ -123,13 +123,15 @@ DELETE /families/{familyId}
 ```text
 1. 부모가 아이, 보상금, 미션 수행 날짜, 제목을 입력한다.
 2. reward-service가 가족 연결 여부를 확인한다.
-3. reward-service가 부모/아이 식별자와 지갑 ID를 저장한다.
-3. 상태는 REGISTERED가 된다.
+3. reward-service가 부모/아이 식별자와 지갑 ID를 검증한 뒤 저장한다.
+4. 상태는 REGISTERED가 된다.
 ```
 
 초기 구현에서는 요청의 `parentUserId`는 Gateway의 `X-User-Id`를 신뢰한다. `childUserId`, `parentWalletId`, `childWalletId`는 요청으로 받되, Family 관계로 부모/아이 연결 여부를 검증한다.
 MVP에서는 user-service의 role claim에 의존하지 않고, reward DB의 Family 관계에 저장된 `parentUserId`, `childUserId` 기준으로 부모/아이 권한을 판단한다.
 회원가입 단계의 role 선택과 JWT role claim은 보강/2차 범위다.
+MVP에서 지갑 ID를 요청으로 받더라도, reward-service는 wallet-service 내부 조회 API로 `parentWalletId`가 `parentUserId` 소유이고 `childWalletId`가 `childUserId` 소유인지 확인한다.
+미션 등록 시점의 잔액 검증은 경고 또는 사전 검증 성격이며, 최종 잔액 부족 여부는 승인 시 transfer-service 송금과 wallet-service 출금에서 확정한다.
 
 ### 3. 아이 완료 요청
 
