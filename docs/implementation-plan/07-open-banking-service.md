@@ -50,6 +50,26 @@ mock profile 제공
 선불거래내역조회를 제공하는 단계에서 필요하다. 초기 구현에서는 오픈뱅킹 "이용기관" 기능을 먼저 완성하고,
 정보제공자 기능은 별도 `provider-api` 또는 `banking-service`의 inbound adapter로 분리하는 것을 후순위로 둔다.
 
+참고 기준:
+
+```text
+reference-docs/open-banking-summary.md
+reference-docs/payflow-open-banking-system-flow.md
+reference-docs/open-banking-postman-test-flow.md
+reference-docs/open-banking-financial-knowledge.md
+```
+
+구현 관점 핵심 매핑:
+
+```text
+PayFlow 충전 = 오픈뱅킹 출금이체
+PayFlow 출금 = 오픈뱅킹 입금이체
+fintech_use_num = 실제 계좌번호 대신 쓰는 오픈뱅킹 계좌 식별자
+bank_tran_id = PayFlow가 생성하는 외부 거래 추적 ID
+api_tran_id = 오픈뱅킹센터가 응답하는 API 처리 ID
+응답 불명 = 실패 확정이 아니라 결과조회 대상
+```
+
 ## 서비스 경계
 
 ```text
@@ -74,6 +94,16 @@ transfer-service
 ## API
 
 최종 외부 API는 `docs/api-spec.md`의 Credit API를 따른다. Gateway 외부 경로는 `/api/credits/**`이고, banking-service 내부 경로는 `/credits/**`를 우선한다.
+
+현재 Gateway에는 `/api/bank/**` 라우트가 있으므로 banking-service 구현 시 아래처럼 정리한다.
+
+```text
+MVP 권장:
+/api/credits/** -> banking-service /credits/**
+
+과도기:
+/api/bank/** 라우트는 제거하거나 내부 테스트용으로만 유지한다.
+```
 
 ### 충전 계좌 목록 조회
 
@@ -198,13 +228,41 @@ Content-Type: application/json
 id
 userId
 walletId
-bankCode
+userSeqNo
+fintechUseNum
+bankCodeStd
+bankName
+accountAlias
 accountNumberMasked
 accountHolderName
-fintechUseNum
+inquiryAgreeYn
+transferAgreeYn
 status
 createdAt
 updatedAt
+```
+
+오픈뱅킹 응답 필드 매핑:
+
+```text
+user_seq_no          -> userSeqNo
+fintech_use_num      -> fintechUseNum
+bank_code_std        -> bankCodeStd
+bank_name            -> bankName
+account_alias        -> accountAlias
+account_num_masked   -> accountNumberMasked
+account_holder_name  -> accountHolderName
+inquiry_agree_yn     -> inquiryAgreeYn
+transfer_agree_yn    -> transferAgreeYn
+```
+
+저장 원칙:
+
+```text
+계좌번호 원문은 저장하지 않는다.
+fintechUseNum과 마스킹 계좌번호를 저장한다.
+출금이체 기반 충전을 하려면 transferAgreeYn = Y 여야 한다.
+조회 API를 사용하려면 inquiryAgreeYn = Y 여야 한다.
 ```
 
 BankAccountStatus:
@@ -222,16 +280,24 @@ id
 transferType
 userId
 walletId
+bankAccountId
 amount
 status
 idempotencyKey
 requestHash
 bankTranId
+bankTranDate
+tranDtime
 apiTranId
-apiResponseCode
-bankResponseCode
+apiTranDtm
+apiRspCode
+bankRspCode
 failureReason
+walletReferenceType
 walletReferenceId
+resultCheckCount
+nextResultCheckAt
+lastResultCheckedAt
 requestedAt
 completedAt
 createdAt
@@ -250,6 +316,7 @@ BankingTransferStatus:
 
 ```text
 REQUESTED
+BANK_REQUESTED
 BANK_PROCESSING
 BANK_SUCCEEDED
 WALLET_REFLECTING
@@ -259,6 +326,20 @@ UNKNOWN
 COMPENSATION_REQUIRED
 ```
 
+상태 의미:
+
+```text
+REQUESTED              PayFlow가 요청을 접수하고 DB에 저장함
+BANK_REQUESTED         오픈뱅킹 요청 직전 또는 요청 중
+BANK_PROCESSING        은행/오픈뱅킹이 처리 중이라고 응답함
+BANK_SUCCEEDED         은행 거래 성공이 확정됨, wallet 반영 전
+WALLET_REFLECTING      wallet-service 입금/차감 반영 중
+COMPLETED              은행 거래와 wallet 반영까지 완료
+FAILED                 은행 거래 실패 또는 wallet 차감 전 실패
+UNKNOWN                timeout/응답 미수신 등 결과조회 필요
+COMPENSATION_REQUIRED  이미 돈이 한쪽에서 움직여 보상/재처리 필요
+```
+
 ### BankingApiLog
 
 ```text
@@ -266,10 +347,170 @@ id
 bankingTransferId
 apiName
 requestId
-responseCode
-bankResponseCode
-rawResponse
+httpStatus
+apiRspCode
+bankRspCode
+requestPayloadMasked
+responsePayloadMasked
+errorMessage
 createdAt
+```
+
+로그 원칙:
+
+```text
+access_token 원문 저장 금지
+refresh_token 원문 저장 금지
+client_secret 원문 저장 금지
+계좌번호 원문 저장 금지
+입금이체용 암호문구 원문 저장 금지
+요청/응답 전문은 마스킹 후 저장한다.
+```
+
+### OpenBankingToken, 실제 사용자 인증까지 구현할 경우
+
+초기 MVP에서는 `.env`의 테스트베드 토큰 또는 mock token으로 시작한다.
+사용자 인증과 토큰 갱신까지 구현할 때만 별도 테이블을 둔다.
+
+```text
+id
+userId
+tokenType
+userSeqNo
+clientUseCode
+accessTokenEncrypted
+refreshTokenEncrypted
+scope
+expiresAt
+createdAt
+updatedAt
+```
+
+TokenType:
+
+```text
+ORG
+USER
+```
+
+## 오픈뱅킹 API 매핑
+
+### 충전: 출금이체
+
+PayFlow에서 부모 크레딧을 충전하는 흐름은 사용자의 은행계좌에서 PayFlow 약정계좌로 돈을 가져오는 것이므로 오픈뱅킹 출금이체 API를 사용한다.
+
+```text
+POST /v2.0/transfer/withdraw/fin_num
+POST /v2.0/transfer/withdraw/acnt_num
+```
+
+MVP에서는 `fin_num` 방식을 우선한다.
+
+주요 요청 필드:
+
+```text
+bank_tran_id
+cntr_account_type
+cntr_account_num
+dps_print_content
+fintech_use_num
+wd_print_content
+tran_amt
+tran_dtime
+req_client_name
+req_client_fintech_use_num
+req_client_num
+transfer_purpose
+```
+
+주요 응답 필드:
+
+```text
+api_tran_id
+api_tran_dtm
+rsp_code
+rsp_message
+bank_tran_id
+bank_tran_date
+bank_code_tran
+bank_rsp_code
+bank_rsp_message
+fintech_use_num
+account_holder_name
+tran_amt
+wd_limit_remain_amt
+```
+
+### 출금: 입금이체
+
+PayFlow 지갑 잔액을 사용자 은행계좌로 보내는 흐름은 오픈뱅킹 입금이체 API를 사용한다.
+
+```text
+POST /v2.0/transfer/deposit/fin_num
+POST /v2.0/transfer/deposit/acnt_num
+```
+
+MVP에서는 `fin_num` 방식을 우선한다.
+
+주요 요청 필드:
+
+```text
+cntr_account_type
+cntr_account_num
+wd_pass_phrase
+wd_print_content
+name_check_option
+tran_dtime
+req_cnt
+req_list[].tran_no
+req_list[].bank_tran_id
+req_list[].fintech_use_num
+req_list[].print_content
+req_list[].tran_amt
+req_list[].req_client_name
+req_list[].req_client_fintech_use_num
+req_list[].req_client_num
+req_list[].transfer_purpose
+req_list[].cms_num
+req_list[].withdraw_bank_tran_id
+req_list[].recv_bank_tran_id
+```
+
+`recv_bank_tran_id`는 수취조회를 먼저 수행한 경우에만 사용한다. MVP에서는 선택 필드로 둔다.
+
+### 이체결과조회
+
+응답 불명, 처리 중, 중복 거래 응답은 실패 확정이 아니라 결과조회 대상이다.
+
+```text
+POST /v2.0/transfer/result
+```
+
+주요 요청 필드:
+
+```text
+check_type
+tran_dtime
+req_cnt
+req_list[].tran_no
+req_list[].org_bank_tran_id
+req_list[].org_bank_tran_date
+req_list[].org_tran_amt
+```
+
+`check_type`:
+
+```text
+1 = 출금이체 결과조회, PayFlow 충전 결과조회
+2 = 입금이체 결과조회, PayFlow 출금 결과조회
+```
+
+결과조회에 필요한 값은 `banking_transfers`에 반드시 저장한다.
+
+```text
+org_bank_tran_id   = bankTranId
+org_bank_tran_date = bankTranDate
+org_tran_amt       = amount
 ```
 
 ## 충전 처리 흐름
@@ -279,15 +520,40 @@ createdAt
 2. 요청 body hash 계산
 3. 같은 key가 있으면 기존 결과 또는 409 반환
 4. BankAccount 소유권과 상태 확인
-5. BankingTransfer REQUESTED 저장
-6. bank_tran_id 생성
-7. 오픈뱅킹 출금이체 API 호출
-8. 성공 응답이면 BANK_SUCCEEDED 저장
-9. wallet-service deposit 호출
+   - status = ACTIVE
+   - transferAgreeYn = Y
+5. bank_tran_id와 tran_dtime 생성
+6. BankingTransfer REQUESTED 저장
+   - bankTranId unique
+   - tranDtime 저장
+7. BankingTransfer BANK_REQUESTED 변경
+8. 오픈뱅킹 출금이체 API 호출
+9. BankingApiLog 저장
+   - request/response payload는 마스킹
+10. 성공 응답이면 BANK_SUCCEEDED 저장
+   - apiTranId, apiTranDtm, bankTranDate 저장
+   - apiRspCode = A0000
+   - bankRspCode = 000
+11. wallet-service deposit 호출
    - referenceType: OPEN_BANKING_CHARGE
-   - referenceId: bankTranId 또는 apiTranId
-10. wallet 반영 성공이면 COMPLETED 저장
-11. 응답 반환
+   - referenceId: bankTranId
+12. wallet 반영 성공이면 COMPLETED 저장
+13. 응답 반환
+```
+
+응답 불명/처리 중:
+
+```text
+timeout, 응답 미수신, A0001, A0007, bank_rsp_code 400/803/804/819/822 등은 FAILED로 확정하지 않는다.
+UNKNOWN 또는 BANK_PROCESSING으로 저장한다.
+nextResultCheckAt과 resultCheckCount를 설정해 결과조회 워커 대상에 넣는다.
+```
+
+은행 성공 후 wallet 반영 실패:
+
+```text
+BANK_SUCCEEDED 상태에서 wallet-service deposit이 실패하면 COMPENSATION_REQUIRED로 둔다.
+walletReferenceId = bankTranId 이므로 재시도해도 wallet-service reference 중복 방어가 가능해야 한다.
 ```
 
 ## 출금 처리 흐름
@@ -298,13 +564,18 @@ createdAt
 1. Idempotency-Key header 확인
 2. 요청 body hash 계산
 3. BankAccount 소유권과 상태 확인
-4. wallet-service withdraw 호출
+4. bank_tran_id와 tran_dtime 생성
+5. BankingTransfer REQUESTED 저장
+6. wallet-service withdraw 호출
    - referenceType: OPEN_BANKING_WITHDRAWAL
-   - referenceId: bankingTransferId 또는 bankTranId
-5. wallet 차감 성공 후 오픈뱅킹 입금이체 API 호출
-6. 입금이체 성공이면 COMPLETED 저장
-7. 입금이체 실패 또는 응답 불명이면 COMPENSATION_REQUIRED 또는 UNKNOWN 저장
-8. 복구 배치나 운영자 API에서 wallet 보상 입금 근거로 사용
+   - referenceId: bankTranId
+7. wallet 차감 성공 후 BANK_REQUESTED 또는 BANK_PROCESSING 저장
+8. 오픈뱅킹 입금이체 API 호출
+9. BankingApiLog 저장
+10. 입금이체 성공이면 COMPLETED 저장
+    - apiTranId, apiTranDtm, bankTranDate 저장
+11. 입금이체 실패 또는 응답 불명이면 COMPENSATION_REQUIRED 또는 UNKNOWN 저장
+12. 복구 배치나 운영자 API에서 wallet 보상 입금 근거로 사용
 ```
 
 주의:
@@ -370,6 +641,17 @@ openbanking:
   client-secret: ${OPENBANKING_CLIENT_SECRET:}
   client-use-code: ${OPENBANKING_CLIENT_USE_CODE:}
   access-token: ${OPENBANKING_ACCESS_TOKEN:}
+  redirect-uri: ${OPENBANKING_REDIRECT_URI:}
+  cntr-account-type: ${OPENBANKING_CNTR_ACCOUNT_TYPE:N}
+  cntr-account-num: ${OPENBANKING_CNTR_ACCOUNT_NUM:}
+  wd-pass-phrase: ${OPENBANKING_WD_PASS_PHRASE:}
+```
+
+민감정보 관리:
+
+```text
+client-secret, access-token, refresh-token, cntr-account-num, wd-pass-phrase는 로그에 원문으로 남기지 않는다.
+prod profile은 초기 포트폴리오 범위에서 사용하지 않는다.
 ```
 
 ## 멱등성 규칙
@@ -393,6 +675,105 @@ wallet-service 반영은 walletReferenceId로 중복 방어한다.
 
 3. wallet referenceType/referenceId
    - 지갑 잔액 중복 반영 방어
+```
+
+## bank_tran_id 규칙
+
+`bank_tran_id`는 오픈뱅킹 거래 추적과 중복 방어의 핵심이다.
+
+```text
+항상 서버에서 생성한다.
+거래마다 새 값을 만든다.
+오픈뱅킹 요청 전에 DB에 저장한다.
+DB unique 제약을 둔다.
+응답 여부와 무관하게 보존한다.
+wallet referenceId에는 bankTranId를 우선 사용한다.
+```
+
+형식 예시:
+
+```text
+F + 이용기관코드 숫자 9자리 + U + 임의 문자열 9자리
+예: F123456789U4BC34241Z
+```
+
+`tran_dtime` 형식:
+
+```text
+yyyyMMddHHmmss
+예: 20260601143000
+```
+
+`bank_tran_date` 형식:
+
+```text
+yyyyMMdd
+예: 20260601
+```
+
+## 응답코드 판정
+
+HTTP 200은 업무 성공을 의미하지 않는다. 반드시 본문 코드를 본다.
+
+성공:
+
+```text
+rsp_code = A0000
+bank_rsp_code = 000
+```
+
+결과조회 필요:
+
+```text
+rsp_code = A0001 처리 중
+rsp_code = A0007 처리시간 초과
+bank_rsp_code = 400 입금 처리 중
+bank_rsp_code = 803 내부 처리 에러
+bank_rsp_code = 804 처리시간 초과
+bank_rsp_code = 819 내부 전문 송신 실패
+bank_rsp_code = 822 거래고유번호 중복
+응답 미수신
+timeout
+```
+
+명시 실패 예시:
+
+```text
+A0312 예금주명 불일치
+A0316 제3자정보제공동의 만료
+A0319 출금동의 만료
+A0323 이용기관에 등록된 사용자 계좌 아님
+453 예금잔액 부족
+454 출금가능잔액 부족
+455 건별 이체한도 초과
+456 일일 이체한도 초과
+464 사용자 등록 정보 이상
+490 오픈뱅킹 안심차단 중인 사용자
+```
+
+상태 매핑:
+
+```text
+충전 성공:
+  BANK_SUCCEEDED -> wallet deposit -> COMPLETED
+
+충전 결과조회 필요:
+  UNKNOWN 또는 BANK_PROCESSING
+
+충전 실패:
+  FAILED
+
+은행 성공 후 wallet 반영 실패:
+  COMPENSATION_REQUIRED
+
+출금 성공:
+  COMPLETED
+
+출금 결과조회 필요:
+  UNKNOWN 또는 BANK_PROCESSING
+
+출금에서 wallet 차감 후 입금이체 실패:
+  COMPENSATION_REQUIRED
 ```
 
 ## 실패와 응답 불명
@@ -423,11 +804,28 @@ timeout 또는 네트워크 단절:
 결과조회 워커는 `UNKNOWN`, `BANK_PROCESSING` 상태를 주기적으로 확인한다.
 
 ```text
-1. bank_tran_id, bank_tran_date, amount로 이체결과조회 요청
-2. 최종 성공이면 BANK_SUCCEEDED 또는 COMPLETED로 전이
-3. 최종 실패이면 FAILED 또는 COMPENSATION_REQUIRED로 전이
-4. 계속 처리 중이면 nextResultCheckAt을 뒤로 미룸
-5. 재시도 한도 초과 시 운영자 확인 필요 상태로 남김
+1. status in (UNKNOWN, BANK_PROCESSING) 조회
+2. nextResultCheckAt <= now 인 거래만 선점
+3. transferType으로 check_type 결정
+   - CHARGE -> 1
+   - WITHDRAWAL -> 2
+4. bankTranId, bankTranDate, amount로 이체결과조회 요청
+5. BankingApiLog 저장
+6. 최종 성공 + CHARGE이면 BANK_SUCCEEDED 후 wallet deposit
+7. 최종 성공 + WITHDRAWAL이면 COMPLETED
+8. 최종 실패 + CHARGE이면 FAILED
+9. 최종 실패 + WITHDRAWAL이면 COMPENSATION_REQUIRED
+10. 계속 처리 중이면 resultCheckCount 증가, nextResultCheckAt을 뒤로 미룸
+11. 재시도 한도 초과 시 운영자 확인 필요 상태로 남김
+```
+
+결과조회 재시도 간격은 초기에는 단순 정책으로 둔다.
+
+```text
+1회차: 1분 뒤
+2회차: 2분 뒤
+3회차: 4분 뒤
+이후: 10분 간격 또는 운영자 확인
 ```
 
 ## 구현 순서

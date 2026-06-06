@@ -302,7 +302,9 @@ MVP 필수:
 - [ ] 크레딧 충전 결과 조회 API 구현
 - [ ] 오픈뱅킹 출금이체 성공 후 wallet-service deposit 연동
 - [ ] bank_tran_id/api_tran_id 저장
+- [ ] bank_tran_date/tran_dtime 저장
 - [ ] bank_tran_id unique 제약 구현
+- [ ] BankingApiLog 요청/응답 마스킹 저장
 - [ ] wallet referenceType/referenceId 기반 중복 반영 방어 확인
 - [ ] Idempotency-Key 검증 구현
 - [ ] request hash 생성 로직 구현
@@ -312,9 +314,12 @@ MVP 필수:
 - [ ] 응답 불명 UNKNOWN 상태 저장
 - [ ] 처리 중 BANK_PROCESSING 상태 저장
 - [ ] 이체결과조회 API client 메서드 구현
+- [ ] 이체결과조회 check_type/org_bank_tran_id/org_bank_tran_date/org_tran_amt 매핑 구현
 - [ ] UNKNOWN/BANK_PROCESSING 결과조회 워커 구현
+- [ ] resultCheckCount/nextResultCheckAt 기반 재조회 정책 구현
 - [ ] 결과조회 성공 시 최종 상태 갱신
 - [ ] 결과조회 실패 시 FAILED 또는 COMPENSATION_REQUIRED 전이
+- [ ] 민감정보 토큰/계좌번호/암호문구 원문 로그 방지
 - [ ] banking-service 테스트 작성
 - [x] banking-service `bootJar` 확인
 
