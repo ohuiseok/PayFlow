@@ -794,7 +794,7 @@ A0323 이용기관에 등록된 사용자 계좌 아님
 
 명시적 실패:
   FAILED
-  failureReason/apiResponseCode/bankResponseCode 저장
+  failureReason/apiRspCode/bankRspCode 저장
 
 timeout 또는 네트워크 단절:
   UNKNOWN
@@ -855,6 +855,9 @@ resultCheckCount >= maxResultCheckCount이면 상태는 BANK_SUCCESS_BUT_WALLET_
 MVP에서는 운영자 확인 전용 API를 만들지 않는다.
 운영자는 DB의 `BANK_SUCCESS_BUT_WALLET_FAILED` 상태, `resultCheckCount`, `failureReason`, `BankingApiLog.errorMessage`를 기준으로 확인한다.
 보강/2차에서 `/internal/banking/transfers/retry-required` 같은 내부 운영 API를 추가할 수 있다.
+
+MVP에서는 `resultCheckCount`를 은행 결과조회와 wallet 반영 재처리의 공통 시도 횟수로 사용한다.
+보강/2차에서 두 성격을 분리해야 하면 `bankResultCheckCount`, `walletReflectRetryCount`로 나눌 수 있다.
 
 결과조회 재시도 간격은 초기에는 단순 정책으로 둔다.
 

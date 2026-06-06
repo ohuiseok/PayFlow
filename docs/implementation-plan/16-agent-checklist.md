@@ -66,7 +66,7 @@
 ## Reward Service 구현 시
 
 - [ ] reward-service가 user/wallet/transfer DB를 직접 읽거나 쓰지 않는다.
-- [ ] 가족 연결 API는 부모/아이 역할과 연결 상태를 검증한다.
+- [ ] 가족 연결 API는 Family 관계의 parentUserId/childUserId와 연결 상태를 검증한다.
 - [ ] 초대 코드는 만료 시간을 가진다.
 - [ ] 가족 연결 해제 시 진행 중 미션 처리 정책을 적용한다.
 - [ ] 보상 금액은 `BigDecimal`로 처리한다.

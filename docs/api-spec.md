@@ -414,6 +414,9 @@ X-Internal-Secret: {INTERNAL_SERVICE_SECRET}
 - 프로필 수정, 알림 설정 변경
 - 가족 연결 해제
 
+미션 목록/캘린더의 `role=parent|child` query parameter는 권한 판단 기준이 아니라 조회 관점(view mode)입니다.
+MVP 권한 판단은 JWT role claim이 아니라 Family 관계의 `parentUserId`, `childUserId`와 인증 사용자 ID를 비교해 수행합니다.
+
 ## User 확장 API, 보강/2차
 
 ### 역할 포함 회원가입
