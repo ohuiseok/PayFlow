@@ -1,4 +1,4 @@
-# PayFlow Sample React Native
+﻿# PayFlow Sample React Native
 
 Expo 기반 React Native 샘플 앱입니다. 같은 코드베이스로 웹을 먼저 배포하고, 이후 iOS/Android 앱 빌드로 확장할 수 있습니다.
 
@@ -58,6 +58,6 @@ EXPO_PUBLIC_USE_DUMMY_DATA=true
 
 ## 예상 화면
 
-초기 화면 목업은 `assets/mockups/payflow-expected-screens.svg`에 있습니다.
+필수 화면 흐름 이미지는 `assets/mockups/rendered/payflow-mvp-flow.png`에 있습니다.
 
 화면별 목업은 `assets/mockups/screens`에 있고, 렌더링된 PNG와 전체 컨택트 시트는 `assets/mockups/rendered`에 있습니다.

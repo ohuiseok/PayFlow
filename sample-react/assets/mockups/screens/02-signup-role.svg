@@ -16,7 +16,7 @@
   <rect x="24" y="520" width="342" height="58" rx="8" fill="#FFFFFF" stroke="#DDE4EA"/>
   <text x="48" y="555" fill="#75818D" font-family="Arial, sans-serif" font-size="16">이름</text>
   <rect x="24" y="594" width="342" height="58" rx="8" fill="#FFFFFF" stroke="#DDE4EA"/>
-  <text x="48" y="629" fill="#75818D" font-family="Arial, sans-serif" font-size="16">휴대폰 또는 이메일</text>
+  <text x="48" y="629" fill="#75818D" font-family="Arial, sans-serif" font-size="16">휴대폰 번호</text>
   <rect x="24" y="704" width="342" height="60" rx="10" fill="#20262D"/>
   <text x="143" y="741" fill="#FFFFFF" font-family="Arial, sans-serif" font-size="18" font-weight="800">다음으로</text>
 </svg>

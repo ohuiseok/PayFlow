@@ -1,4 +1,4 @@
-# PayFlow 서비스 플로우
+﻿# PayFlow 서비스 플로우
 
 이 문서는 부모가 크레딧을 충전하고, 자녀에게 미션과 보상을 걸고, 자녀가 미션을 완료하면 보상을 받는 전체 흐름을 정리합니다.
 
@@ -20,7 +20,7 @@ PayFlow는 부모-자녀 미션 보상 지갑 서비스입니다.
 | 사용자 | 역할 |
 |---|---|
 | 부모 | 크레딧 충전, 자녀 연결, 미션 등록, 제출 승인/반려, 지급 내역 확인 |
-| 자녀 | 가족 연결 요청, 미션 확인, 완료 제출, 반려 시 재제출, 캐시북 확인 |
+| 자녀 | 가족 연결 요청, 미션 확인, 완료 제출, 반려 시 재제출, 캐시북 확인, 연결 계좌 등록, 지갑 출금 |
 
 ## 서비스 구성
 
@@ -44,37 +44,29 @@ PayFlow는 부모-자녀 미션 보상 지갑 서비스입니다.
 ```text
 01 로그인
   |
-10 회원가입/역할 선택
+02 회원가입/역할 선택
   |
-11 부모 초대 코드 생성
+03 부모 초대 코드 생성
   |
-17 자녀 초대 코드 입력
-  |
-18 가족 연결 완료
+04 자녀 초대 코드 입력
   |
   +--------------------------+
   |                          |
 부모 흐름                  자녀 흐름
   |                          |
-02 부모 홈                 05 자녀 홈
+05 부모 홈                 08 자녀 홈
   |                          |
-03 크레딧 충전             12 미션 상세 상태
+06 크레딧 충전             09 완료 제출
   |                          |
-14 충전 결과               06 완료 제출
+07 미션 등록               11 반려 사유/재제출
   |
-04 미션 등록
+10 부모 승인/반려
   |
-07 부모 승인/반려
+  +---- 승인 ----> 08 자녀 홈/캐시북 요약
+  |                 12 계좌 등록
+  |                 13 자녀 출금
   |
-  +---- 승인 ----> 08 자녀 캐시북
-  |                 19 미션 캘린더
-  |
-  +---- 반려 ----> 13 반려 사유/재제출
-
-공통:
-15 알림, 보강/2차
-16 설정/프로필, 보강/2차
-09 부모 지급/정산 내역, 보강/2차
+  +---- 반려 ----> 11 반려 사유/재제출
 ```
 
 ## 1. 회원가입과 로그인
@@ -86,7 +78,7 @@ PayFlow는 부모-자녀 미션 보상 지갑 서비스입니다.
 ### 화면
 
 - `01-login.svg`
-- `10-signup-role.svg`
+- `02-signup-role.svg`
 
 ### API
 
@@ -102,7 +94,7 @@ GET  /api/users/{userId}
 Client
 -> API Gateway
 -> user-service
-   -> 이메일 정규화
+   -> 휴대폰 번호 정규화
    -> 비밀번호 암호화
    -> 사용자 생성
    -> 로그인 시 JWT 발급
@@ -111,7 +103,7 @@ Client
 
 ### 주요 규칙
 
-- 이메일은 소문자/trim 정규화합니다.
+- 휴대폰 번호는 숫자만 남기는 방식으로 정규화합니다.
 - 비밀번호는 8자 이상입니다.
 - 로그인 이후 API는 `Authorization: Bearer {token}`을 사용합니다.
 - MVP에서는 기본 회원가입/로그인/JWT/사용자 조회를 우선합니다.
@@ -126,9 +118,10 @@ Client
 
 ### 화면
 
-- `11-family-link.svg`
-- `17-child-invite-code.svg`
-- `18-family-connected.svg`
+- `03-family-link.svg`
+- `04-child-invite-code.svg`
+
+가족 연결 완료 상태는 MVP에서 위 화면 안의 인라인 성공 상태로 표시합니다.
 
 ### API
 
@@ -189,9 +182,10 @@ PENDING -> REJECTED
 
 ### 화면
 
-- `02-parent-home.svg`
-- `03-credit-charge.svg`
-- `14-charge-result.svg`
+- `05-parent-home.svg`
+- `06-credit-charge.svg`
+
+충전 결과는 MVP에서 `06-credit-charge.svg` 안의 상태 또는 토스트로 표시합니다.
 
 ### API
 
@@ -245,10 +239,11 @@ BANK_SUCCEEDED/WALLET_REFLECTING -> BANK_SUCCESS_BUT_WALLET_FAILED
 
 ### 화면
 
-- `04-mission-create.svg`
-- `02-parent-home.svg`
-- `05-child-home.svg`
-- `19-mission-calendar.svg`
+- `07-mission-create.svg`
+- `05-parent-home.svg`
+- `08-child-home.svg`
+
+월별 캘린더 전용 화면은 보강/2차로 분리합니다.
 
 ### API
 
@@ -300,8 +295,7 @@ REGISTERED
 
 ### 화면
 
-- `12-mission-detail-status.svg`
-- `06-mission-submit.svg`
+- `09-mission-submit.svg`
 
 ### API
 
@@ -346,9 +340,10 @@ REGISTERED -> SUBMITTED
 
 ### 화면
 
-- `07-parent-approval.svg`
-- `08-cashbook.svg`
-- `09-parent-history.svg`
+- `10-parent-approval.svg`
+- `08-child-home.svg`
+
+지급 결과는 MVP에서 자녀 홈의 캐시북 요약과 부모 홈의 미션 상태에 반영합니다.
 
 ### API
 
@@ -412,9 +407,8 @@ SUBMITTED -> PAYMENT_PENDING -> PAID
 
 ### 화면
 
-- `13-reject-resubmit.svg`
-- `12-mission-detail-status.svg`
-- `06-mission-submit.svg`
+- `11-reject-resubmit.svg`
+- `09-mission-submit.svg`
 
 ### API
 
@@ -459,9 +453,8 @@ SUBMITTED -> REJECTED -> SUBMITTED
 
 ### 화면
 
-- `08-cashbook.svg`
-- `05-child-home.svg`
-- `19-mission-calendar.svg`
+- `08-child-home.svg`
+- `13-child-withdrawal.svg`
 
 ### API
 
@@ -469,7 +462,6 @@ SUBMITTED -> REJECTED -> SUBMITTED
 GET  /api/cashbook/children/{childUserId}/summary
 GET  /api/cashbook/children/{childUserId}/entries
 POST /api/cashbook/children/{childUserId}/entries
-GET  /api/missions/calendar?year=2026&month=6&role=child
 ```
 
 ### 처리 흐름
@@ -479,9 +471,8 @@ GET  /api/missions/calendar?year=2026&month=6&role=child
 -> 캐시북 수입 기록 생성
 
 자녀
--> 캐시북 요약 조회
--> 캐시북 내역 조회
--> 월별 미션 캘린더 조회
+-> 자녀 홈에서 캐시북 요약과 최근 내역 조회
+-> 필요 시 계좌 출금 화면 진입
 -> 필요 시 지출 기록 작성
 ```
 
@@ -489,9 +480,65 @@ GET  /api/missions/calendar?year=2026&month=6&role=child
 
 - 자녀 본인과 연결된 부모만 조회할 수 있습니다.
 - 지출 기록이 실제 지갑 차감인지, 단순 기록인지는 정책으로 정합니다.
-- 캘린더는 `missionDate` 기준으로 날짜별 미션과 지급 상태를 표시합니다.
+- 상세 캐시북과 캘린더는 보강/2차 화면으로 분리할 수 있습니다.
 
-## 9. 부모 지급/정산 내역
+## 9. 자녀 지갑 출금
+
+### 목적
+
+자녀가 미션 보상으로 받은 PayFlow 지갑 잔액을 본인의 연결 은행 계좌로 출금합니다.
+
+### 화면
+
+- `13-child-withdrawal.svg`
+- `12-bank-account-register.svg`
+- `08-child-home.svg`
+
+### API
+
+```text
+GET    /api/credits/bank-accounts
+POST   /api/credits/bank-accounts
+POST   /api/credits/withdrawals
+GET    /api/credits/withdrawals/{withdrawalId}
+```
+
+### 처리 흐름
+
+```text
+자녀
+-> 캐시북 또는 자녀 홈에서 출금하기 선택
+-> 연결 계좌가 없으면 계좌 등록 화면에서 은행, 계좌번호, 예금주 입력
+-> 받을 계좌와 출금 금액 입력
+-> banking-service 출금 요청
+
+banking-service
+-> 자녀 본인 소유 지갑과 계좌인지 확인
+-> Idempotency-Key와 요청 본문 중복 확인
+-> wallet-service 내부 출금 호출
+   referenceType = OPEN_BANKING_WITHDRAWAL
+   referenceId = bankTranId
+-> 오픈뱅킹 입금이체 또는 mock 입금 처리
+-> 성공 시 출금 상태 COMPLETED 저장
+-> 실패 또는 응답 불명 시 COMPENSATION_REQUIRED 또는 UNKNOWN 저장
+
+wallet-service
+-> 자녀 지갑 잔액 차감
+-> 중복 출금 방지를 위해 referenceType/referenceId 검사
+
+자녀
+-> 처리 중/완료 상태와 캐시북 출금 기록 확인
+```
+
+### 주요 규칙
+
+- 출금은 자녀 본인의 지갑에서 자녀 본인의 연결 계좌로만 가능합니다.
+- 부모가 연결된 자녀 지갑을 조회할 수 있더라도 부모 계좌로 직접 출금할 수 없습니다.
+- 출금 금액은 1원 이상이며 지갑 잔액을 초과할 수 없습니다.
+- 지갑 차감 후 은행 입금이 실패하면 `COMPENSATION_REQUIRED`로 남기고 보상 입금 또는 재처리 근거를 저장합니다.
+- 자녀 계좌 등록 정책은 실명/나이/보호자 동의 요구사항에 맞춰 별도로 확정합니다. MVP mock에서는 `12-bank-account-register.svg`에서 계좌번호를 입력하고, 서버는 원문 대신 마스킹 값 또는 외부 식별자를 저장합니다.
+
+## 10. 부모 지급/정산 내역
 
 보강/2차 범위입니다. MVP에서는 원장 조회와 캐시북 조회로 지급 결과를 확인합니다.
 
@@ -501,7 +548,7 @@ GET  /api/missions/calendar?year=2026&month=6&role=child
 
 ### 화면
 
-- `09-parent-history.svg`
+MVP에서는 별도 화면을 두지 않고 부모 홈의 요약 상태와 자녀 홈의 캐시북 요약으로 지급 결과를 확인합니다. 전용 지급/정산 내역 화면은 보강/2차로 분리합니다.
 
 ### API
 
@@ -527,7 +574,7 @@ reward-service 또는 settlement-service
 - 지급 내역은 원장 기록과 대조 가능해야 합니다.
 - 정산은 일별 배치로 처리할 수 있습니다.
 
-## 10. 알림
+## 11. 알림
 
 보강/2차 범위입니다. MVP에서는 각 목록/상세 API의 상태값으로 사용자에게 필요한 정보를 표시합니다.
 
@@ -537,7 +584,7 @@ reward-service 또는 settlement-service
 
 ### 화면
 
-- `15-notifications.svg`
+MVP에서는 별도 알림 화면을 두지 않고 각 홈/상세 화면의 상태값과 토스트로 표시합니다. 전용 알림 목록은 보강/2차로 분리합니다.
 
 ### API
 
@@ -560,17 +607,17 @@ PATCH /api/notifications/read-all
 | 보상 지급 완료 | 자녀 |
 | 충전 완료/실패 | 부모 |
 
-## 11. 설정과 프로필
+## 12. 설정과 프로필
 
 보강/2차 범위입니다. MVP에서는 기본 사용자 조회와 인증 흐름을 우선합니다.
 
 ### 목적
 
-프로필, 가족 관리, 지갑/충전 계좌, 알림 설정, 로그아웃을 처리합니다.
+프로필, 가족 관리, 지갑/연결 계좌, 알림 설정, 로그아웃을 처리합니다.
 
 ### 화면
 
-- `16-settings-profile.svg`
+MVP에서는 별도 설정 화면을 두지 않습니다. 프로필/알림 설정/가족 연결 해제는 보강/2차로 분리합니다.
 
 ### API
 

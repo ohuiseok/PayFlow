@@ -1,0 +1,31 @@
+<svg width="390" height="844" viewBox="0 0 390 844" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="390" height="844" fill="#F7F9FA"/>
+  <text x="24" y="58" fill="#66717C" font-family="Arial, sans-serif" font-size="14" font-weight="700">자녀 홈</text>
+  <text x="24" y="98" fill="#151B22" font-family="Arial, sans-serif" font-size="28" font-weight="800">민준의 홈</text>
+  <rect x="24" y="132" width="342" height="142" rx="14" fill="#17202A"/>
+  <text x="48" y="172" fill="#A9B7C4" font-family="Arial, sans-serif" font-size="15">지갑 잔액</text>
+  <text x="48" y="220" fill="#FFFFFF" font-family="Arial, sans-serif" font-size="38" font-weight="800">17,000원</text>
+  <text x="48" y="248" fill="#A9B7C4" font-family="Arial, sans-serif" font-size="14">이번 주 번 돈 7,000원 · 완료 미션 3개</text>
+  <rect x="24" y="298" width="162" height="54" rx="10" fill="#EEF5FC"/>
+  <text x="64" y="332" fill="#2B6CB0" font-family="Arial, sans-serif" font-size="16" font-weight="800">출금하기</text>
+  <rect x="204" y="298" width="162" height="54" rx="10" fill="#EAF6EF"/>
+  <text x="244" y="332" fill="#1F7A5C" font-family="Arial, sans-serif" font-size="16" font-weight="800">계좌등록</text>
+  <text x="24" y="402" fill="#151B22" font-family="Arial, sans-serif" font-size="20" font-weight="800">새 미션</text>
+  <rect x="24" y="428" width="342" height="96" rx="10" fill="#FFFFFF" stroke="#E4E9EE"/>
+  <text x="48" y="462" fill="#26313C" font-family="Arial, sans-serif" font-size="18" font-weight="800">수학 문제집 3쪽</text>
+  <text x="48" y="492" fill="#66717C" font-family="Arial, sans-serif" font-size="15">오늘까지 · 보상 3,000원</text>
+  <rect x="264" y="452" width="72" height="28" rx="14" fill="#FFF8E8"/>
+  <text x="282" y="471" fill="#8A6517" font-family="Arial, sans-serif" font-size="12" font-weight="800">진행 중</text>
+  <rect x="24" y="544" width="342" height="96" rx="10" fill="#FFFFFF" stroke="#E4E9EE"/>
+  <text x="48" y="578" fill="#26313C" font-family="Arial, sans-serif" font-size="18" font-weight="800">재활용 버리기</text>
+  <text x="48" y="608" fill="#66717C" font-family="Arial, sans-serif" font-size="15">내일까지 · 보상 2,000원</text>
+  <rect x="264" y="568" width="72" height="28" rx="14" fill="#EAF6EF"/>
+  <text x="279" y="587" fill="#1F7A5C" font-family="Arial, sans-serif" font-size="12" font-weight="800">시작 가능</text>
+  <text x="24" y="690" fill="#151B22" font-family="Arial, sans-serif" font-size="20" font-weight="800">최근 돈 기록</text>
+  <rect x="24" y="716" width="342" height="42" rx="10" fill="#FFFFFF" stroke="#E4E9EE"/>
+  <text x="48" y="742" fill="#26313C" font-family="Arial, sans-serif" font-size="14" font-weight="800">수학 문제집 보상</text>
+  <text x="292" y="742" fill="#1F7A5C" font-family="Arial, sans-serif" font-size="14" font-weight="800">+3,000</text>
+  <rect x="24" y="768" width="342" height="42" rx="10" fill="#FFFFFF" stroke="#E4E9EE"/>
+  <text x="48" y="794" fill="#26313C" font-family="Arial, sans-serif" font-size="14" font-weight="800">계좌 출금</text>
+  <text x="286" y="794" fill="#D84F45" font-family="Arial, sans-serif" font-size="14" font-weight="800">-10,000</text>
+</svg>

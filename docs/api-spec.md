@@ -1,4 +1,4 @@
-# PayFlow API 명세서
+﻿# PayFlow API 명세서
 
 이 문서는 현재 코드 기준으로 구현된 API를 정리한 명세입니다.
 
@@ -41,7 +41,7 @@ Authorization: Bearer {accessToken}
 |---:|---|---|
 | 400 | INVALID_REQUEST | 요청 값이 올바르지 않음 |
 | 401 | UNAUTHORIZED | 인증 필요 |
-| 401 | INVALID_CREDENTIALS | 이메일 또는 비밀번호 오류 |
+| 401 | INVALID_CREDENTIALS | 휴대폰 번호 또는 비밀번호 오류 |
 | 403 | FORBIDDEN | 접근 권한 없음 |
 | 403 | RESOURCE_OWNER_MISMATCH | 리소스 소유자 불일치 |
 | 404 | RESOURCE_NOT_FOUND | 리소스 없음 |
@@ -71,7 +71,7 @@ Content-Type: application/json
 
 ```json
 {
-  "email": "parent@example.com",
+  "phoneNumber": "01012345678",
   "password": "password123",
   "name": "지훈"
 }
@@ -81,7 +81,7 @@ Content-Type: application/json
 
 | 필드 | 타입 | 필수 | 제약 |
 |---|---|---:|---|
-| email | string | O | 이메일 형식 |
+| phoneNumber | string | O | 숫자 10~11자리, 하이픈 없이 전송 |
 | password | string | O | 8자 이상 |
 | name | string | O | 빈 값 불가 |
 
@@ -90,7 +90,7 @@ Content-Type: application/json
 ```json
 {
   "userId": 1,
-  "email": "parent@example.com",
+  "phoneNumber": "01012345678",
   "name": "지훈",
   "status": "ACTIVE"
 }
@@ -107,7 +107,7 @@ Content-Type: application/json
 
 ```json
 {
-  "email": "parent@example.com",
+  "phoneNumber": "01012345678",
   "password": "password123"
 }
 ```
@@ -134,7 +134,7 @@ Authorization: Bearer {accessToken}
 ```json
 {
   "userId": 1,
-  "email": "parent@example.com",
+  "phoneNumber": "01012345678",
   "name": "지훈",
   "status": "ACTIVE"
 }
@@ -382,34 +382,31 @@ X-Internal-Secret: {INTERNAL_SERVICE_SECRET}
 | 화면 | 필요한 API |
 |---|---|
 | `01-login.svg` | 로그인, 회원가입 |
-| `10-signup-role.svg` | 보강/2차: 역할 포함 회원가입 |
-| `11-family-link.svg` | 부모 초대 코드 생성, 가족 연결 요청 승인/거절 |
-| `17-child-invite-code.svg` | 자녀 초대 코드 입력, 연결 요청 생성 |
-| `18-family-connected.svg` | 가족 연결 상태 조회 |
-| `02-parent-home.svg` | 부모 홈 요약, 진행 중 미션 목록 |
-| `03-credit-charge.svg` | 크레딧 충전 요청 |
-| `14-charge-result.svg` | 충전 결과 조회 |
-| `04-mission-create.svg` | 미션 등록 |
-| `05-child-home.svg` | 자녀 홈 요약, 자녀 미션 목록 |
-| `19-mission-calendar.svg` | 월별 날짜 기반 미션 캘린더 |
-| `12-mission-detail-status.svg` | 미션 상세, 상태 흐름 조회 |
-| `06-mission-submit.svg` | 미션 완료 제출 |
-| `07-parent-approval.svg` | 부모 승인/반려 |
-| `13-reject-resubmit.svg` | 반려 사유 조회, 재제출 |
-| `08-cashbook.svg` | 자녀 캐시북 |
-| `09-parent-history.svg` | 보강/2차: 부모 지급/정산 내역 |
-| `15-notifications.svg` | 보강/2차: 알림 목록 |
-| `16-settings-profile.svg` | 보강/2차: 프로필, 가족, 설정 |
+| `02-signup-role.svg` | 보강/2차: 역할 포함 회원가입 |
+| `03-family-link.svg` | 부모 초대 코드 생성, 가족 연결 요청 승인/거절 |
+| `04-child-invite-code.svg` | 자녀 초대 코드 입력, 연결 요청 생성 |
+| `05-parent-home.svg` | 부모 홈 요약, 진행 중 미션 목록 |
+| `06-credit-charge.svg` | 크레딧 충전 요청 |
+| `07-mission-create.svg` | 미션 등록 |
+| `08-child-home.svg` | 자녀 홈 요약, 미션 목록, 캐시북 요약 |
+| `09-mission-submit.svg` | 미션 완료 제출 |
+| `10-parent-approval.svg` | 부모 승인/반려 |
+| `11-reject-resubmit.svg` | 반려 사유 조회, 재제출 |
+| `12-bank-account-register.svg` | 연결 계좌 등록, 계좌번호 입력 |
+| `13-child-withdrawal.svg` | 자녀 지갑 잔액을 연결 계좌로 출금 |
 
 추가로 화면에 직접 크게 드러나지는 않지만 구현에 필요한 API:
 
-- 충전 계좌 목록/등록/삭제
 - 미션 수정/취소
 
 보강/2차 API:
 
+- 가족 연결 완료 전용 화면
+- 충전 결과 전용 화면
 - 미션 인증 사진 업로드 URL 발급
-- 자녀 캐시북 지출 기록
+- 자녀 캐시북 상세/지출 기록
+- 월별 미션 캘린더
+- 부모 지급/정산 내역
 - 알림 안 읽은 개수, 전체 읽음 처리
 - 프로필 수정, 알림 설정 변경
 - 가족 연결 해제
@@ -433,7 +430,7 @@ Content-Type: application/json
 
 ```json
 {
-  "email": "parent@example.com",
+  "phoneNumber": "01012345678",
   "password": "password123",
   "name": "지훈",
   "role": "PARENT"
@@ -445,7 +442,7 @@ Content-Type: application/json
 ```json
 {
   "userId": 1,
-  "email": "parent@example.com",
+  "phoneNumber": "01012345678",
   "name": "지훈",
   "role": "PARENT",
   "status": "ACTIVE"
@@ -612,12 +609,14 @@ Authorization: Bearer {parentAccessToken}
 }
 ```
 
-### 충전 계좌 목록 조회
+### 연결 계좌 목록 조회
 
 ```http
 GET /api/credits/bank-accounts
-Authorization: Bearer {parentAccessToken}
+Authorization: Bearer {accessToken}
 ```
+
+부모 충전과 자녀 출금에 사용할 본인 소유 연결 계좌를 조회합니다.
 
 응답:
 
@@ -626,26 +625,31 @@ Authorization: Bearer {parentAccessToken}
   "bankAccounts": [
     {
       "bankAccountId": "bank-account-001",
+      "bankCodeStd": "004",
       "bankName": "국민",
       "maskedAccountNumber": "123-****-7890",
+      "accountHolderName": "지훈",
       "primary": true
     }
   ]
 }
 ```
 
-### 충전 계좌 등록
+### 연결 계좌 등록
 
 ```http
 POST /api/credits/bank-accounts
-Authorization: Bearer {parentAccessToken}
+Authorization: Bearer {accessToken}
 Content-Type: application/json
 ```
+
+부모 충전 계좌 또는 자녀 출금 계좌로 사용할 본인 명의 계좌를 등록합니다. `12-bank-account-register.svg`가 이 API를 호출합니다.
 
 요청:
 
 ```json
 {
+  "bankCodeStd": "004",
   "bankName": "국민",
   "accountNumber": "1234567890",
   "accountHolderName": "지훈"
@@ -657,17 +661,26 @@ Content-Type: application/json
 ```json
 {
   "bankAccountId": "bank-account-001",
+  "bankCodeStd": "004",
   "bankName": "국민",
   "maskedAccountNumber": "123-****-7890",
+  "accountHolderName": "지훈",
   "primary": true
 }
 ```
 
-### 충전 계좌 삭제
+정책:
+
+- 요청 사용자는 계좌 소유자여야 합니다.
+- `bankCodeStd`는 필수입니다. 화면의 은행 선택 값에서 은행 표준 코드를 함께 전달합니다.
+- 실제 계좌번호 원문은 저장하지 않고 마스킹 값 또는 외부 식별자만 저장합니다.
+- 자녀 계좌는 실명/나이/보호자 동의 정책이 확정되기 전까지 mock 또는 테스트 식별자 등록을 우선합니다.
+
+### 연결 계좌 삭제
 
 ```http
 DELETE /api/credits/bank-accounts/{bankAccountId}
-Authorization: Bearer {parentAccessToken}
+Authorization: Bearer {accessToken}
 ```
 
 응답: `204 No Content`
@@ -726,9 +739,9 @@ Authorization: Bearer {parentAccessToken}
 }
 ```
 
-### 크레딧 출금 요청
+### 지갑 출금 요청
 
-운영용 화면 목업에는 아직 없지만, banking-service 구현문서와 결제 핵심 고도화 범위에 포함되는 최소 출금 API입니다.
+자녀 또는 부모가 PayFlow 지갑 잔액을 본인의 연결 은행 계좌로 출금합니다. 자녀 화면에서는 `13-child-withdrawal.svg`가 이 API를 호출합니다.
 
 ```http
 POST /api/credits/withdrawals
@@ -741,9 +754,9 @@ Content-Type: application/json
 
 ```json
 {
-  "walletId": 100,
-  "bankAccountId": 10,
-  "amount": 30000
+  "walletId": 200,
+  "bankAccountId": 20,
+  "amount": 10000
 }
 ```
 
@@ -752,9 +765,9 @@ Content-Type: application/json
 ```json
 {
   "withdrawalId": "withdrawal-20260605-0001",
-  "walletId": 100,
-  "bankAccountId": 10,
-  "amount": 30000,
+  "walletId": 200,
+  "bankAccountId": 20,
+  "amount": 10000,
   "status": "PROCESSING"
 }
 ```
@@ -763,7 +776,36 @@ Content-Type: application/json
 
 - `Idempotency-Key`는 필수입니다.
 - 같은 key와 같은 body는 기존 출금 요청 결과를 반환합니다.
+- 요청 사용자는 `walletId`와 `bankAccountId`의 소유자여야 합니다. 연결된 부모라도 자녀 지갑을 부모 계좌로 직접 출금할 수 없습니다.
+- 출금 금액은 지갑 잔액 이하의 1원 이상 정수입니다.
 - 지갑 차감 성공 후 은행망 입금이체 실패 시 `COMPENSATION_REQUIRED`로 남깁니다.
+
+### 지갑 출금 결과 조회
+
+```http
+GET /api/credits/withdrawals/{withdrawalId}
+Authorization: Bearer {accessToken}
+```
+
+응답:
+
+```json
+{
+  "withdrawalId": "withdrawal-20260605-0001",
+  "walletId": 200,
+  "bankAccountId": 20,
+  "maskedAccountNumber": "3333-**-7890",
+  "amount": 10000,
+  "status": "COMPLETED",
+  "requestedAt": "2026-06-05T10:00:00+09:00",
+  "completedAt": "2026-06-05T10:00:03+09:00"
+}
+```
+
+정책:
+
+- 요청 사용자는 해당 출금 요청을 만든 지갑 소유자여야 합니다.
+- `PROCESSING` 또는 `UNKNOWN` 상태면 화면에서 처리 중 또는 확인 필요로 표시합니다.
 
 ## Mission API
 
@@ -1309,7 +1351,7 @@ Authorization: Bearer {accessToken}
 {
   "userId": 1,
   "name": "지훈",
-  "email": "parent@example.com",
+  "phoneNumber": "01012345678",
   "role": "PARENT",
   "familyCount": 2,
   "dummyDataMode": false
@@ -1329,7 +1371,7 @@ Content-Type: application/json
 ```json
 {
   "name": "지훈",
-  "email": "parent-new@example.com"
+  "phoneNumber": "01087654321"
 }
 ```
 
@@ -1339,7 +1381,7 @@ Content-Type: application/json
 {
   "userId": 1,
   "name": "지훈",
-  "email": "parent-new@example.com",
+  "phoneNumber": "01087654321",
   "role": "PARENT",
   "status": "ACTIVE"
 }
@@ -1488,6 +1530,7 @@ Authorization: Bearer {accessToken}
 | PROCESSING | 처리 중 | 지갑 차감 또는 은행망 입금이체 처리 중 |
 | COMPLETED | 완료 | 출금 완료 |
 | FAILED | 실패 | 출금 실패 |
+| UNKNOWN | 확인 필요 | timeout/응답 미수신으로 결과조회 필요 |
 | COMPENSATION_REQUIRED | 보상 필요 | 지갑 차감 후 외부 입금이체 실패로 보상 처리 필요 |
 
 ## 프론트 더미데이터 모드 참고

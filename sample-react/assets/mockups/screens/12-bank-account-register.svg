@@ -1,0 +1,24 @@
+<svg width="390" height="844" viewBox="0 0 390 844" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="390" height="844" fill="#F7F9FA"/>
+  <text x="24" y="58" fill="#66717C" font-family="Arial, sans-serif" font-size="14" font-weight="700">연결 계좌</text>
+  <text x="24" y="98" fill="#151B22" font-family="Arial, sans-serif" font-size="28" font-weight="800">계좌 등록</text>
+  <rect x="24" y="132" width="342" height="90" rx="12" fill="#EAF6EF"/>
+  <text x="48" y="166" fill="#1F7A5C" font-family="Arial, sans-serif" font-size="15" font-weight="800">내 계좌만 등록할 수 있어요</text>
+  <text x="48" y="192" fill="#66717C" font-family="Arial, sans-serif" font-size="14">등록 후 자녀 출금 또는 부모 충전에</text>
+  <text x="48" y="212" fill="#66717C" font-family="Arial, sans-serif" font-size="14">사용할 수 있습니다.</text>
+  <text x="24" y="276" fill="#151B22" font-family="Arial, sans-serif" font-size="20" font-weight="800">은행 선택</text>
+  <rect x="24" y="302" width="342" height="64" rx="10" fill="#FFFFFF" stroke="#E4E9EE"/>
+  <text x="48" y="342" fill="#26313C" font-family="Arial, sans-serif" font-size="18" font-weight="800">카카오뱅크</text>
+  <text x="322" y="342" fill="#66717C" font-family="Arial, sans-serif" font-size="20">›</text>
+  <text x="24" y="422" fill="#151B22" font-family="Arial, sans-serif" font-size="20" font-weight="800">계좌번호</text>
+  <rect x="24" y="448" width="342" height="64" rx="10" fill="#FFFFFF" stroke="#E4E9EE"/>
+  <text x="48" y="488" fill="#26313C" font-family="Arial, sans-serif" font-size="20" font-weight="800">3333123456789</text>
+  <text x="24" y="568" fill="#151B22" font-family="Arial, sans-serif" font-size="20" font-weight="800">예금주</text>
+  <rect x="24" y="594" width="342" height="64" rx="10" fill="#FFFFFF" stroke="#E4E9EE"/>
+  <text x="48" y="634" fill="#26313C" font-family="Arial, sans-serif" font-size="18" font-weight="800">민준</text>
+  <rect x="24" y="686" width="342" height="64" rx="10" fill="#FFF8E8" stroke="#F1D58A"/>
+  <text x="48" y="714" fill="#8A6517" font-family="Arial, sans-serif" font-size="14" font-weight="800">계좌번호 원문은 저장하지 않고</text>
+  <text x="48" y="736" fill="#8A6517" font-family="Arial, sans-serif" font-size="14" font-weight="800">마스킹/식별자만 저장합니다.</text>
+  <rect x="24" y="766" width="342" height="54" rx="10" fill="#1F7A5C"/>
+  <text x="143" y="800" fill="#FFFFFF" font-family="Arial, sans-serif" font-size="18" font-weight="800">등록하기</text>
+</svg>
