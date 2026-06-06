@@ -382,7 +382,7 @@ X-Internal-Secret: {INTERNAL_SERVICE_SECRET}
 | 화면 | 필요한 API |
 |---|---|
 | `01-login.svg` | 로그인, 회원가입 |
-| `10-signup-role.svg` | 역할 포함 회원가입 |
+| `10-signup-role.svg` | 보강/2차: 역할 포함 회원가입 |
 | `11-family-link.svg` | 부모 초대 코드 생성, 가족 연결 요청 승인/거절 |
 | `17-child-invite-code.svg` | 자녀 초대 코드 입력, 연결 요청 생성 |
 | `18-family-connected.svg` | 가족 연결 상태 조회 |

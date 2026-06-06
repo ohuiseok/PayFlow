@@ -99,6 +99,8 @@ processedAt
 
 모든 작업은 하나의 DB 트랜잭션에서 처리한다.
 `sourceEventId`는 transfer-service OutboxEvent의 `eventId`를 그대로 저장한 값이며, `processed_events.source_event_id`에 unique 제약을 둔다.
+Kafka payload와 transfer-service outbox에서는 필드명을 `eventId`로 유지한다.
+ledger-service는 소비한 원천 이벤트 ID를 자기 DB에 저장할 때 `sourceEventId` 또는 `source_event_id`라는 이름으로 저장한다.
 
 ## 원장 조회 API
 

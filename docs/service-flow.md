@@ -682,7 +682,7 @@ REQUESTED -> PROCESSING -> COMPLETED
 ```text
 충전 요청 생성
 -> 외부 은행 응답 실패
--> ChargeStatus = FAILED
+-> BankingTransferStatus = FAILED
 -> 보강/2차에서 부모에게 실패 알림
 -> 지갑 잔액 변경 없음
 ```

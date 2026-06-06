@@ -181,6 +181,10 @@ Idempotency-Key: reward-payment-{missionSubmissionId}
 Repository 조회는 createdAt desc, id desc 정렬을 사용하되, 2건 이상이면 예외로 처리한다.
 ```
 
+MVP에서는 부분 unique index로 막기보다 service transaction 안에서 활성 SUBMITTED submission 개수를 검사한다.
+동시에 제출/재제출 요청이 들어올 수 있는 경우에는 mission row를 pessimistic lock으로 조회한 뒤 submission을 생성한다.
+보강/2차에서 MySQL generated column 또는 별도 active flag를 이용한 unique 제약을 검토한다.
+
 ### 5. 부모 반려와 아이 재제출
 
 ```text

@@ -84,7 +84,7 @@
 - [ ] 지급 완료 후 transferId와 paidAt을 저장한다.
 - [ ] 데모 시나리오에서 부모 지갑 잔액 감소와 아이 지갑 잔액 증가를 확인한다.
 
-## User/Settings 구현 시
+## User/Settings 구현 시, 보강/2차
 
 - [ ] 회원가입 요청에 `role`을 받고 JWT claim에도 role을 넣는다.
 - [ ] 프로필 조회/수정 API를 구현한다.
