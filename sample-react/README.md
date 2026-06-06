@@ -1,19 +1,47 @@
 # PayFlow Sample React Native
 
-React Native 화면을 붙여보기 위한 Expo 기반 샘플 앱입니다.
+Expo 기반 React Native 샘플 앱입니다. 같은 코드베이스로 웹을 먼저 배포하고, 이후 iOS/Android 앱 빌드로 확장할 수 있습니다.
 
 ## 실행
 
 ```bash
 npm install
-npm run start
+npm run web
 ```
 
-Android 에뮬레이터를 바로 열려면:
+Android 또는 iOS 시뮬레이터로 실행하려면:
 
 ```bash
 npm run android
+npm run ios
 ```
+
+## 웹 배포 빌드
+
+```bash
+npm run build:web
+```
+
+빌드 결과는 `dist` 폴더에 생성됩니다. Netlify, Vercel, S3, Nginx 같은 정적 호스팅에 `dist` 폴더를 배포하면 됩니다.
+
+로컬에서 빌드 결과를 확인하려면:
+
+```bash
+npm run preview:web
+```
+
+## 앱 배포 준비
+
+네이티브 앱 배포는 Expo EAS Build 기준으로 준비되어 있습니다.
+
+```bash
+npm install -g eas-cli
+eas login
+npm run build:android
+npm run build:ios
+```
+
+앱 식별자는 현재 `com.payflow.app`으로 설정되어 있습니다. 실제 스토어 배포 전에는 `app.json`의 `ios.bundleIdentifier`, `android.package`, 앱 이름, 아이콘을 확정하세요.
 
 ## API 설정
 
@@ -26,32 +54,10 @@ EXPO_PUBLIC_USE_DUMMY_DATA=true
 
 실기기에서 로컬 백엔드에 붙일 때는 `localhost` 대신 개발 PC의 LAN IP를 사용하세요.
 
-`EXPO_PUBLIC_USE_DUMMY_DATA=true`이면 API를 호출하지 않고 화면 더미데이터만 사용합니다.
-백엔드 API 연동 모드로 바꾸려면 `false`로 설정하세요.
+`EXPO_PUBLIC_USE_DUMMY_DATA=true`이면 API를 호출하지 않고 더미 데이터만 사용합니다. 백엔드 API 연동 모드로 바꾸려면 `false`로 설정하세요.
 
 ## 예상 화면
 
 초기 화면 목업은 `assets/mockups/payflow-expected-screens.svg`에 있습니다.
 
-화면별 목업은 `assets/mockups/screens`에 있습니다.
-렌더링된 PNG와 전체 컨택트시트는 `assets/mockups/rendered`에 있습니다.
-
-- `01-login.svg`: 로그인/회원가입
-- `02-parent-home.svg`: 부모 홈과 크레딧 요약
-- `03-credit-charge.svg`: 부모 크레딧 충전
-- `04-mission-create.svg`: 미션과 보상 등록
-- `05-child-home.svg`: 자녀 미션 홈
-- `06-mission-submit.svg`: 자녀 미션 완료 제출
-- `07-parent-approval.svg`: 부모 승인/반려
-- `08-cashbook.svg`: 자녀 캐시북
-- `09-parent-history.svg`: 부모 지급/정산 내역
-- `10-signup-role.svg`: 회원가입과 부모/자녀 역할 선택
-- `11-family-link.svg`: 가족 연결과 초대 코드
-- `12-mission-detail-status.svg`: 미션 상세 상태 흐름
-- `13-reject-resubmit.svg`: 반려 사유와 재제출
-- `14-charge-result.svg`: 충전 완료/실패 결과
-- `15-notifications.svg`: 알림
-- `16-settings-profile.svg`: 설정/프로필
-- `17-child-invite-code.svg`: 자녀 초대 코드 입력
-- `18-family-connected.svg`: 가족 연결 완료
-- `19-mission-calendar.svg`: 날짜별 미션 캘린더
+화면별 목업은 `assets/mockups/screens`에 있고, 렌더링된 PNG와 전체 컨택트 시트는 `assets/mockups/rendered`에 있습니다.

@@ -1,5 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
 import {
+  Platform,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -32,7 +33,8 @@ export default function App() {
           <Text style={styles.eyebrow}>PayFlow Mobile</Text>
           <Text style={styles.title}>미션 보상 지갑</Text>
           <Text style={styles.subtitle}>
-            부모가 크레딧을 충전하고 자녀에게 미션과 보상을 걸면, 자녀가 완료 후 돈을 버는 흐름입니다.
+            부모가 크레딧을 충전하고 아이에게 미션과 보상을 걸면, 아이가 완료 후 돈을 버는
+            흐름입니다.
           </Text>
         </View>
 
@@ -42,7 +44,7 @@ export default function App() {
               {appConfig.useDummyData ? '데이터 모드' : 'API 연결'}
             </Text>
             <Text style={styles.summaryValue}>
-              {appConfig.useDummyData ? '더미데이터만 사용' : appConfig.apiBaseUrl}
+              {appConfig.useDummyData ? '더미 데이터 사용' : appConfig.apiBaseUrl}
             </Text>
           </View>
           <View style={styles.statusBadge}>
@@ -146,8 +148,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#F7F8FA',
   },
   container: {
+    alignSelf: 'center',
+    maxWidth: 720,
     padding: 20,
     paddingBottom: 36,
+    width: '100%',
+    ...Platform.select({
+      web: {
+        minHeight: 640,
+      },
+      default: {},
+    }),
   },
   header: {
     marginBottom: 24,
@@ -221,8 +232,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#20262D',
     borderRadius: 8,
-    minHeight: 48,
     justifyContent: 'center',
+    minHeight: 48,
     paddingHorizontal: 14,
     width: '48%',
   },
