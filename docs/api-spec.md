@@ -1070,7 +1070,7 @@ Content-Type: application/json
 }
 ```
 
-## File API
+## File API, 보강/2차
 
 미션 완료 인증 사진을 직접 API 서버로 업로드하지 않고, 업로드 URL을 발급받아 사용하는 방식의 초안입니다.
 
@@ -1155,7 +1155,9 @@ Authorization: Bearer {accessToken}
 
 ### 자녀 캐시북 지출 기록
 
-자녀가 보상금을 어디에 썼는지 기록하기 위한 API입니다. 실제 지갑 차감까지 할지, 캐시북 기록만 남길지는 구현 단계에서 정책을 확정합니다.
+보강/2차 API입니다.
+자녀가 보상금을 어디에 썼는지 기록하기 위한 기능이며, 우선은 캐시북 기록만 남깁니다.
+실제 wallet 차감은 출금/소비 도메인으로 분리해 별도 정책을 확정합니다.
 
 ```http
 POST /api/cashbook/children/{childUserId}/entries
@@ -1186,7 +1188,7 @@ Content-Type: application/json
 }
 ```
 
-## Parent History API
+## Parent History API, 보강/2차
 
 ### 부모 지급/정산 내역
 
@@ -1217,7 +1219,7 @@ Authorization: Bearer {parentAccessToken}
 }
 ```
 
-## Notification API
+## Notification API, 보강/2차
 
 ### 안 읽은 알림 개수 조회
 
@@ -1289,7 +1291,7 @@ Authorization: Bearer {accessToken}
 }
 ```
 
-## Settings API
+## Settings API, 보강/2차
 
 ### 내 프로필 조회
 
@@ -1460,6 +1462,20 @@ Authorization: Bearer {accessToken}
 | FAILED | 실패 | 은행 거래 실패 또는 wallet 반영 전 실패 |
 | UNKNOWN | 확인 필요 | timeout/응답 미수신으로 결과조회 필요 |
 | BANK_SUCCESS_BUT_WALLET_FAILED | 재처리 필요 | 은행 성공 후 wallet-service 입금 반영 실패 |
+
+서버 상태와 화면 상태 매핑:
+
+| BankingTransferStatus | ChargeStatus |
+|---|---|
+| REQUESTED | REQUESTED |
+| BANK_REQUESTED | PROCESSING |
+| BANK_PROCESSING | PROCESSING |
+| BANK_SUCCEEDED | PROCESSING |
+| WALLET_REFLECTING | PROCESSING |
+| COMPLETED | COMPLETED |
+| FAILED | FAILED |
+| UNKNOWN | UNKNOWN |
+| BANK_SUCCESS_BUT_WALLET_FAILED | RETRY_REQUIRED |
 
 ### WithdrawalStatus
 

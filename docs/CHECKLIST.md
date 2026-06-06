@@ -239,6 +239,7 @@ MVP 필수:
 - [ ] 부모 승인 API 구현
 - [ ] 부모 거절 API 구현
 - [ ] 승인 대상 최신 SUBMITTED missionSubmissionId 확정 로직 구현
+- [ ] mission별 활성 SUBMITTED submission 1건 제약 검증
 - [ ] 승인 시 transfer-service 송금 연동
 - [ ] `reward-payment-{missionSubmissionId}` Idempotency-Key 적용
 - [ ] 이미 PAID인 미션 재승인 시 기존 결과 반환
@@ -320,6 +321,7 @@ MVP 필수:
 - [ ] BANK_SUCCESS_BUT_WALLET_FAILED 재처리 워커 구현
 - [ ] 재처리 worker 선점 시 WALLET_REFLECTING 상태 전이 구현
 - [ ] 재처리 시 같은 bank_tran_id로 wallet-service deposit 재호출
+- [ ] 재처리 한도 초과 시 자동 worker 대상 제외 및 운영자 확인 대상 분류
 - [ ] 이체결과조회 API client 메서드 구현
 - [ ] 이체결과조회 check_type/org_bank_tran_id/org_bank_tran_date/org_tran_amt 매핑 구현
 - [ ] UNKNOWN/BANK_PROCESSING 결과조회 워커 구현

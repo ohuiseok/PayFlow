@@ -843,6 +843,15 @@ wallet 반영 재처리 워커는 `BANK_SUCCESS_BUT_WALLET_FAILED` 상태를 주
 선점 쿼리는 `id`, `status`, `updatedAt` 조건을 함께 사용한다.
 여러 banking-service 인스턴스가 떠 있어도 같은 거래를 동시에 재처리하지 않도록 optimistic update 또는 pessimistic lock 중 하나를 적용한다.
 
+재처리 한도 초과 정책:
+
+```text
+초기 maxResultCheckCount = 10
+resultCheckCount >= maxResultCheckCount이면 상태는 BANK_SUCCESS_BUT_WALLET_FAILED로 유지한다.
+다만 worker 자동 조회 대상에서는 제외하고 운영자 확인 대상으로 분류한다.
+운영자 재처리 API를 만들 경우 resultCheckCount를 유지한 채 수동 deposit 재호출 이력을 BankingApiLog 또는 별도 운영 로그에 남긴다.
+```
+
 결과조회 재시도 간격은 초기에는 단순 정책으로 둔다.
 
 ```text

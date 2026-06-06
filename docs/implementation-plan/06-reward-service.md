@@ -172,6 +172,15 @@ Idempotency-Key: reward-payment-{missionSubmissionId}
 6. 같은 미션이 반려 후 재제출되면 새 submission.id가 생기므로 이전 승인 시도와 구분된다.
 ```
 
+활성 제출 제약:
+
+```text
+한 mission에는 현재 승인 대상인 SUBMITTED submission이 1건만 존재해야 한다.
+아이가 재제출하면 이전 REJECTED submission은 그대로 두고 새 SUBMITTED submission을 만든다.
+같은 missionId에 SUBMITTED submission이 2건 이상 발견되면 데이터 이상으로 보고 승인하지 않는다.
+Repository 조회는 createdAt desc, id desc 정렬을 사용하되, 2건 이상이면 예외로 처리한다.
+```
+
 ### 5. 부모 반려와 아이 재제출
 
 ```text
@@ -405,7 +414,7 @@ POST /missions/{missionId}/reject
 POST /missions/{missionId}/resubmit
 ```
 
-승인 API는 반드시 아래 멱등키를 사용한다.
+승인 처리 중 reward-service가 transfer-service를 호출할 때는 반드시 아래 멱등키를 사용한다.
 
 ```http
 Idempotency-Key: reward-payment-{missionSubmissionId}
