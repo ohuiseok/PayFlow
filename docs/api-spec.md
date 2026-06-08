@@ -6,7 +6,7 @@
 
 - 기준 경로: `http://localhost:8080`
 - 외부 클라이언트는 `api-gateway`를 통해 `/api/**` 경로로 호출합니다.
-- `api-gateway`는 인증된 요청에 대해 내부 서비스로 `X-User-Id`, `X-User-Email`, `X-User-Role` 헤더를 주입합니다.
+- `api-gateway`는 인증된 요청에 대해 내부 서비스로 `X-User-Id`, `X-User-Phone-Number`, `X-User-Role` 헤더를 주입합니다.
 - 클라이언트가 보낸 `X-User-*`, `X-Internal-*` 헤더는 Gateway에서 제거됩니다.
 
 ## 공통
@@ -73,7 +73,8 @@ Content-Type: application/json
 {
   "phoneNumber": "01012345678",
   "password": "password123",
-  "name": "지훈"
+  "name": "지훈",
+  "role": "PARENT"
 }
 ```
 
@@ -84,6 +85,7 @@ Content-Type: application/json
 | phoneNumber | string | O | 숫자 10~11자리, 하이픈 없이 전송 |
 | password | string | O | 8자 이상 |
 | name | string | O | 빈 값 불가 |
+| role | string | O | `PARENT` 또는 `CHILD` |
 
 응답: `201 Created`
 
@@ -92,6 +94,7 @@ Content-Type: application/json
   "userId": 1,
   "phoneNumber": "01012345678",
   "name": "지훈",
+  "role": "PARENT",
   "status": "ACTIVE"
 }
 ```
@@ -118,14 +121,21 @@ Content-Type: application/json
 {
   "accessToken": "eyJhbGciOi...",
   "tokenType": "Bearer",
-  "expiresIn": 86400000
+  "expiresIn": 86400000,
+  "user": {
+    "userId": 1,
+    "phoneNumber": "01012345678",
+    "name": "지훈",
+    "role": "PARENT",
+    "status": "ACTIVE"
+  }
 }
 ```
 
-### 사용자 조회
+### 내 사용자 조회
 
 ```http
-GET /api/users/{userId}
+GET /api/users/me
 Authorization: Bearer {accessToken}
 ```
 
@@ -136,14 +146,19 @@ Authorization: Bearer {accessToken}
   "userId": 1,
   "phoneNumber": "01012345678",
   "name": "지훈",
+  "role": "PARENT",
   "status": "ACTIVE"
 }
 ```
 
-제약:
+### 사용자 조회, 호환
 
-- `{userId}`는 인증된 사용자 ID와 같아야 합니다.
-- 다르면 `RESOURCE_OWNER_MISMATCH`가 반환됩니다.
+```http
+GET /api/users/{userId}
+Authorization: Bearer {accessToken}
+```
+
+`GET /api/users/me`를 우선 사용합니다. 기존 `{userId}` 조회를 유지하는 경우 `{userId}`는 인증된 사용자 ID와 같아야 하며, 다르면 `RESOURCE_OWNER_MISMATCH`가 반환됩니다.
 
 ## Wallet API
 
@@ -382,7 +397,7 @@ X-Internal-Secret: {INTERNAL_SERVICE_SECRET}
 | 화면 | 필요한 API |
 |---|---|
 | `01-login.svg` | 로그인, 회원가입 |
-| `02-signup-role.svg` | 보강/2차: 역할 포함 회원가입 |
+| `02-signup-role.svg` | 역할 포함 회원가입 |
 | `03-family-link.svg` | 부모 초대 코드 생성, 가족 연결 요청 승인/거절 |
 | `04-child-invite-code.svg` | 자녀 초대 코드 입력, 연결 요청 생성 |
 | `05-parent-home.svg` | 부모 홈 요약, 진행 중 미션 목록 |
@@ -412,14 +427,13 @@ X-Internal-Secret: {INTERNAL_SERVICE_SECRET}
 - 가족 연결 해제
 
 미션 목록/캘린더의 `role=parent|child` query parameter는 권한 판단 기준이 아니라 조회 관점(view mode)입니다.
-MVP 권한 판단은 JWT role claim이 아니라 Family 관계의 `parentUserId`, `childUserId`와 인증 사용자 ID를 비교해 수행합니다.
+화면 진입과 기본 사용자 구분은 user-service의 `role`을 사용합니다.
+다만 MVP 리소스 권한 판단은 JWT role claim만 믿지 않고 Family 관계의 `parentUserId`, `childUserId`와 인증 사용자 ID를 비교해 수행합니다.
 
-## User 확장 API, 보강/2차
+## User Role
 
-### 역할 포함 회원가입
-
-MVP에서는 기본 회원가입/로그인/JWT/사용자 조회를 우선합니다.
-역할 기반 화면 진입이 필요해지는 보강/2차에서 회원가입 API에 `role` 필드를 추가합니다.
+회원가입 단계에서 부모/자녀 역할을 저장합니다.
+역할은 화면 진입과 기본 기능 노출에 사용하고, 가족/미션/캐시북의 실제 권한은 각 서비스가 소유권과 Family 관계로 다시 검증합니다.
 
 ```http
 POST /api/users
@@ -755,7 +769,7 @@ Content-Type: application/json
 ```json
 {
   "walletId": 200,
-  "bankAccountId": 20,
+  "bankAccountId": "bank-account-001",
   "amount": 10000
 }
 ```
@@ -766,7 +780,7 @@ Content-Type: application/json
 {
   "withdrawalId": "withdrawal-20260605-0001",
   "walletId": 200,
-  "bankAccountId": 20,
+  "bankAccountId": "bank-account-001",
   "amount": 10000,
   "status": "PROCESSING"
 }
@@ -793,7 +807,7 @@ Authorization: Bearer {accessToken}
 {
   "withdrawalId": "withdrawal-20260605-0001",
   "walletId": 200,
-  "bankAccountId": 20,
+  "bankAccountId": "bank-account-001",
   "maskedAccountNumber": "3333-**-7890",
   "amount": 10000,
   "status": "COMPLETED",

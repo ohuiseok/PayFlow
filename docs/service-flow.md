@@ -27,7 +27,7 @@ PayFlow는 부모-자녀 미션 보상 지갑 서비스입니다.
 | 서비스 | 책임 |
 |---|---|
 | api-gateway | 외부 API 진입점, JWT 검증, 사용자 헤더 주입 |
-| user-service | 회원가입, 로그인, 사용자 조회. 역할/프로필/알림 설정은 보강/2차 |
+| user-service | 회원가입, 로그인, 사용자 조회, 부모/자녀 역할 저장. 프로필/알림 설정은 보강/2차 |
 | wallet-service | 부모/자녀 지갑, 잔액, 입금/출금, 중복 거래 방지 |
 | banking-service | 부모 크레딧 충전, 오픈뱅킹 또는 mock 충전 상태 |
 | reward-service | 가족 연결, 미션 등록/제출/승인/반려, 캐시북. 알림/파일 업로드 URL은 보강/2차 |
@@ -73,7 +73,8 @@ PayFlow는 부모-자녀 미션 보상 지갑 서비스입니다.
 
 ### 목적
 
-부모와 자녀가 각각 계정을 만듭니다. MVP 권한은 회원 role이 아니라 Family 관계의 부모/자녀 연결 기준으로 판단합니다.
+부모와 자녀가 각각 계정을 만듭니다. 화면 진입과 기본 사용자 구분은 user-service가 저장한 `role`을 사용합니다.
+다만 실제 리소스 권한은 role만으로 판단하지 않고 Family 관계의 부모/자녀 연결 기준으로 검증합니다.
 
 ### 화면
 
@@ -107,8 +108,10 @@ Client
 - 비밀번호는 8자 이상입니다.
 - 로그인 이후 API는 `Authorization: Bearer {token}`을 사용합니다.
 - MVP에서는 기본 회원가입/로그인/JWT/사용자 조회를 우선합니다.
-- 역할 기반 화면 진입, 프로필 수정, 알림 설정은 보강/2차로 구현합니다.
-- MVP에서 부모/자녀 권한은 user role claim이 아니라 family 관계의 `parentUserId`, `childUserId` 기준으로 판단합니다.
+- 역할 기반 화면 진입은 MVP에서 구현합니다.
+- 프로필 수정, 알림 설정은 보강/2차로 구현합니다.
+- MVP에서 부모/자녀 화면 분기는 user-service의 `role`을 사용합니다.
+- MVP에서 가족/미션/캐시북 리소스 권한은 user role claim만 믿지 않고 family 관계의 `parentUserId`, `childUserId` 기준으로 판단합니다.
 
 ## 2. 가족 연결
 
@@ -483,6 +486,9 @@ POST /api/cashbook/children/{childUserId}/entries
 - 상세 캐시북과 캘린더는 보강/2차 화면으로 분리할 수 있습니다.
 
 ## 9. 자녀 지갑 출금
+
+자녀 출금 API는 MVP API 연결 범위에 포함한다.
+프론트는 먼저 더미 상태로 계좌 등록과 출금을 검수하고, API 연결 마지막 단계에서 `POST /api/credits/withdrawals`, `GET /api/credits/withdrawals/{withdrawalId}`를 연결한다.
 
 ### 목적
 

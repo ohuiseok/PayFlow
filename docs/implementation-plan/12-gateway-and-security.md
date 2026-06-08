@@ -92,7 +92,7 @@ Gateway에서 JWT를 검증한다.
 
 ```text
 X-User-Id
-X-User-Email
+X-User-Phone-Number
 X-User-Role
 ```
 
@@ -100,7 +100,7 @@ Gateway는 외부 요청에 포함된 사용자 헤더를 먼저 제거한다.
 
 ```text
 X-User-Id
-X-User-Email
+X-User-Phone-Number
 X-User-Role
 X-Internal-Request
 X-Internal-Secret

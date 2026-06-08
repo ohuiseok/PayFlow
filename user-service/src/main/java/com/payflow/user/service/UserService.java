@@ -10,7 +10,6 @@ import com.payflow.user.entity.UserStatus;
 import com.payflow.user.repository.UserRepository;
 import com.payflow.user.support.error.BusinessException;
 import com.payflow.user.support.error.ErrorCode;
-import java.util.Locale;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -27,16 +26,17 @@ public class UserService {
 
     @Transactional
     public UserResponse createUser(CreateUserRequest request) {
-        String email = normalizeEmail(request.email());
+        String phoneNumber = normalizePhoneNumber(request.phoneNumber());
 
-        if (userRepository.existsByEmail(email)) {
+        if (userRepository.existsByPhoneNumber(phoneNumber)) {
             throw new BusinessException(ErrorCode.USER_ALREADY_EXISTS);
         }
 
         User user = new User(
-                email,
+                phoneNumber,
                 passwordEncoder.encode(request.password()),
-                request.name().trim()
+                request.name().trim(),
+                request.role()
         );
 
         try {
@@ -48,7 +48,7 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public AuthTokenResponse login(LoginRequest request) {
-        User user = userRepository.findByEmail(normalizeEmail(request.email()))
+        User user = userRepository.findByPhoneNumber(normalizePhoneNumber(request.phoneNumber()))
                 .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_CREDENTIALS));
 
         if (user.getStatus() != UserStatus.ACTIVE
@@ -57,7 +57,19 @@ public class UserService {
         }
 
         String accessToken = jwtTokenProvider.createToken(user);
-        return new AuthTokenResponse(accessToken, "Bearer", jwtTokenProvider.getExpirationMillis());
+        return new AuthTokenResponse(
+                accessToken,
+                "Bearer",
+                jwtTokenProvider.getExpirationMillis(),
+                UserResponse.from(user)
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public UserResponse getMe(Long requestUserId) {
+        User user = userRepository.findById(requestUserId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
+        return UserResponse.from(user);
     }
 
     @Transactional(readOnly = true)
@@ -71,7 +83,7 @@ public class UserService {
         return UserResponse.from(user);
     }
 
-    private String normalizeEmail(String email) {
-        return email.trim().toLowerCase(Locale.ROOT);
+    private String normalizePhoneNumber(String phoneNumber) {
+        return phoneNumber.replaceAll("\\D", "");
     }
 }

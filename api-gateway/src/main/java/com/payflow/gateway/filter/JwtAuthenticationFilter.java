@@ -27,7 +27,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
     private static final String BEARER_PREFIX = "Bearer ";
     private static final String X_USER_ID = "X-User-Id";
-    private static final String X_USER_EMAIL = "X-User-Email";
+    private static final String X_USER_PHONE_NUMBER = "X-User-Phone-Number";
     private static final String X_USER_ROLE = "X-User-Role";
     private static final String X_INTERNAL_REQUEST = "X-Internal-Request";
     private static final String X_INTERNAL_SECRET = "X-Internal-Secret";
@@ -48,7 +48,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             AuthenticatedUser user = jwtTokenProvider.parse(token);
             ServerHttpRequest authenticatedRequest = sanitizedRequest.mutate()
                     .header(X_USER_ID, String.valueOf(user.userId()))
-                    .header(X_USER_EMAIL, user.email())
+                    .header(X_USER_PHONE_NUMBER, user.phoneNumber())
                     .header(X_USER_ROLE, user.role())
                     .build();
             return chain.filter(sanitizedExchange.mutate().request(authenticatedRequest).build());
@@ -66,7 +66,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         return request.mutate()
                 .headers(headers -> {
                     headers.remove(X_USER_ID);
-                    headers.remove(X_USER_EMAIL);
+                    headers.remove(X_USER_PHONE_NUMBER);
                     headers.remove(X_USER_ROLE);
                     headers.remove(X_INTERNAL_REQUEST);
                     headers.remove(X_INTERNAL_SECRET);

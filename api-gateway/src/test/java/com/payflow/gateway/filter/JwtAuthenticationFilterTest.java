@@ -44,7 +44,7 @@ class JwtAuthenticationFilterTest {
 
     @Test
     void protectedRequestAddsAuthenticatedUserHeaders() {
-        String token = createToken(1L, "user@example.com", "USER");
+        String token = createToken(1L, "01012345678", "PARENT");
         MockServerHttpRequest request = MockServerHttpRequest.get("/api/users/1")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                 .header("X-User-Id", "999")
@@ -57,8 +57,8 @@ class JwtAuthenticationFilterTest {
 
         HttpHeaders headers = captured.get().getRequest().getHeaders();
         assertThat(headers.getFirst("X-User-Id")).isEqualTo("1");
-        assertThat(headers.getFirst("X-User-Email")).isEqualTo("user@example.com");
-        assertThat(headers.getFirst("X-User-Role")).isEqualTo("USER");
+        assertThat(headers.getFirst("X-User-Phone-Number")).isEqualTo("01012345678");
+        assertThat(headers.getFirst("X-User-Role")).isEqualTo("PARENT");
         assertThat(headers.containsHeader("X-Internal-Request")).isFalse();
     }
 
@@ -79,12 +79,12 @@ class JwtAuthenticationFilterTest {
         };
     }
 
-    private String createToken(Long userId, String email, String role) {
+    private String createToken(Long userId, String phoneNumber, String role) {
         SecretKey key = Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
         Instant now = Instant.now();
         return Jwts.builder()
                 .subject(String.valueOf(userId))
-                .claim("email", email)
+                .claim("phoneNumber", phoneNumber)
                 .claim("role", role)
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(now.plusSeconds(60)))

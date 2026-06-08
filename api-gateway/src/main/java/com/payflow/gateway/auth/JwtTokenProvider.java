@@ -31,7 +31,7 @@ public class JwtTokenProvider {
 
             return new AuthenticatedUser(
                     Long.valueOf(claims.getSubject()),
-                    claims.get("email", String.class),
+                    claims.get("phoneNumber", String.class),
                     claims.get("role", String.class)
             );
         } catch (ExpiredJwtException exception) {

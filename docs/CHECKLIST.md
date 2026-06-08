@@ -102,14 +102,15 @@ MVP 필수:
 - [x] 기본 회원가입 API 구현
 - [x] 로그인 API 구현
 - [x] 사용자 조회 API 구현
+- [x] UserRole enum 구현
+- [x] 역할 포함 회원가입 API 구현
+- [x] 로그인/내 정보 응답 role 포함
+- [x] JWT role claim 반영
 - [x] user-service 테스트 작성
 - [x] user-service `bootJar` 확인
 
 보강/2차:
 
-- [ ] UserRole enum 구현
-- [ ] 역할 포함 회원가입 API 구현
-- [ ] JWT role claim 반영
 - [ ] NotificationPreference 엔티티 구현
 - [ ] NotificationPreferenceRepository 구현
 - [ ] 프로필 조회 API 구현
@@ -121,8 +122,8 @@ MVP 필수:
 완료 기준:
 
 ```text
-MVP 기준으로는 기본 회원가입, 로그인, JWT 발급, 사용자 조회가 동작하면 다음 단계로 진행할 수 있다.
-역할, 프로필, 알림 설정, 로그아웃 정책은 보강/2차 범위로 구현한다.
+MVP 기준으로는 기본 회원가입, 로그인, JWT 발급, 사용자 조회, 부모/자녀 role 저장과 응답이 동작하면 다음 단계로 진행할 수 있다.
+프로필, 알림 설정, 로그아웃 정책은 보강/2차 범위로 구현한다.
 ```
 
 관련 문서:
@@ -332,16 +333,18 @@ MVP 필수:
 - [ ] resultCheckCount/nextResultCheckAt 기반 재조회 정책 구현
 - [ ] 결과조회 성공 시 최종 상태 갱신
 - [ ] 결과조회 실패 시 FAILED 또는 COMPENSATION_REQUIRED 전이
+- [x] 출금/환불 상태 모델 구현 또는 문서화
+- [x] 자녀 출금 목업과 API 명세 연결
+- [ ] 자녀 출금 API 최소 구현
+- [ ] 출금 wallet-service withdraw 연동
+- [ ] 출금 입금이체 실패 시 보상 근거 저장
 - [ ] 민감정보 토큰/계좌번호/암호문구 원문 로그 방지
 - [ ] banking-service 테스트 작성
 - [x] banking-service `bootJar` 확인
 
 보강/2차:
 
-- [x] 출금/환불 상태 모델 구현 또는 문서화
-- [x] 자녀 출금 목업과 API 명세 연결
-- [ ] 출금 API 최소 구현
-- [ ] 출금 입금이체 실패 시 보상 근거 저장
+- [ ] 환불 API 구현
 - [ ] 정보제공자 API는 2차 범위로 문서화
 
 완료 기준:
@@ -350,7 +353,9 @@ MVP 필수:
 MockOpenBankingClient로 충전 성공/실패/불명/처리중/중복 시나리오를 검증한다.
 외부 은행망 성공이 확정된 충전만 wallet-service 잔액에 반영되고, bank_tran_id와 wallet reference 기준으로 중복 반영되지 않는다.
 UNKNOWN/BANK_PROCESSING 상태는 결과조회 워커로 최종 상태를 확정할 수 있다.
-출금, 환불, 정보제공자 API는 보강/2차 범위로 남긴다.
+자녀 출금 API는 MVP API 연결 범위에 포함한다.
+출금은 wallet 차감 후 오픈뱅킹 입금이체를 요청하고, 실패 또는 응답 불명 시 보상 근거를 남긴다.
+환불, 정보제공자 API는 보강/2차 범위로 남긴다.
 ```
 
 관련 문서:
@@ -483,7 +488,7 @@ MVP 필수:
 - [x] JWT 검증 실패 처리
 - [x] 외부 `X-User-*` 헤더 제거
 - [x] 내부 서비스로 `X-User-Id` 전달
-- [x] `X-User-Email` 전달
+- [x] `X-User-Phone-Number` 전달
 - [x] 소유권 실패 403 처리
 - [x] Gateway 테스트 작성
 - [x] api-gateway `bootJar` 확인

@@ -20,14 +20,18 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 255)
-    private String email;
+    @Column(nullable = false, unique = true, length = 20)
+    private String phoneNumber;
 
     @Column(nullable = false, length = 255)
     private String password;
 
     @Column(nullable = false, length = 100)
     private String name;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    private UserRole role;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
@@ -42,10 +46,11 @@ public class User {
     protected User() {
     }
 
-    public User(String email, String password, String name) {
-        this.email = email;
+    public User(String phoneNumber, String password, String name, UserRole role) {
+        this.phoneNumber = phoneNumber;
         this.password = password;
         this.name = name;
+        this.role = role;
         this.status = UserStatus.ACTIVE;
     }
 
@@ -69,8 +74,8 @@ public class User {
         return id;
     }
 
-    public String getEmail() {
-        return email;
+    public String getPhoneNumber() {
+        return phoneNumber;
     }
 
     public String getPassword() {
@@ -79,6 +84,10 @@ public class User {
 
     public String getName() {
         return name;
+    }
+
+    public UserRole getRole() {
+        return role;
     }
 
     public UserStatus getStatus() {

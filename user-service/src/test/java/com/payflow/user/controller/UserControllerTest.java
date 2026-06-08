@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.payflow.user.dto.CreateUserRequest;
+import com.payflow.user.entity.UserRole;
 import com.payflow.user.service.UserService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,14 +35,16 @@ class UserControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "email": "user@example.com",
+                                  "phoneNumber": "01012345678",
                                   "password": "password1234",
-                                  "name": "User"
+                                  "name": "User",
+                                  "role": "PARENT"
                                 }
                                 """))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.email").value("user@example.com"))
-                .andExpect(jsonPath("$.name").value("User"));
+                .andExpect(jsonPath("$.phoneNumber").value("01012345678"))
+                .andExpect(jsonPath("$.name").value("User"))
+                .andExpect(jsonPath("$.role").value("PARENT"));
     }
 
     @Test
@@ -50,9 +53,10 @@ class UserControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "email": "not-email",
+                                  "phoneNumber": "abc",
                                   "password": "short",
-                                  "name": ""
+                                  "name": "",
+                                  "role": null
                                 }
                                 """))
                 .andExpect(status().isBadRequest())
@@ -60,9 +64,42 @@ class UserControllerTest {
     }
 
     @Test
+    void loginReturnsTokenWithUser() throws Exception {
+        userService.createUser(
+                new CreateUserRequest("01012345678", "password1234", "User", UserRole.CHILD)
+        );
+
+        mockMvc.perform(post("/users/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "phoneNumber": "01012345678",
+                                  "password": "password1234"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accessToken").exists())
+                .andExpect(jsonPath("$.user.phoneNumber").value("01012345678"))
+                .andExpect(jsonPath("$.user.role").value("CHILD"));
+    }
+
+    @Test
+    void getMeReturnsAuthenticatedUser() throws Exception {
+        var user = userService.createUser(
+                new CreateUserRequest("01012345678", "password1234", "User", UserRole.PARENT)
+        );
+
+        mockMvc.perform(get("/users/me")
+                        .header("X-User-Id", user.userId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.userId").value(user.userId()))
+                .andExpect(jsonPath("$.role").value("PARENT"));
+    }
+
+    @Test
     void getUserReturnsForbiddenWhenOwnerMismatch() throws Exception {
         var user = userService.createUser(
-                new CreateUserRequest("user@example.com", "password1234", "User")
+                new CreateUserRequest("01012345678", "password1234", "User", UserRole.PARENT)
         );
 
         mockMvc.perform(get("/users/{userId}", user.userId())

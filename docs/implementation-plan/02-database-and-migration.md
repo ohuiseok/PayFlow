@@ -61,7 +61,7 @@ notification_preferences
 
 ```text
 id BIGINT PK
-email VARCHAR(255) UNIQUE
+phone_number VARCHAR(20) UNIQUE
 password VARCHAR(255)
 name VARCHAR(100)
 role VARCHAR(30)
@@ -470,7 +470,7 @@ created_at DATETIME
 반드시 필요한 인덱스:
 
 ```text
-users.email UNIQUE
+users.phone_number UNIQUE
 wallets.user_id UNIQUE
 wallet_transactions.wallet_id
 wallet_transactions(wallet_id, transaction_type, reference_type, reference_id) UNIQUE

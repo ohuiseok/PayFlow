@@ -187,7 +187,7 @@ JPA Entity의 protected 기본 생성자
 외부 입력값은 service 진입 초기에 정규화한다.
 
 ```text
-email: trim + lowerCase(Locale.ROOT)
+phoneNumber: 숫자만 남기고 10~11자리 검증
 name: trim
 금액: null/scale/최소값 검증
 ```

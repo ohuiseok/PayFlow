@@ -47,7 +47,7 @@ ledger_lines.wallet_id -> wallets.id
 erDiagram
     USERS {
         BIGINT id PK
-        VARCHAR email UK
+        VARCHAR phone_number UK
         VARCHAR password
         VARCHAR name
         VARCHAR role
@@ -407,15 +407,15 @@ MVP 설계: 다음 MVP 구현 대상이다.
 | 컬럼 | 타입 | 제약 | 설명 |
 |---|---|---|---|
 | id | BIGINT | PK | 사용자 ID |
-| email | VARCHAR(255) | UNIQUE, NOT NULL | 로그인 이메일 |
+| phone_number | VARCHAR(20) | UNIQUE, NOT NULL | 로그인 휴대폰 번호 |
 | password | VARCHAR(255) | NOT NULL | 암호화된 비밀번호 |
 | name | VARCHAR(100) | NOT NULL | 사용자 이름 |
-| role | VARCHAR(30) | NOT NULL, 보강/2차 | PARENT, CHILD |
+| role | VARCHAR(30) | NOT NULL | PARENT, CHILD |
 | status | VARCHAR(30) | NOT NULL | ACTIVE, LOCKED, WITHDRAWN |
 | created_at | DATETIME | NOT NULL | 생성 시각 |
 | updated_at | DATETIME | NOT NULL | 수정 시각 |
 
-현재 코드에는 `role`이 아직 없다. MVP에서는 기본 회원가입/로그인/사용자 조회를 우선하고, 역할 기반 화면/권한은 보강/2차로 추가한다.
+MVP에서는 회원가입 단계에서 `role`을 저장한다. 화면 진입은 role을 사용하되, 가족/미션/캐시북 권한은 Family 관계와 소유권으로 다시 검증한다.
 
 ### notification_preferences
 
@@ -806,7 +806,7 @@ Kafka consumer 중복 처리를 막기 위한 처리 이력이다.
 
 | 테이블 | 인덱스/제약 | 목적 |
 |---|---|---|
-| users | UNIQUE(email) | 이메일 중복 가입 방지 |
+| users | UNIQUE(phone_number) | 휴대폰 번호 중복 가입 방지 |
 | notification_preferences | UNIQUE(user_id) | 사용자별 설정 1건 유지 |
 | wallets | UNIQUE(user_id) | 사용자별 지갑 1개 유지 |
 | wallet_transactions | INDEX(wallet_id) | 지갑별 이력 조회 |

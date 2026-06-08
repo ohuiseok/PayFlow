@@ -35,6 +35,11 @@ public class UserController {
         return userService.login(request);
     }
 
+    @GetMapping("/me")
+    public UserResponse getMe(@RequestHeader("X-User-Id") Long requestUserId) {
+        return userService.getMe(requestUserId);
+    }
+
     @GetMapping("/{userId}")
     public UserResponse getUser(
             @PathVariable Long userId,

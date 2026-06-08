@@ -128,8 +128,8 @@ DELETE /families/{familyId}
 ```
 
 초기 구현에서는 요청의 `parentUserId`는 Gateway의 `X-User-Id`를 신뢰한다. `childUserId`, `parentWalletId`, `childWalletId`는 요청으로 받되, Family 관계로 부모/아이 연결 여부를 검증한다.
-MVP에서는 user-service의 role claim에 의존하지 않고, reward DB의 Family 관계에 저장된 `parentUserId`, `childUserId` 기준으로 부모/아이 권한을 판단한다.
-회원가입 단계의 role 선택과 JWT role claim은 보강/2차 범위다.
+MVP에서 user-service는 `role`을 저장하고 Gateway는 `X-User-Role`을 전달할 수 있지만, reward-service의 최종 권한 판단은 role claim만 믿지 않는다.
+가족/미션/캐시북 권한은 reward DB의 Family 관계에 저장된 `parentUserId`, `childUserId`와 요청 사용자 ID를 기준으로 검증한다.
 MVP에서 지갑 ID를 요청으로 받더라도, reward-service는 wallet-service 내부 조회 API로 `parentWalletId`가 `parentUserId` 소유이고 `childWalletId`가 `childUserId` 소유인지 확인한다.
 미션 등록 시점의 잔액 검증은 경고 또는 사전 검증 성격이며, 최종 잔액 부족 여부는 승인 시 transfer-service 송금과 wallet-service 출금에서 확정한다.
 
