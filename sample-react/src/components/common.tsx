@@ -1,6 +1,7 @@
 import { PropsWithChildren } from 'react';
 import {
   ActivityIndicator,
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
@@ -81,18 +82,20 @@ export function PrimaryButton({
   onPress,
   disabled,
   loading,
+  variant = 'primary',
 }: {
   title: string;
   onPress: () => void;
   disabled?: boolean;
   loading?: boolean;
+  variant?: 'primary' | 'dark';
 }) {
   return (
     <TouchableOpacity
       activeOpacity={0.8}
       disabled={disabled || loading}
       onPress={onPress}
-      style={[styles.button, (disabled || loading) && styles.buttonDisabled]}
+      style={[styles.button, variant === 'dark' && styles.darkButton, (disabled || loading) && styles.buttonDisabled]}
     >
       {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.buttonText}>{title}</Text>}
     </TouchableOpacity>
@@ -115,6 +118,7 @@ export function FormField({
   secureTextEntry,
   keyboardType,
   error,
+  disabled,
 }: {
   label?: string;
   value: string;
@@ -123,17 +127,19 @@ export function FormField({
   secureTextEntry?: boolean;
   keyboardType?: 'default' | 'number-pad' | 'phone-pad';
   error?: string;
+  disabled?: boolean;
 }) {
   return (
     <View style={styles.fieldWrap}>
       {label ? <Text style={styles.fieldLabel}>{label}</Text> : null}
       <TextInput
         keyboardType={keyboardType}
+        editable={!disabled}
         onChangeText={onChangeText}
         placeholder={placeholder}
         placeholderTextColor="#8792A0"
         secureTextEntry={secureTextEntry}
-        style={[styles.input, error && styles.inputError]}
+        style={[styles.input, disabled && styles.inputDisabled, error && styles.inputError]}
         value={value}
       />
       {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -179,6 +185,68 @@ export function AmountQuickSelect({ amounts, onSelect }: { amounts: number[]; on
         </TouchableOpacity>
       ))}
     </View>
+  );
+}
+
+export function Toast({
+  message,
+  tone = 'green',
+}: {
+  message: string;
+  tone?: 'green' | 'yellow' | 'danger';
+}) {
+  if (!message) {
+    return null;
+  }
+
+  return (
+    <View style={[styles.toast, styles[`${tone}Toast`]]}>
+      <Text style={[styles.toastText, styles[`${tone}ToastText`]]}>{message}</Text>
+    </View>
+  );
+}
+
+export function ConfirmModal({
+  visible,
+  title,
+  body,
+  confirmTitle = '진행',
+  cancelTitle = '취소',
+  loading,
+  onConfirm,
+  onCancel,
+}: {
+  visible: boolean;
+  title: string;
+  body: string;
+  confirmTitle?: string;
+  cancelTitle?: string;
+  loading?: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <Modal animationType="fade" transparent visible={visible} onRequestClose={onCancel}>
+      <View style={styles.modalBackdrop}>
+        <View style={styles.modalPanel}>
+          <Text style={styles.modalTitle}>{title}</Text>
+          <Text style={styles.modalBody}>{body}</Text>
+          <View style={styles.modalActions}>
+            <TouchableOpacity activeOpacity={0.8} onPress={onCancel} style={styles.modalCancelButton}>
+              <Text style={styles.modalCancelText}>{cancelTitle}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              activeOpacity={0.8}
+              disabled={loading}
+              onPress={onConfirm}
+              style={[styles.modalConfirmButton, loading && styles.buttonDisabled]}
+            >
+              {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.modalConfirmText}>{confirmTitle}</Text>}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
   );
 }
 
@@ -264,11 +332,14 @@ const styles = StyleSheet.create({
   },
   button: {
     alignItems: 'center',
-    backgroundColor: colors.dark,
+    backgroundColor: colors.primary,
     borderRadius: 8,
     justifyContent: 'center',
     minHeight: 58,
     paddingHorizontal: 18,
+  },
+  darkButton: {
+    backgroundColor: colors.dark,
   },
   buttonDisabled: {
     opacity: 0.5,
@@ -309,6 +380,10 @@ const styles = StyleSheet.create({
     fontSize: 17,
     minHeight: 58,
     paddingHorizontal: 16,
+  },
+  inputDisabled: {
+    backgroundColor: '#EEF1F4',
+    color: colors.muted,
   },
   inputError: {
     borderColor: colors.danger,
@@ -389,6 +464,91 @@ const styles = StyleSheet.create({
   quickChipText: {
     color: colors.dark,
     fontSize: 14,
+    fontWeight: '900',
+  },
+  toast: {
+    borderRadius: 8,
+    marginBottom: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  greenToast: {
+    backgroundColor: colors.primarySoft,
+  },
+  yellowToast: {
+    backgroundColor: colors.yellowSoft,
+  },
+  dangerToast: {
+    backgroundColor: '#FDEEEE',
+  },
+  toastText: {
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  greenToastText: {
+    color: colors.primary,
+  },
+  yellowToastText: {
+    color: colors.yellow,
+  },
+  dangerToastText: {
+    color: colors.danger,
+  },
+  modalBackdrop: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(17, 24, 32, 0.42)',
+    flex: 1,
+    justifyContent: 'center',
+    padding: 24,
+  },
+  modalPanel: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    maxWidth: 380,
+    padding: 22,
+    width: '100%',
+  },
+  modalTitle: {
+    color: colors.text,
+    fontSize: 22,
+    fontWeight: '900',
+    lineHeight: 29,
+    marginBottom: 8,
+  },
+  modalBody: {
+    color: colors.muted,
+    fontSize: 16,
+    lineHeight: 24,
+    marginBottom: 20,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  modalCancelButton: {
+    alignItems: 'center',
+    backgroundColor: '#EEF1F4',
+    borderRadius: 8,
+    flex: 1,
+    justifyContent: 'center',
+    minHeight: 50,
+  },
+  modalConfirmButton: {
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    borderRadius: 8,
+    flex: 1,
+    justifyContent: 'center',
+    minHeight: 50,
+  },
+  modalCancelText: {
+    color: colors.dark,
+    fontSize: 16,
+    fontWeight: '900',
+  },
+  modalConfirmText: {
+    color: '#FFFFFF',
+    fontSize: 16,
     fontWeight: '900',
   },
 });

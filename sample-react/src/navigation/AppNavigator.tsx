@@ -1,21 +1,19 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import { RootStackParamList } from './routes';
-import {
-  BankAccountRegisterScreen,
-  ChildHomeScreen,
-  ChildInviteCodeScreen,
-  ChildWithdrawalScreen,
-  CreditChargeScreen,
-  LoginScreen,
-  MissionCreateScreen,
-  MissionSubmitScreen,
-  ParentApprovalScreen,
-  ParentFamilyLinkScreen,
-  ParentHomeScreen,
-  RejectResubmitScreen,
-  SignupRoleScreen,
-} from '../screens/FlowScreens';
+import { BankAccountRegisterScreen } from '../screens/banking/BankAccountRegisterScreen';
+import { ChildWithdrawalScreen } from '../screens/banking/ChildWithdrawalScreen';
+import { ChildHomeScreen } from '../screens/child/ChildHomeScreen';
+import { MissionSubmitScreen } from '../screens/child/MissionSubmitScreen';
+import { RejectResubmitScreen } from '../screens/child/RejectResubmitScreen';
+import { LoginScreen } from '../screens/auth/LoginScreen';
+import { SignupRoleScreen } from '../screens/auth/SignupRoleScreen';
+import { ChildInviteCodeScreen } from '../screens/family/ChildInviteCodeScreen';
+import { ParentFamilyLinkScreen } from '../screens/family/ParentFamilyLinkScreen';
+import { CreditChargeScreen } from '../screens/parent/CreditChargeScreen';
+import { MissionCreateScreen } from '../screens/parent/MissionCreateScreen';
+import { ParentApprovalScreen } from '../screens/parent/ParentApprovalScreen';
+import { ParentHomeScreen } from '../screens/parent/ParentHomeScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 

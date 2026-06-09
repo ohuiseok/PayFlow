@@ -1,0 +1,59 @@
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+
+import { appConfig } from '../../config/appConfig';
+import { missionApi } from '../../api/missionApi';
+import { FormField, InfoBox, PrimaryButton, ScreenFrame } from '../../components/common';
+import { MissionCard } from '../../components/mission/MissionCard';
+import { RootStackParamList } from '../../navigation/routes';
+import { useAppState } from '../../state/AppState';
+
+type Props = NativeStackScreenProps<RootStackParamList, 'RejectResubmit'>;
+
+export function RejectResubmitScreen({ navigation, route }: Props) {
+  const { missions, resubmitMission } = useAppState();
+  const queryClient = useQueryClient();
+  const mission = missions.find((item) => item.id === route.params?.missionId) ?? missions.find((item) => item.status === 'rejected') ?? missions[0];
+  const [memo, setMemo] = useState('빠진 부분까지 다시 완료했어요.');
+  const [loading, setLoading] = useState(false);
+  const [apiError, setApiError] = useState('');
+
+  const resubmit = async () => {
+    if (!memo.trim()) {
+      return;
+    }
+
+    setLoading(true);
+    setApiError('');
+
+    try {
+      if (appConfig.useDummyData) {
+        resubmitMission(mission.id, memo);
+      } else {
+        await missionApi.resubmitMission({ missionId: mission.id, memo });
+      }
+      queryClient.invalidateQueries({ queryKey: ['missions'] });
+      navigation.navigate('ChildHome');
+    } catch (error) {
+      setApiError(error instanceof Error ? error.message : '미션 재제출에 실패했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <ScreenFrame eyebrow="반려 재제출" title="다시 제출하기" description="반려 사유를 확인하고 보완 내용을 보냅니다.">
+      <MissionCard mission={mission} />
+      <InfoBox tone="yellow" title="반려 사유" body={mission.rejectReason || '보완이 필요합니다.'} />
+      {apiError ? <InfoBox tone="yellow" title="API 오류" body={apiError} /> : null}
+      <FormField label="재제출 메모" placeholder="보완 내용을 적어주세요." value={memo} onChangeText={setMemo} disabled={loading} />
+      <PrimaryButton
+        title={loading ? '재제출 중' : '재제출'}
+        onPress={resubmit}
+        disabled={!memo.trim() || loading}
+        loading={loading}
+      />
+    </ScreenFrame>
+  );
+}
