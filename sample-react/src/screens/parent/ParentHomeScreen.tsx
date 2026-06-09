@@ -5,7 +5,9 @@ import { StyleSheet, Text, View } from 'react-native';
 import { creditApi } from '../../api/creditApi';
 import { missionApi } from '../../api/missionApi';
 import { appConfig } from '../../config/appConfig';
-import { BalanceCard, Body, colors, InfoBox, PrimaryButton, ScreenFrame, SecondaryButton } from '../../components/common';
+import { ApiErrorBox } from '../../components/common/ApiErrorBox';
+import { BalanceCard, colors, PrimaryButton, ScreenFrame, SecondaryButton } from '../../components/common';
+import { EmptyState, LoadingState } from '../../components/common/ScreenStates';
 import { MissionCard } from '../../components/mission/MissionCard';
 import { CashbookEntryItem } from '../../components/wallet/CashbookEntryItem';
 import { RootStackParamList } from '../../navigation/routes';
@@ -40,9 +42,9 @@ export function ParentHomeScreen({ navigation }: Props) {
         amount={displayBalance}
         description={`승인 대기 ${displayPendingCount}건 · 진행 미션 ${active.length}건`}
       />
-      {summaryQuery.isLoading || missionsQuery.isLoading ? <InfoBox tone="blue" title="API 조회 중" body="부모 홈 정보를 불러오고 있습니다." /> : null}
-      {summaryQuery.error ? <InfoBox tone="yellow" title="API 오류" body={summaryQuery.error instanceof Error ? summaryQuery.error.message : '부모 크레딧 요약 조회에 실패했습니다.'} /> : null}
-      {missionsQuery.error ? <InfoBox tone="yellow" title="API 오류" body={missionsQuery.error instanceof Error ? missionsQuery.error.message : '부모 미션 목록 조회에 실패했습니다.'} /> : null}
+      {summaryQuery.isLoading || missionsQuery.isLoading ? <LoadingState title="API 조회 중" body="부모 홈 정보를 불러오고 있습니다." /> : null}
+      <ApiErrorBox error={summaryQuery.error} fallback="부모 크레딧 요약 조회에 실패했습니다." />
+      <ApiErrorBox error={missionsQuery.error} fallback="부모 미션 목록 조회에 실패했습니다." />
       <View style={styles.actionGrid}>
         <PrimaryButton title="충전" onPress={() => navigation.navigate('CreditCharge')} />
         <SecondaryButton title="미션 등록" onPress={() => navigation.navigate('MissionCreate')} />
@@ -52,7 +54,7 @@ export function ParentHomeScreen({ navigation }: Props) {
         ) : null}
       </View>
       <Text style={styles.sectionTitle}>진행 중 미션</Text>
-      {active.length ? active.map((mission) => <MissionCard key={mission.id} mission={mission} />) : <Body>진행 중인 미션이 없습니다.</Body>}
+      {active.length ? active.map((mission) => <MissionCard key={mission.id} mission={mission} />) : <EmptyState body="진행 중인 미션이 없습니다." />}
       <Text style={styles.sectionTitle}>최근 크레딧 기록</Text>
       {parentCreditEntries.slice(0, 3).map((entry) => <CashbookEntryItem key={entry.id} entry={entry} />)}
     </ScreenFrame>

@@ -5,10 +5,13 @@ import { StyleSheet, View } from 'react-native';
 
 import { appConfig } from '../../config/appConfig';
 import { missionApi } from '../../api/missionApi';
+import { ApiErrorBox } from '../../components/common/ApiErrorBox';
 import { Body, Card, FormField, Heading, InfoBox, Label, PrimaryButton, ScreenFrame, SecondaryButton } from '../../components/common';
+import { EmptyState } from '../../components/common/ScreenStates';
 import { MissionCard } from '../../components/mission/MissionCard';
 import { RootStackParamList } from '../../navigation/routes';
 import { useAppState } from '../../state/AppState';
+import { getErrorMessage } from '../../utils/apiError';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ParentApproval'>;
 
@@ -42,7 +45,7 @@ export function ParentApprovalScreen({ navigation }: Props) {
       queryClient.invalidateQueries({ queryKey: ['credit', 'parentSummary'] });
       queryClient.invalidateQueries({ queryKey: ['cashbook'] });
     } catch (error) {
-      setApiError(error instanceof Error ? error.message : '미션 승인에 실패했습니다.');
+      setApiError(getErrorMessage(error, '미션 승인에 실패했습니다.'));
     } finally {
       setLoading(false);
     }
@@ -65,7 +68,7 @@ export function ParentApprovalScreen({ navigation }: Props) {
       queryClient.invalidateQueries({ queryKey: ['missions'] });
       navigation.navigate('ParentHome');
     } catch (error) {
-      setApiError(error instanceof Error ? error.message : '미션 반려에 실패했습니다.');
+      setApiError(getErrorMessage(error, '미션 반려에 실패했습니다.'));
     } finally {
       setLoading(false);
     }
@@ -82,7 +85,7 @@ export function ParentApprovalScreen({ navigation }: Props) {
             <Body>승인하면 부모 크레딧이 차감되고 자녀 캐시북에 보상이 기록됩니다.</Body>
           </Card>
           <FormField label="반려 사유" placeholder="반려 사유" value={reason} onChangeText={setReason} disabled={loading} />
-          {apiError ? <InfoBox tone="yellow" title="API 오류" body={apiError} /> : null}
+          <ApiErrorBox error={apiError} fallback="미션 승인/반려에 실패했습니다." />
           {message ? <InfoBox tone="yellow" title="처리 결과" body={message} /> : null}
           <View style={styles.twoButtons}>
             <PrimaryButton
@@ -105,7 +108,7 @@ export function ParentApprovalScreen({ navigation }: Props) {
         </>
       ) : (
         <>
-          <InfoBox title="승인 대기 없음" body="현재 제출된 미션이 없습니다." />
+          <EmptyState title="승인 대기 없음" body="현재 제출된 미션이 없습니다." />
           <SecondaryButton title="부모 홈으로" onPress={() => navigation.navigate('ParentHome')} />
         </>
       )}

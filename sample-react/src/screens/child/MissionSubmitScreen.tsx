@@ -4,10 +4,13 @@ import { useQueryClient } from '@tanstack/react-query';
 
 import { appConfig } from '../../config/appConfig';
 import { missionApi } from '../../api/missionApi';
+import { ApiErrorBox } from '../../components/common/ApiErrorBox';
 import { FormField, InfoBox, PrimaryButton, ScreenFrame, SecondaryButton } from '../../components/common';
 import { MissionCard } from '../../components/mission/MissionCard';
 import { RootStackParamList } from '../../navigation/routes';
 import { useAppState } from '../../state/AppState';
+import { getErrorMessage } from '../../utils/apiError';
+import { hasMinLength } from '../../utils/validators';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'MissionSubmit'>;
 
@@ -21,7 +24,7 @@ export function MissionSubmitScreen({ navigation, route }: Props) {
   const canSubmit = mission.status === 'todo';
 
   const submit = async () => {
-    if (!memo.trim()) {
+    if (!hasMinLength(memo, 1)) {
       return;
     }
 
@@ -37,7 +40,7 @@ export function MissionSubmitScreen({ navigation, route }: Props) {
       queryClient.invalidateQueries({ queryKey: ['missions'] });
       navigation.navigate('ChildHome');
     } catch (error) {
-      setApiError(error instanceof Error ? error.message : '미션 제출에 실패했습니다.');
+      setApiError(getErrorMessage(error, '미션 제출에 실패했습니다.'));
     } finally {
       setLoading(false);
     }
@@ -49,12 +52,12 @@ export function MissionSubmitScreen({ navigation, route }: Props) {
       {canSubmit ? (
         <>
           <InfoBox tone="blue" title="사진 첨부" body="MVP에서는 사진 URL placeholder로 제출합니다." />
-          {apiError ? <InfoBox tone="yellow" title="API 오류" body={apiError} /> : null}
+          <ApiErrorBox error={apiError} fallback="미션 제출에 실패했습니다." />
           <FormField label="제출 메모" placeholder="완료 내용을 적어주세요." value={memo} onChangeText={setMemo} disabled={loading} />
           <PrimaryButton
             title={loading ? '제출 중' : '제출하기'}
             onPress={submit}
-            disabled={!memo.trim() || loading}
+            disabled={!hasMinLength(memo, 1) || loading}
             loading={loading}
           />
         </>

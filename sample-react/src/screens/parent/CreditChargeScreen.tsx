@@ -18,13 +18,18 @@ import {
   SecondaryButton,
   Toast,
 } from '../../components/common';
+import { ApiErrorBox } from '../../components/common/ApiErrorBox';
 import { ProcessingTestActions } from '../../components/common/ProcessingTestActions';
+import { EmptyState } from '../../components/common/ScreenStates';
 import { creditApi } from '../../api/creditApi';
 import { appConfig } from '../../config/appConfig';
 import { useProcessingPolling } from '../../hooks/useProcessingPolling';
 import { RootStackParamList } from '../../navigation/routes';
 import { useAppState } from '../../state/AppState';
 import { ProcessingStatus } from '../../types';
+import { getErrorMessage } from '../../utils/apiError';
+import { isAmountInRange } from '../../utils/validators';
+import { formatBankAccountHolder, formatBankAccountLabel, toBankAccountViewModel } from '../../viewModels/bankAccountViewModel';
 import { processingLabel } from '../shared/processingStatus';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CreditCharge'>;
@@ -38,7 +43,7 @@ export function CreditChargeScreen({ navigation }: Props) {
   const processingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { pollProcessing, polling } = useProcessingPolling();
   const amount = parseAmount(amountText);
-  const valid = amount >= 10000 && amount <= 1000000;
+  const valid = isAmountInRange(amount, 10000, 1000000);
   const statusCopy = processingLabel(status);
   const bankAccountsQuery = useQuery({
     queryKey: ['credit', 'bankAccounts'],
@@ -47,6 +52,7 @@ export function CreditChargeScreen({ navigation }: Props) {
   });
   const bankAccounts = bankAccountsQuery.data ?? [];
   const selectedBankAccount = bankAccounts.find((account) => account.primary) ?? bankAccounts[0];
+  const displayBankAccount = toBankAccountViewModel(appConfig.useDummyData ? parentChargeAccount : selectedBankAccount);
 
   useEffect(() => {
     return () => {
@@ -98,7 +104,7 @@ export function CreditChargeScreen({ navigation }: Props) {
         },
         onError: (error) => {
           setStatus('unknown');
-          setApiError(error instanceof Error ? error.message : '충전 결과 조회에 실패했습니다.');
+          setApiError(getErrorMessage(error, '충전 결과 조회에 실패했습니다.'));
         },
         onTimeout: () => {
           setStatus('processing');
@@ -107,7 +113,7 @@ export function CreditChargeScreen({ navigation }: Props) {
       });
     } catch (error) {
       setStatus('failed');
-      setApiError(error instanceof Error ? error.message : '충전 요청에 실패했습니다.');
+      setApiError(getErrorMessage(error, '충전 요청에 실패했습니다.'));
     }
   };
 
@@ -118,28 +124,22 @@ export function CreditChargeScreen({ navigation }: Props) {
         <Label>충전 계좌</Label>
         {appConfig.useDummyData ? (
           <>
-            <Body>
-              {parentChargeAccount.bankName} {parentChargeAccount.accountNumber}
-            </Body>
-            <Body>예금주 {parentChargeAccount.holderName}</Body>
+            <Body>{formatBankAccountLabel(displayBankAccount)}</Body>
+            <Body>{formatBankAccountHolder(displayBankAccount)}</Body>
           </>
         ) : bankAccountsQuery.isLoading ? (
           <Body>연결 계좌를 불러오고 있습니다.</Body>
-        ) : selectedBankAccount ? (
+        ) : displayBankAccount ? (
           <>
-            <Body>
-              {selectedBankAccount.bankName} {selectedBankAccount.maskedAccountNumber}
-            </Body>
-            <Body>예금주 {selectedBankAccount.accountHolderName}</Body>
+            <Body>{formatBankAccountLabel(displayBankAccount)}</Body>
+            <Body>{formatBankAccountHolder(displayBankAccount)}</Body>
           </>
         ) : (
-          <Body>연결 계좌를 불러오지 못했습니다.</Body>
+          <EmptyState body="연결 계좌를 불러오지 못했습니다." />
         )}
       </Card>
-      {bankAccountsQuery.error ? (
-        <InfoBox tone="yellow" title="API 오류" body={bankAccountsQuery.error instanceof Error ? bankAccountsQuery.error.message : '연결 계좌 조회에 실패했습니다.'} />
-      ) : null}
-      {apiError ? <InfoBox tone="yellow" title="API 오류" body={apiError} /> : null}
+      <ApiErrorBox error={bankAccountsQuery.error} fallback="연결 계좌 조회에 실패했습니다." />
+      <ApiErrorBox error={apiError} fallback="충전 처리 중 오류가 발생했습니다." />
       <FormField
         label="충전 금액"
         placeholder="10,000원 이상"

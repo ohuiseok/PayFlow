@@ -1,4 +1,7 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { StackActions, useNavigation } from '@react-navigation/native';
+import { ComponentType, PropsWithChildren, useEffect } from 'react';
 
 import { RootStackParamList } from './routes';
 import { BankAccountRegisterScreen } from '../screens/banking/BankAccountRegisterScreen';
@@ -14,8 +17,61 @@ import { CreditChargeScreen } from '../screens/parent/CreditChargeScreen';
 import { MissionCreateScreen } from '../screens/parent/MissionCreateScreen';
 import { ParentApprovalScreen } from '../screens/parent/ParentApprovalScreen';
 import { ParentHomeScreen } from '../screens/parent/ParentHomeScreen';
+import { useAppState } from '../state/AppState';
+import { UserRole } from '../types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
+type RouteName = keyof RootStackParamList;
+
+function RoleGuard({
+  allowedRoles,
+  fallbackRoute,
+  children,
+}: PropsWithChildren<{ allowedRoles: UserRole[]; fallbackRoute: RouteName }>) {
+  const { role } = useAppState();
+  const navigation = useNavigation();
+  const allowed = role ? allowedRoles.includes(role) : false;
+
+  useEffect(() => {
+    if (!allowed) {
+      navigation.dispatch(StackActions.replace(role ? fallbackRoute : 'Login'));
+    }
+  }, [allowed, fallbackRoute, navigation, role]);
+
+  if (!allowed) {
+    return null;
+  }
+
+  return <>{children}</>;
+}
+
+function withRoleGuard<Name extends RouteName>(
+  Component: ComponentType<NativeStackScreenProps<RootStackParamList, Name>>,
+  allowedRoles: UserRole[],
+  fallbackRoute: RouteName,
+) {
+  return function GuardedScreen(props: NativeStackScreenProps<RootStackParamList, Name>) {
+    return (
+      <RoleGuard allowedRoles={allowedRoles} fallbackRoute={fallbackRoute}>
+        <Component {...props} />
+      </RoleGuard>
+    );
+  };
+}
+
+const parentOnly = ['parent'] as UserRole[];
+const childOnly = ['child'] as UserRole[];
+const GuardedParentFamilyLinkScreen = withRoleGuard(ParentFamilyLinkScreen, parentOnly, 'ChildHome');
+const GuardedParentHomeScreen = withRoleGuard(ParentHomeScreen, parentOnly, 'ChildHome');
+const GuardedCreditChargeScreen = withRoleGuard(CreditChargeScreen, parentOnly, 'ChildHome');
+const GuardedMissionCreateScreen = withRoleGuard(MissionCreateScreen, parentOnly, 'ChildHome');
+const GuardedParentApprovalScreen = withRoleGuard(ParentApprovalScreen, parentOnly, 'ChildHome');
+const GuardedChildInviteCodeScreen = withRoleGuard(ChildInviteCodeScreen, childOnly, 'ParentHome');
+const GuardedChildHomeScreen = withRoleGuard(ChildHomeScreen, childOnly, 'ParentHome');
+const GuardedMissionSubmitScreen = withRoleGuard(MissionSubmitScreen, childOnly, 'ParentHome');
+const GuardedRejectResubmitScreen = withRoleGuard(RejectResubmitScreen, childOnly, 'ParentHome');
+const GuardedBankAccountRegisterScreen = withRoleGuard(BankAccountRegisterScreen, childOnly, 'ParentHome');
+const GuardedChildWithdrawalScreen = withRoleGuard(ChildWithdrawalScreen, childOnly, 'ParentHome');
 
 export function AppNavigator() {
   return (
@@ -28,17 +84,17 @@ export function AppNavigator() {
     >
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="SignupRole" component={SignupRoleScreen} />
-      <Stack.Screen name="ParentFamilyLink" component={ParentFamilyLinkScreen} />
-      <Stack.Screen name="ChildInviteCode" component={ChildInviteCodeScreen} />
-      <Stack.Screen name="ParentHome" component={ParentHomeScreen} />
-      <Stack.Screen name="CreditCharge" component={CreditChargeScreen} />
-      <Stack.Screen name="MissionCreate" component={MissionCreateScreen} />
-      <Stack.Screen name="ParentApproval" component={ParentApprovalScreen} />
-      <Stack.Screen name="ChildHome" component={ChildHomeScreen} />
-      <Stack.Screen name="MissionSubmit" component={MissionSubmitScreen} />
-      <Stack.Screen name="RejectResubmit" component={RejectResubmitScreen} />
-      <Stack.Screen name="BankAccountRegister" component={BankAccountRegisterScreen} />
-      <Stack.Screen name="ChildWithdrawal" component={ChildWithdrawalScreen} />
+      <Stack.Screen name="ParentFamilyLink" component={GuardedParentFamilyLinkScreen} />
+      <Stack.Screen name="ChildInviteCode" component={GuardedChildInviteCodeScreen} />
+      <Stack.Screen name="ParentHome" component={GuardedParentHomeScreen} />
+      <Stack.Screen name="CreditCharge" component={GuardedCreditChargeScreen} />
+      <Stack.Screen name="MissionCreate" component={GuardedMissionCreateScreen} />
+      <Stack.Screen name="ParentApproval" component={GuardedParentApprovalScreen} />
+      <Stack.Screen name="ChildHome" component={GuardedChildHomeScreen} />
+      <Stack.Screen name="MissionSubmit" component={GuardedMissionSubmitScreen} />
+      <Stack.Screen name="RejectResubmit" component={GuardedRejectResubmitScreen} />
+      <Stack.Screen name="BankAccountRegister" component={GuardedBankAccountRegisterScreen} />
+      <Stack.Screen name="ChildWithdrawal" component={GuardedChildWithdrawalScreen} />
     </Stack.Navigator>
   );
 }

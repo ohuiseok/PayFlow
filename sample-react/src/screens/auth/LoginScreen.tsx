@@ -9,6 +9,8 @@ import { appConfig } from '../../config/appConfig';
 import { RootStackParamList } from '../../navigation/routes';
 import { useAppState } from '../../state/AppState';
 import { UserRole } from '../../types';
+import { getErrorMessage } from '../../utils/apiError';
+import { isValidPassword, isValidPhoneNumber, onlyDigits } from '../../utils/validators';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
@@ -28,7 +30,7 @@ export function LoginScreen({ navigation }: Props) {
   };
 
   const login = async (dummyRole: UserRole = 'parent') => {
-    if (phone.replace(/[^0-9]/g, '').length < 10 || password.length < 8) {
+    if (!isValidPhoneNumber(phone) || !isValidPassword(password)) {
       setError('휴대폰 번호와 8자리 이상 비밀번호를 입력하세요.');
       return;
     }
@@ -44,13 +46,13 @@ export function LoginScreen({ navigation }: Props) {
       }
 
       const user = await authApi.login({
-        phoneNumber: phone.replace(/[^0-9]/g, ''),
+        phoneNumber: onlyDigits(phone),
         password,
       });
       loginAs(user.role, user.name, user.userId);
       moveAfterAuth(user.role);
     } catch (loginError) {
-      setError(loginError instanceof Error ? loginError.message : '로그인에 실패했습니다.');
+      setError(getErrorMessage(loginError, '로그인에 실패했습니다.'));
     } finally {
       setLoading(false);
     }

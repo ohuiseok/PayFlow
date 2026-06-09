@@ -4,10 +4,13 @@ import { useQueryClient } from '@tanstack/react-query';
 
 import { appConfig } from '../../config/appConfig';
 import { missionApi } from '../../api/missionApi';
+import { ApiErrorBox } from '../../components/common/ApiErrorBox';
 import { FormField, InfoBox, PrimaryButton, ScreenFrame } from '../../components/common';
 import { MissionCard } from '../../components/mission/MissionCard';
 import { RootStackParamList } from '../../navigation/routes';
 import { useAppState } from '../../state/AppState';
+import { getErrorMessage } from '../../utils/apiError';
+import { hasMinLength } from '../../utils/validators';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'RejectResubmit'>;
 
@@ -20,7 +23,7 @@ export function RejectResubmitScreen({ navigation, route }: Props) {
   const [apiError, setApiError] = useState('');
 
   const resubmit = async () => {
-    if (!memo.trim()) {
+    if (!hasMinLength(memo, 1)) {
       return;
     }
 
@@ -36,7 +39,7 @@ export function RejectResubmitScreen({ navigation, route }: Props) {
       queryClient.invalidateQueries({ queryKey: ['missions'] });
       navigation.navigate('ChildHome');
     } catch (error) {
-      setApiError(error instanceof Error ? error.message : '미션 재제출에 실패했습니다.');
+      setApiError(getErrorMessage(error, '미션 재제출에 실패했습니다.'));
     } finally {
       setLoading(false);
     }
@@ -46,12 +49,12 @@ export function RejectResubmitScreen({ navigation, route }: Props) {
     <ScreenFrame eyebrow="반려 재제출" title="다시 제출하기" description="반려 사유를 확인하고 보완 내용을 보냅니다.">
       <MissionCard mission={mission} />
       <InfoBox tone="yellow" title="반려 사유" body={mission.rejectReason || '보완이 필요합니다.'} />
-      {apiError ? <InfoBox tone="yellow" title="API 오류" body={apiError} /> : null}
+      <ApiErrorBox error={apiError} fallback="미션 재제출에 실패했습니다." />
       <FormField label="재제출 메모" placeholder="보완 내용을 적어주세요." value={memo} onChangeText={setMemo} disabled={loading} />
       <PrimaryButton
         title={loading ? '재제출 중' : '재제출'}
         onPress={resubmit}
-        disabled={!memo.trim() || loading}
+        disabled={!hasMinLength(memo, 1) || loading}
         loading={loading}
       />
     </ScreenFrame>

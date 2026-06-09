@@ -20,6 +20,7 @@ import {
   SecondaryButton,
   Toast,
 } from '../../components/common';
+import { ApiErrorBox } from '../../components/common/ApiErrorBox';
 import { ProcessingTestActions } from '../../components/common/ProcessingTestActions';
 import { cashbookApi } from '../../api/cashbookApi';
 import { creditApi } from '../../api/creditApi';
@@ -29,6 +30,9 @@ import { useProcessingPolling } from '../../hooks/useProcessingPolling';
 import { RootStackParamList } from '../../navigation/routes';
 import { useAppState } from '../../state/AppState';
 import { ProcessingStatus } from '../../types';
+import { getErrorMessage } from '../../utils/apiError';
+import { isAmountInRange } from '../../utils/validators';
+import { formatBankAccountHolder, formatBankAccountLabel, toBankAccountViewModel } from '../../viewModels/bankAccountViewModel';
 import { processingLabel } from '../shared/processingStatus';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ChildWithdrawal'>;
@@ -58,7 +62,8 @@ export function ChildWithdrawalScreen({ navigation }: Props) {
   const displayBalance = summaryQuery.data?.balance ?? childCashBalance;
   const bankAccounts = bankAccountsQuery.data ?? [];
   const selectedBankAccount = bankAccounts.find((account) => account.primary) ?? bankAccounts[0];
-  const valid = amount >= 1000 && amount <= displayBalance;
+  const displayBankAccount = toBankAccountViewModel(appConfig.useDummyData ? linkedBankAccount : selectedBankAccount);
+  const valid = isAmountInRange(amount, 1000, displayBalance);
   const statusCopy = processingLabel(status);
 
   useEffect(() => {
@@ -122,7 +127,7 @@ export function ChildWithdrawalScreen({ navigation }: Props) {
         },
         onError: (error) => {
           setStatus('unknown');
-          setApiError(error instanceof Error ? error.message : '출금 결과 조회에 실패했습니다.');
+          setApiError(getErrorMessage(error, '출금 결과 조회에 실패했습니다.'));
         },
         onTimeout: () => {
           setStatus('processing');
@@ -131,7 +136,7 @@ export function ChildWithdrawalScreen({ navigation }: Props) {
       });
     } catch (error) {
       setStatus('failed');
-      setApiError(error instanceof Error ? error.message : '출금 요청에 실패했습니다.');
+      setApiError(getErrorMessage(error, '출금 요청에 실패했습니다.'));
     }
   };
 
@@ -140,28 +145,12 @@ export function ChildWithdrawalScreen({ navigation }: Props) {
       <BalanceCard label="출금 가능 잔액" amount={displayBalance} description="요청 후 처리 중 상태를 거쳐 완료됩니다." />
       <Card>
         <Label>받을 계좌</Label>
-        <Heading>
-          {appConfig.useDummyData
-            ? linkedBankAccount
-              ? `${linkedBankAccount.bankName} ${linkedBankAccount.accountNumber}`
-              : '등록된 계좌 없음'
-            : selectedBankAccount
-              ? `${selectedBankAccount.bankName} ${selectedBankAccount.maskedAccountNumber}`
-              : '등록된 계좌 없음'}
-        </Heading>
-        <Body>
-          {appConfig.useDummyData
-            ? linkedBankAccount?.holderName ?? '계좌를 먼저 등록하세요.'
-            : selectedBankAccount?.accountHolderName ?? '계좌를 먼저 등록하세요.'}
-        </Body>
+        <Heading>{formatBankAccountLabel(displayBankAccount)}</Heading>
+        <Body>{formatBankAccountHolder(displayBankAccount, '계좌를 먼저 등록하세요.')}</Body>
       </Card>
-      {summaryQuery.error ? (
-        <InfoBox tone="yellow" title="API 오류" body={summaryQuery.error instanceof Error ? summaryQuery.error.message : '자녀 지갑 정보를 불러오지 못했습니다.'} />
-      ) : null}
-      {bankAccountsQuery.error ? (
-        <InfoBox tone="yellow" title="API 오류" body={bankAccountsQuery.error instanceof Error ? bankAccountsQuery.error.message : '연결 계좌를 불러오지 못했습니다.'} />
-      ) : null}
-      {apiError ? <InfoBox tone="yellow" title="API 오류" body={apiError} /> : null}
+      <ApiErrorBox error={summaryQuery.error} fallback="자녀 지갑 정보를 불러오지 못했습니다." />
+      <ApiErrorBox error={bankAccountsQuery.error} fallback="연결 계좌를 불러오지 못했습니다." />
+      <ApiErrorBox error={apiError} fallback="출금 처리 중 오류가 발생했습니다." />
       <FormField
         label="출금 금액"
         placeholder="1,000원 이상"
@@ -179,9 +168,9 @@ export function ChildWithdrawalScreen({ navigation }: Props) {
       {status === 'completed' ? <Toast message="출금 완료 · 잔액이 차감되었습니다." /> : null}
       {status === 'failed' ? <Toast tone="danger" message="출금에 실패했습니다. 금액과 계좌를 확인해 주세요." /> : null}
       <PrimaryButton
-        title={status === 'processing' ? '처리 중' : (appConfig.useDummyData ? linkedBankAccount : selectedBankAccount) ? '출금 요청' : '계좌 등록하기'}
-        onPress={() => ((appConfig.useDummyData ? linkedBankAccount : selectedBankAccount) ? setConfirming(true) : navigation.navigate('BankAccountRegister'))}
-        disabled={(appConfig.useDummyData ? linkedBankAccount : selectedBankAccount) ? !valid || status === 'processing' || polling : false}
+        title={status === 'processing' ? '처리 중' : displayBankAccount ? '출금 요청' : '계좌 등록하기'}
+        onPress={() => (displayBankAccount ? setConfirming(true) : navigation.navigate('BankAccountRegister'))}
+        disabled={displayBankAccount ? !valid || status === 'processing' || polling : false}
         loading={status === 'processing' || polling}
       />
       <ConfirmModal

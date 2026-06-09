@@ -9,6 +9,8 @@ import { FormField, InfoBox, PrimaryButton, ScreenFrame } from '../../components
 import { RootStackParamList } from '../../navigation/routes';
 import { useAppState } from '../../state/AppState';
 import { UserRole } from '../../types';
+import { getErrorMessage } from '../../utils/apiError';
+import { hasMinLength, isValidPassword, isValidPhoneNumber, onlyDigits } from '../../utils/validators';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SignupRole'>;
 
@@ -20,7 +22,7 @@ export function SignupRoleScreen({ navigation }: Props) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const canSubmit = name.trim().length > 1 && phone.replace(/[^0-9]/g, '').length >= 10 && password.length >= 8;
+  const canSubmit = hasMinLength(name, 2) && isValidPhoneNumber(phone) && isValidPassword(password);
 
   const submit = async () => {
     if (!canSubmit) {
@@ -40,14 +42,14 @@ export function SignupRoleScreen({ navigation }: Props) {
 
       const user = await authApi.signup({
         name: name.trim(),
-        phoneNumber: phone.replace(/[^0-9]/g, ''),
+        phoneNumber: onlyDigits(phone),
         password,
         role,
       });
       signupAs(user.role, user.name, user.userId);
       navigation.replace(user.role === 'parent' ? 'ParentFamilyLink' : 'ChildInviteCode');
     } catch (signupError) {
-      setError(signupError instanceof Error ? signupError.message : '회원가입에 실패했습니다.');
+      setError(getErrorMessage(signupError, '회원가입에 실패했습니다.'));
     } finally {
       setLoading(false);
     }

@@ -6,7 +6,8 @@ import { cashbookApi } from '../../api/cashbookApi';
 import { missionApi } from '../../api/missionApi';
 import { defaultChildUserId } from '../../api/missionApi';
 import { appConfig } from '../../config/appConfig';
-import { BalanceCard, colors, InfoBox, PrimaryButton, ScreenFrame, SecondaryButton } from '../../components/common';
+import { ApiErrorBox } from '../../components/common/ApiErrorBox';
+import { BalanceCard, colors, PrimaryButton, ScreenFrame, SecondaryButton } from '../../components/common';
 import { MissionCard } from '../../components/mission/MissionCard';
 import { CashbookEntryItem } from '../../components/wallet/CashbookEntryItem';
 import { RootStackParamList } from '../../navigation/routes';
@@ -67,9 +68,9 @@ export function ChildHomeScreen({ navigation }: Props) {
           <SecondaryButton title="부모 홈" onPress={() => { loginAs('parent'); navigation.navigate('ParentHome'); }} />
         ) : null}
       </View>
-      {missionsQuery.error ? <InfoBox tone="yellow" title="API 오류" body={missionsQuery.error instanceof Error ? missionsQuery.error.message : '미션 목록 조회에 실패했습니다.'} /> : null}
-      {summaryQuery.error ? <InfoBox tone="yellow" title="API 오류" body={summaryQuery.error instanceof Error ? summaryQuery.error.message : '캐시북 요약 조회에 실패했습니다.'} /> : null}
-      {entriesQuery.error ? <InfoBox tone="yellow" title="API 오류" body={entriesQuery.error instanceof Error ? entriesQuery.error.message : '캐시북 내역 조회에 실패했습니다.'} /> : null}
+      <ApiErrorBox error={missionsQuery.error} fallback="미션 목록 조회에 실패했습니다." />
+      <ApiErrorBox error={summaryQuery.error} fallback="캐시북 요약 조회에 실패했습니다." />
+      <ApiErrorBox error={entriesQuery.error} fallback="캐시북 내역 조회에 실패했습니다." />
       <Text style={styles.sectionTitle}>미션</Text>
       {displayMissions.map((mission) => (
         <MissionCard

@@ -1,9 +1,11 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { StyleSheet, View } from 'react-native';
 
 import { familyApi } from '../../api/familyApi';
 import { appConfig } from '../../config/appConfig';
+import { ApiErrorBox } from '../../components/common/ApiErrorBox';
 import { BalanceCard, Body, Card, Heading, InfoBox, Label, PrimaryButton, ScreenFrame, SecondaryButton } from '../../components/common';
 import { RootStackParamList } from '../../navigation/routes';
 import { useAppState } from '../../state/AppState';
@@ -13,40 +15,12 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ParentFamilyLink'>;
 export function ParentFamilyLinkScreen({ navigation }: Props) {
   const { completeFamilyLink, inviteCode } = useAppState();
   const [requested, setRequested] = useState(false);
-  const [apiInviteCode, setApiInviteCode] = useState(inviteCode);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (appConfig.useDummyData) {
-      return;
-    }
-
-    let mounted = true;
-    setLoading(true);
-    familyApi
-      .createInvitation()
-      .then((invitation) => {
-        if (mounted) {
-          setApiInviteCode(invitation.inviteCode);
-          setError('');
-        }
-      })
-      .catch((invitationError) => {
-        if (mounted) {
-          setError(invitationError instanceof Error ? invitationError.message : '초대 코드 생성에 실패했습니다.');
-        }
-      })
-      .finally(() => {
-        if (mounted) {
-          setLoading(false);
-        }
-      });
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  const invitationQuery = useQuery({
+    queryKey: ['family', 'invitation'],
+    queryFn: familyApi.createInvitation,
+    enabled: !appConfig.useDummyData,
+  });
+  const apiInviteCode = invitationQuery.data?.inviteCode ?? inviteCode;
 
   const approve = () => {
     completeFamilyLink();
@@ -55,8 +29,8 @@ export function ParentFamilyLinkScreen({ navigation }: Props) {
 
   return (
     <ScreenFrame eyebrow="가족 연결" title="자녀와 연결하기" description="초대 코드로 부모와 자녀 관계를 확인합니다.">
-      <BalanceCard label="부모 초대 코드" amount={0} description={loading ? '생성 중' : apiInviteCode} />
-      {error ? <InfoBox tone="yellow" title="API 오류" body={error} /> : null}
+      <BalanceCard label="부모 초대 코드" amount={0} description={invitationQuery.isLoading ? '생성 중' : apiInviteCode} />
+      <ApiErrorBox error={invitationQuery.error} fallback="초대 코드 생성에 실패했습니다." />
       <Card>
         <Heading>연결 대기 중</Heading>
         <Body>
@@ -80,7 +54,7 @@ export function ParentFamilyLinkScreen({ navigation }: Props) {
           <PrimaryButton title="요청 도착시키기" onPress={() => setRequested(true)} />
         )
       ) : (
-        <PrimaryButton title="가족 연결 확인" onPress={approve} disabled={loading || !!error} />
+        <PrimaryButton title="가족 연결 확인" onPress={approve} disabled={invitationQuery.isLoading || !!invitationQuery.error} />
       )}
     </ScreenFrame>
   );

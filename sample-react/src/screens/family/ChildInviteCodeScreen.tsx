@@ -7,6 +7,8 @@ import { CodeInputCells } from '../../components/family/CodeInputCells';
 import { Body, Card, FormField, Heading, InfoBox, PrimaryButton, ScreenFrame } from '../../components/common';
 import { RootStackParamList } from '../../navigation/routes';
 import { useAppState } from '../../state/AppState';
+import { getErrorMessage } from '../../utils/apiError';
+import { isValidInviteCode, onlyAlphaNumeric } from '../../utils/validators';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ChildInviteCode'>;
 
@@ -17,7 +19,7 @@ export function ChildInviteCodeScreen({ navigation }: Props) {
   const [parentName, setParentName] = useState('지훈');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const valid = code.replace(/[^A-Za-z0-9]/g, '').length === 6;
+  const valid = isValidInviteCode(code);
 
   const request = async () => {
     if (appConfig.useDummyData) {
@@ -40,7 +42,7 @@ export function ChildInviteCodeScreen({ navigation }: Props) {
 
     try {
       if (!requested) {
-        const invitation = await familyApi.getInvitation(code.replace(/[^A-Za-z0-9]/g, ''));
+        const invitation = await familyApi.getInvitation(onlyAlphaNumeric(code));
         setParentName(invitation.parentName ?? '부모님');
         await familyApi.requestLink(invitation.inviteCode);
         setRequested(true);
@@ -56,7 +58,7 @@ export function ChildInviteCodeScreen({ navigation }: Props) {
 
       setError('아직 부모 승인 대기 중입니다.');
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : '연결 요청에 실패했습니다.');
+      setError(getErrorMessage(requestError, '연결 요청에 실패했습니다.'));
     } finally {
       setLoading(false);
     }
