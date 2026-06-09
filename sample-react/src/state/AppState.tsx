@@ -1,0 +1,223 @@
+import { createContext, PropsWithChildren, useContext, useMemo, useState } from 'react';
+
+import { BankAccount, CashbookEntry, Mission, UserRole } from '../types';
+
+const initialMissions: Mission[] = [
+  {
+    id: 'mission-001',
+    childId: 'child-001',
+    childName: '민지',
+    title: '수학 문제집 3쪽 풀기',
+    description: '오늘 배운 단원 문제를 차분히 풀고 사진을 올려주세요.',
+    rewardAmount: 3000,
+    dueDate: '2026-06-12',
+    status: 'todo',
+  },
+  {
+    id: 'mission-002',
+    childId: 'child-001',
+    childName: '민지',
+    title: '방 청소하기',
+    description: '책상 위와 침대 주변을 정리하고 완료 사진을 제출하세요.',
+    rewardAmount: 2000,
+    dueDate: '2026-06-14',
+    status: 'submitted',
+    submitMemo: '책상과 침대 아래까지 정리했어요.',
+  },
+  {
+    id: 'mission-003',
+    childId: 'child-001',
+    childName: '민지',
+    title: '재활용 버리기',
+    description: '분리수거함을 비우고 현관 앞을 정리하세요.',
+    rewardAmount: 2000,
+    dueDate: '2026-06-20',
+    status: 'rejected',
+    submitMemo: '비닐을 따로 모아뒀어요.',
+    rejectReason: '종이류가 아직 남아 있어요. 한 번만 더 확인해 주세요.',
+  },
+];
+
+const initialCashbook: CashbookEntry[] = [
+  {
+    id: 'cash-001',
+    title: '지난주 독서 미션',
+    description: '미션 보상 지급 완료',
+    amount: 7000,
+    type: 'reward',
+  },
+  {
+    id: 'cash-002',
+    title: '간식 사기',
+    description: '사용 기록',
+    amount: -1500,
+    type: 'withdrawal',
+  },
+];
+
+type AppStateValue = {
+  role: UserRole | null;
+  currentUserName: string;
+  familyLinked: boolean;
+  inviteCode: string;
+  parentCreditBalance: number;
+  childCashBalance: number;
+  linkedBankAccount: BankAccount | null;
+  missions: Mission[];
+  cashbookEntries: CashbookEntry[];
+  loginAs: (role: UserRole) => void;
+  signupAs: (role: UserRole, name: string) => void;
+  completeFamilyLink: () => void;
+  chargeCredit: (amount: number) => void;
+  createMission: (mission: Omit<Mission, 'id' | 'childId' | 'childName' | 'status'>) => void;
+  submitMission: (missionId: string, memo: string) => void;
+  resubmitMission: (missionId: string, memo: string) => void;
+  approveMission: (missionId: string) => boolean;
+  rejectMission: (missionId: string, reason: string) => void;
+  registerBankAccount: (account: BankAccount) => void;
+  withdrawCash: (amount: number) => boolean;
+};
+
+const AppStateContext = createContext<AppStateValue | null>(null);
+
+export function AppStateProvider({ children }: PropsWithChildren) {
+  const [role, setRole] = useState<UserRole | null>(null);
+  const [currentUserName, setCurrentUserName] = useState('지훈');
+  const [familyLinked, setFamilyLinked] = useState(false);
+  const [parentCreditBalance, setParentCreditBalance] = useState(85000);
+  const [childCashBalance, setChildCashBalance] = useState(17000);
+  const [linkedBankAccount, setLinkedBankAccount] = useState<BankAccount | null>(null);
+  const [missions, setMissions] = useState<Mission[]>(initialMissions);
+  const [cashbookEntries, setCashbookEntries] = useState<CashbookEntry[]>(initialCashbook);
+
+  const value = useMemo<AppStateValue>(
+    () => ({
+      role,
+      currentUserName,
+      familyLinked,
+      inviteCode: 'PF-4829',
+      parentCreditBalance,
+      childCashBalance,
+      linkedBankAccount,
+      missions,
+      cashbookEntries,
+      loginAs(nextRole) {
+        setRole(nextRole);
+        setCurrentUserName(nextRole === 'parent' ? '지훈' : '민지');
+      },
+      signupAs(nextRole, name) {
+        setRole(nextRole);
+        setCurrentUserName(name.trim() || (nextRole === 'parent' ? '지훈' : '민지'));
+      },
+      completeFamilyLink() {
+        setFamilyLinked(true);
+      },
+      chargeCredit(amount) {
+        setParentCreditBalance((balance) => balance + amount);
+      },
+      createMission(mission) {
+        setMissions((items) => [
+          {
+            ...mission,
+            id: `mission-${Date.now()}`,
+            childId: 'child-001',
+            childName: '민지',
+            status: 'todo',
+          },
+          ...items,
+        ]);
+      },
+      submitMission(missionId, memo) {
+        setMissions((items) =>
+          items.map((item) =>
+            item.id === missionId ? { ...item, status: 'submitted', submitMemo: memo } : item,
+          ),
+        );
+      },
+      resubmitMission(missionId, memo) {
+        setMissions((items) =>
+          items.map((item) =>
+            item.id === missionId
+              ? { ...item, status: 'submitted', submitMemo: memo, rejectReason: undefined }
+              : item,
+          ),
+        );
+      },
+      approveMission(missionId) {
+        const mission = missions.find((item) => item.id === missionId);
+        if (!mission || parentCreditBalance < mission.rewardAmount) {
+          return false;
+        }
+
+        setParentCreditBalance((balance) => balance - mission.rewardAmount);
+        setChildCashBalance((balance) => balance + mission.rewardAmount);
+        setMissions((items) =>
+          items.map((item) => (item.id === missionId ? { ...item, status: 'paid' } : item)),
+        );
+        setCashbookEntries((items) => [
+          {
+            id: `cash-${Date.now()}`,
+            title: mission.title,
+            description: '미션 보상 지급 완료',
+            amount: mission.rewardAmount,
+            type: 'reward',
+          },
+          ...items,
+        ]);
+        return true;
+      },
+      rejectMission(missionId, reason) {
+        setMissions((items) =>
+          items.map((item) =>
+            item.id === missionId
+              ? { ...item, status: 'rejected', rejectReason: reason || '보완이 필요해요.' }
+              : item,
+          ),
+        );
+      },
+      registerBankAccount(account) {
+        setLinkedBankAccount(account);
+      },
+      withdrawCash(amount) {
+        if (amount > childCashBalance) {
+          return false;
+        }
+
+        setChildCashBalance((balance) => balance - amount);
+        setCashbookEntries((items) => [
+          {
+            id: `cash-${Date.now()}`,
+            title: '계좌 출금',
+            description: linkedBankAccount
+              ? `${linkedBankAccount.bankName} ${linkedBankAccount.accountNumber}`
+              : '등록 계좌',
+            amount: -amount,
+            type: 'withdrawal',
+          },
+          ...items,
+        ]);
+        return true;
+      },
+    }),
+    [
+      cashbookEntries,
+      childCashBalance,
+      currentUserName,
+      familyLinked,
+      linkedBankAccount,
+      missions,
+      parentCreditBalance,
+      role,
+    ],
+  );
+
+  return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>;
+}
+
+export function useAppState() {
+  const value = useContext(AppStateContext);
+  if (!value) {
+    throw new Error('useAppState must be used inside AppStateProvider');
+  }
+  return value;
+}
