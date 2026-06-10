@@ -1,45 +1,28 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { appConfig } from '../../config/appConfig';
-import { missionApi } from '../../api/missionApi';
 import { ApiErrorBox } from '../../components/common/ApiErrorBox';
 import { FormField, InfoBox, PrimaryButton, ScreenFrame, SecondaryButton } from '../../components/common';
 import { MissionCard } from '../../components/mission/MissionCard';
+import { useSubmitMissionMutation } from '../../hooks/useMissionMutations';
 import { RootStackParamList } from '../../navigation/routes';
 import { useAppState } from '../../state/AppState';
-import { getErrorMessage } from '../../utils/apiError';
 import { hasMinLength } from '../../utils/validators';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'MissionSubmit'>;
 
 export function MissionSubmitScreen({ navigation, route }: Props) {
   const { missions, submitMission } = useAppState();
-  const queryClient = useQueryClient();
   const mission = missions.find((item) => item.id === route.params?.missionId) ?? missions.find((item) => item.status === 'todo') ?? missions[0];
   const [memo, setMemo] = useState('완료 사진을 첨부했어요.');
   const [apiError, setApiError] = useState('');
   const canSubmit = mission.status === 'todo';
-  const submitMutation = useMutation({
-    mutationFn: async () => {
-      if (appConfig.useDummyData) {
-        submitMission(mission.id, memo);
-        return;
-      }
-
-      await missionApi.submitMission({ missionId: mission.id, memo });
-    },
-    onMutate: () => {
-      setApiError('');
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['missions'] });
-      navigation.navigate('ChildHome');
-    },
-    onError: (error) => {
-      setApiError(getErrorMessage(error, '미션 제출에 실패했습니다.'));
-    },
+  const submitMutation = useSubmitMissionMutation({
+    missionId: mission.id,
+    memo,
+    onDummySubmit: () => submitMission(mission.id, memo),
+    onError: setApiError,
+    onSuccess: () => navigation.navigate('ChildHome'),
   });
   const loading = submitMutation.isPending;
 

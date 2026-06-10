@@ -10,7 +10,7 @@ test('dummy MVP flow works end to end', async ({ page }) => {
   await byText('로그인', { exact: true }).click();
 
   await expect(byText('자녀와 연결하기')).toBeVisible();
-  await byText('요청 도착시키기').click();
+  await byText('요청 표시시키기').click();
   await byText('승인', { exact: true }).click();
 
   await expect(byText('오늘의 보상 흐름')).toBeVisible();

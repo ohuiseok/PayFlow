@@ -1,12 +1,12 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { familyApi } from '../../api/familyApi';
-import { appConfig } from '../../config/appConfig';
 import { ApiErrorBox } from '../../components/common/ApiErrorBox';
-import { BalanceCard, Body, Card, Heading, InfoBox, Label, PrimaryButton, ScreenFrame, SecondaryButton } from '../../components/common';
+import { BalanceCard, Body, Card, Heading, Label, PrimaryButton, ScreenFrame, SecondaryButton } from '../../components/common';
+import { appConfig } from '../../config/appConfig';
 import { RootStackParamList } from '../../navigation/routes';
 import { useAppState } from '../../state/AppState';
 
@@ -51,7 +51,7 @@ export function ParentFamilyLinkScreen({ navigation }: Props) {
             <SecondaryButton title="거절" onPress={() => setRequested(false)} />
           </View>
         ) : (
-          <PrimaryButton title="요청 도착시키기" onPress={() => setRequested(true)} />
+          <PrimaryButton title="요청 표시시키기" onPress={() => setRequested(true)} />
         )
       ) : (
         <PrimaryButton title="가족 연결 확인" onPress={approve} disabled={invitationQuery.isLoading || !!invitationQuery.error} />

@@ -1,44 +1,27 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { appConfig } from '../../config/appConfig';
-import { missionApi } from '../../api/missionApi';
 import { ApiErrorBox } from '../../components/common/ApiErrorBox';
 import { FormField, InfoBox, PrimaryButton, ScreenFrame } from '../../components/common';
 import { MissionCard } from '../../components/mission/MissionCard';
+import { useResubmitMissionMutation } from '../../hooks/useMissionMutations';
 import { RootStackParamList } from '../../navigation/routes';
 import { useAppState } from '../../state/AppState';
-import { getErrorMessage } from '../../utils/apiError';
 import { hasMinLength } from '../../utils/validators';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'RejectResubmit'>;
 
 export function RejectResubmitScreen({ navigation, route }: Props) {
   const { missions, resubmitMission } = useAppState();
-  const queryClient = useQueryClient();
   const mission = missions.find((item) => item.id === route.params?.missionId) ?? missions.find((item) => item.status === 'rejected') ?? missions[0];
   const [memo, setMemo] = useState('빠진 부분까지 다시 완료했어요.');
   const [apiError, setApiError] = useState('');
-  const resubmitMutation = useMutation({
-    mutationFn: async () => {
-      if (appConfig.useDummyData) {
-        resubmitMission(mission.id, memo);
-        return;
-      }
-
-      await missionApi.resubmitMission({ missionId: mission.id, memo });
-    },
-    onMutate: () => {
-      setApiError('');
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['missions'] });
-      navigation.navigate('ChildHome');
-    },
-    onError: (error) => {
-      setApiError(getErrorMessage(error, '미션 재제출에 실패했습니다.'));
-    },
+  const resubmitMutation = useResubmitMissionMutation({
+    missionId: mission.id,
+    memo,
+    onDummyResubmit: () => resubmitMission(mission.id, memo),
+    onError: setApiError,
+    onSuccess: () => navigation.navigate('ChildHome'),
   });
   const loading = resubmitMutation.isPending;
 

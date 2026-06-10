@@ -1,0 +1,104 @@
+import { useEffect, useRef, useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
+
+import { creditApi, CreditBankAccount } from '../api/creditApi';
+import { appConfig } from '../config/appConfig';
+import { ProcessingStatus } from '../types';
+import { getErrorMessage } from '../utils/apiError';
+import { useProcessingPolling } from './useProcessingPolling';
+
+export function useCreditChargeFlow({
+  amount,
+  selectedBankAccount,
+  valid,
+  onCompleted,
+}: {
+  amount: number;
+  selectedBankAccount?: CreditBankAccount;
+  valid: boolean;
+  onCompleted: () => void;
+}) {
+  const [status, setStatus] = useState<ProcessingStatus>('idle');
+  const [apiError, setApiError] = useState('');
+  const processingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { pollProcessing, polling } = useProcessingPolling();
+  const requestChargeMutation = useMutation({
+    mutationFn: () => {
+      if (!selectedBankAccount) {
+        throw new Error('충전에 사용할 연결 계좌가 없습니다.');
+      }
+
+      return creditApi.requestCharge({
+        amount,
+        bankAccountId: selectedBankAccount.bankAccountId,
+      });
+    },
+    onSuccess: (requested) => {
+      if (requested.status !== 'processing') {
+        setStatus(requested.status);
+        if (requested.status === 'completed') {
+          onCompleted();
+        }
+        return;
+      }
+
+      pollProcessing({
+        poll: () => creditApi.getCharge(requested.chargeId),
+        onResult: (result) => {
+          setStatus(result.status);
+          if (result.status === 'completed') {
+            onCompleted();
+          }
+        },
+        onError: (error) => {
+          setStatus('unknown');
+          setApiError(getErrorMessage(error, '충전 결과 조회에 실패했습니다.'));
+        },
+        onTimeout: () => {
+          setStatus('processing');
+          setApiError('충전 처리가 계속 진행 중입니다. 잠시 후 다시 확인해 주세요.');
+        },
+      });
+    },
+    onError: (error) => {
+      setStatus('failed');
+      setApiError(getErrorMessage(error, '충전 요청에 실패했습니다.'));
+    },
+  });
+
+  useEffect(() => {
+    return () => {
+      if (processingTimer.current) {
+        clearTimeout(processingTimer.current);
+      }
+    };
+  }, []);
+
+  const charge = (nextStatus: ProcessingStatus = 'completed') => {
+    if (!valid) {
+      return;
+    }
+
+    setStatus('processing');
+    setApiError('');
+
+    if (appConfig.useDummyData) {
+      processingTimer.current = setTimeout(() => {
+        if (nextStatus === 'completed') {
+          onCompleted();
+        }
+        setStatus(nextStatus);
+      }, 900);
+      return;
+    }
+
+    requestChargeMutation.mutate();
+  };
+
+  return {
+    apiError,
+    charge,
+    processing: status === 'processing' || polling || requestChargeMutation.isPending,
+    status,
+  };
+}
