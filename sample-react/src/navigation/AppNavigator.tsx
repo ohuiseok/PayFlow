@@ -26,17 +26,26 @@ type RouteName = keyof RootStackParamList;
 function RoleGuard({
   allowedRoles,
   fallbackRoute,
+  requireFamilyLinked,
   children,
-}: PropsWithChildren<{ allowedRoles: UserRole[]; fallbackRoute: RouteName }>) {
-  const { role } = useAppState();
+}: PropsWithChildren<{ allowedRoles: UserRole[]; fallbackRoute: RouteName; requireFamilyLinked?: boolean }>) {
+  const { familyLinked, role } = useAppState();
   const navigation = useNavigation();
-  const allowed = role ? allowedRoles.includes(role) : false;
+  const roleAllowed = role ? allowedRoles.includes(role) : false;
+  const allowed = roleAllowed && (!requireFamilyLinked || familyLinked);
 
   useEffect(() => {
     if (!allowed) {
-      navigation.dispatch(StackActions.replace(role ? fallbackRoute : 'Login'));
+      const nextRoute = !role
+        ? 'Login'
+        : !roleAllowed
+          ? fallbackRoute
+          : role === 'parent'
+            ? 'ParentFamilyLink'
+            : 'ChildInviteCode';
+      navigation.dispatch(StackActions.replace(nextRoute));
     }
-  }, [allowed, fallbackRoute, navigation, role]);
+  }, [allowed, fallbackRoute, familyLinked, navigation, role, roleAllowed]);
 
   if (!allowed) {
     return null;
@@ -49,10 +58,11 @@ function withRoleGuard<Name extends RouteName>(
   Component: ComponentType<NativeStackScreenProps<RootStackParamList, Name>>,
   allowedRoles: UserRole[],
   fallbackRoute: RouteName,
+  requireFamilyLinked = false,
 ) {
   return function GuardedScreen(props: NativeStackScreenProps<RootStackParamList, Name>) {
     return (
-      <RoleGuard allowedRoles={allowedRoles} fallbackRoute={fallbackRoute}>
+      <RoleGuard allowedRoles={allowedRoles} fallbackRoute={fallbackRoute} requireFamilyLinked={requireFamilyLinked}>
         <Component {...props} />
       </RoleGuard>
     );
@@ -62,16 +72,16 @@ function withRoleGuard<Name extends RouteName>(
 const parentOnly = ['parent'] as UserRole[];
 const childOnly = ['child'] as UserRole[];
 const GuardedParentFamilyLinkScreen = withRoleGuard(ParentFamilyLinkScreen, parentOnly, 'ChildHome');
-const GuardedParentHomeScreen = withRoleGuard(ParentHomeScreen, parentOnly, 'ChildHome');
-const GuardedCreditChargeScreen = withRoleGuard(CreditChargeScreen, parentOnly, 'ChildHome');
-const GuardedMissionCreateScreen = withRoleGuard(MissionCreateScreen, parentOnly, 'ChildHome');
-const GuardedParentApprovalScreen = withRoleGuard(ParentApprovalScreen, parentOnly, 'ChildHome');
+const GuardedParentHomeScreen = withRoleGuard(ParentHomeScreen, parentOnly, 'ChildHome', true);
+const GuardedCreditChargeScreen = withRoleGuard(CreditChargeScreen, parentOnly, 'ChildHome', true);
+const GuardedMissionCreateScreen = withRoleGuard(MissionCreateScreen, parentOnly, 'ChildHome', true);
+const GuardedParentApprovalScreen = withRoleGuard(ParentApprovalScreen, parentOnly, 'ChildHome', true);
 const GuardedChildInviteCodeScreen = withRoleGuard(ChildInviteCodeScreen, childOnly, 'ParentHome');
-const GuardedChildHomeScreen = withRoleGuard(ChildHomeScreen, childOnly, 'ParentHome');
-const GuardedMissionSubmitScreen = withRoleGuard(MissionSubmitScreen, childOnly, 'ParentHome');
-const GuardedRejectResubmitScreen = withRoleGuard(RejectResubmitScreen, childOnly, 'ParentHome');
-const GuardedBankAccountRegisterScreen = withRoleGuard(BankAccountRegisterScreen, childOnly, 'ParentHome');
-const GuardedChildWithdrawalScreen = withRoleGuard(ChildWithdrawalScreen, childOnly, 'ParentHome');
+const GuardedChildHomeScreen = withRoleGuard(ChildHomeScreen, childOnly, 'ParentHome', true);
+const GuardedMissionSubmitScreen = withRoleGuard(MissionSubmitScreen, childOnly, 'ParentHome', true);
+const GuardedRejectResubmitScreen = withRoleGuard(RejectResubmitScreen, childOnly, 'ParentHome', true);
+const GuardedBankAccountRegisterScreen = withRoleGuard(BankAccountRegisterScreen, childOnly, 'ParentHome', true);
+const GuardedChildWithdrawalScreen = withRoleGuard(ChildWithdrawalScreen, childOnly, 'ParentHome', true);
 
 export function AppNavigator() {
   return (

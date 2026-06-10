@@ -1,8 +1,7 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { appConfig } from '../../config/appConfig';
 import { familyApi } from '../../api/familyApi';
 import { defaultChildUserId, missionApi } from '../../api/missionApi';
 import { ApiErrorBox } from '../../components/common/ApiErrorBox';
@@ -14,6 +13,7 @@ import {
   PrimaryButton,
   ScreenFrame,
 } from '../../components/common';
+import { appConfig } from '../../config/appConfig';
 import { RootStackParamList } from '../../navigation/routes';
 import { useAppState } from '../../state/AppState';
 import { getErrorMessage } from '../../utils/apiError';
@@ -26,10 +26,9 @@ export function MissionCreateScreen({ navigation }: Props) {
   const { createMission, parentCreditBalance } = useAppState();
   const queryClient = useQueryClient();
   const [title, setTitle] = useState('영어 단어 20개 외우기');
-  const [description, setDescription] = useState('단어장 사진과 암기 결과를 올려주세요.');
+  const [description, setDescription] = useState('단어와 사진과 쓰기 결과를 올려주세요.');
   const [amountText, setAmountText] = useState('5000');
   const [dueDate, setDueDate] = useState('2026-06-30');
-  const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState('');
   const familyQuery = useQuery({
     queryKey: ['family', 'mine'],
@@ -42,35 +41,41 @@ export function MissionCreateScreen({ navigation }: Props) {
   const targetChildUserId = linkedChild?.childUserId ?? defaultChildUserId;
   const targetChildName = linkedChild?.childName ?? '민지';
   const valid = hasMinLength(title, 1) && isAmountInRange(amount, 1000, parentCreditBalance) && !dueDateError;
+  const createMissionMutation = useMutation({
+    mutationFn: async () => {
+      if (appConfig.useDummyData) {
+        createMission({ title, description, rewardAmount: amount, dueDate });
+        return;
+      }
 
-  const submit = async () => {
+      await missionApi.createMission({
+        childUserId: targetChildUserId,
+        title: title.trim(),
+        description: description.trim(),
+        rewardAmount: amount,
+        missionDate: dueDate,
+        evidenceRequired: true,
+      });
+    },
+    onMutate: () => {
+      setApiError('');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['missions'] });
+      navigation.navigate('ParentHome');
+    },
+    onError: (error) => {
+      setApiError(getErrorMessage(error, '미션 등록에 실패했습니다.'));
+    },
+  });
+  const loading = createMissionMutation.isPending;
+
+  const submit = () => {
     if (!valid) {
       return;
     }
 
-    setLoading(true);
-    setApiError('');
-
-    try {
-      if (appConfig.useDummyData) {
-        createMission({ title, description, rewardAmount: amount, dueDate });
-      } else {
-        await missionApi.createMission({
-          childUserId: targetChildUserId,
-          title: title.trim(),
-          description: description.trim(),
-          rewardAmount: amount,
-          missionDate: dueDate,
-          evidenceRequired: true,
-        });
-      }
-      queryClient.invalidateQueries({ queryKey: ['missions'] });
-      navigation.navigate('ParentHome');
-    } catch (error) {
-      setApiError(getErrorMessage(error, '미션 등록에 실패했습니다.'));
-    } finally {
-      setLoading(false);
-    }
+    createMissionMutation.mutate();
   };
 
   return (

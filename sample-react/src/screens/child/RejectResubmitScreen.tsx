@@ -1,6 +1,6 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { appConfig } from '../../config/appConfig';
 import { missionApi } from '../../api/missionApi';
@@ -19,30 +19,35 @@ export function RejectResubmitScreen({ navigation, route }: Props) {
   const queryClient = useQueryClient();
   const mission = missions.find((item) => item.id === route.params?.missionId) ?? missions.find((item) => item.status === 'rejected') ?? missions[0];
   const [memo, setMemo] = useState('빠진 부분까지 다시 완료했어요.');
-  const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState('');
+  const resubmitMutation = useMutation({
+    mutationFn: async () => {
+      if (appConfig.useDummyData) {
+        resubmitMission(mission.id, memo);
+        return;
+      }
 
-  const resubmit = async () => {
+      await missionApi.resubmitMission({ missionId: mission.id, memo });
+    },
+    onMutate: () => {
+      setApiError('');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['missions'] });
+      navigation.navigate('ChildHome');
+    },
+    onError: (error) => {
+      setApiError(getErrorMessage(error, '미션 재제출에 실패했습니다.'));
+    },
+  });
+  const loading = resubmitMutation.isPending;
+
+  const resubmit = () => {
     if (!hasMinLength(memo, 1)) {
       return;
     }
 
-    setLoading(true);
-    setApiError('');
-
-    try {
-      if (appConfig.useDummyData) {
-        resubmitMission(mission.id, memo);
-      } else {
-        await missionApi.resubmitMission({ missionId: mission.id, memo });
-      }
-      queryClient.invalidateQueries({ queryKey: ['missions'] });
-      navigation.navigate('ChildHome');
-    } catch (error) {
-      setApiError(getErrorMessage(error, '미션 재제출에 실패했습니다.'));
-    } finally {
-      setLoading(false);
-    }
+    resubmitMutation.mutate();
   };
 
   return (

@@ -1,14 +1,14 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { StyleSheet, View } from 'react-native';
 
-import { appConfig } from '../../config/appConfig';
 import { missionApi } from '../../api/missionApi';
 import { ApiErrorBox } from '../../components/common/ApiErrorBox';
 import { Body, Card, FormField, Heading, InfoBox, Label, PrimaryButton, ScreenFrame, SecondaryButton } from '../../components/common';
 import { EmptyState } from '../../components/common/ScreenStates';
 import { MissionCard } from '../../components/mission/MissionCard';
+import { appConfig } from '../../config/appConfig';
 import { RootStackParamList } from '../../navigation/routes';
 import { useAppState } from '../../state/AppState';
 import { getErrorMessage } from '../../utils/apiError';
@@ -21,58 +21,64 @@ export function ParentApprovalScreen({ navigation }: Props) {
   const pending = missions.filter((mission) => mission.status === 'submitted');
   const [reason, setReason] = useState('조금 더 선명한 사진으로 다시 올려주세요.');
   const [message, setMessage] = useState('');
-  const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState('');
   const selected = pending[0];
-
-  const approve = async () => {
-    if (!selected) {
-      return;
-    }
-
-    setLoading(true);
-    setApiError('');
-
-    try {
-      if (appConfig.useDummyData) {
-        const ok = approveMission(selected.id);
-        setMessage(ok ? '승인 완료 · 보상이 지급되었습니다.' : '크레딧 잔액이 부족합니다.');
-      } else {
-        await missionApi.approveMission(selected.id);
-        setMessage('승인 완료 · 보상이 지급되었습니다.');
-      }
-      queryClient.invalidateQueries({ queryKey: ['missions'] });
-      queryClient.invalidateQueries({ queryKey: ['credit', 'parentSummary'] });
-      queryClient.invalidateQueries({ queryKey: ['cashbook'] });
-    } catch (error) {
-      setApiError(getErrorMessage(error, '미션 승인에 실패했습니다.'));
-    } finally {
-      setLoading(false);
-    }
+  const invalidateAfterDecision = () => {
+    queryClient.invalidateQueries({ queryKey: ['missions'] });
+    queryClient.invalidateQueries({ queryKey: ['credit', 'parentSummary'] });
+    queryClient.invalidateQueries({ queryKey: ['cashbook'] });
   };
+  const approveMutation = useMutation({
+    mutationFn: async () => {
+      if (!selected) {
+        return false;
+      }
 
-  const reject = async () => {
-    if (!selected) {
-      return;
-    }
+      if (appConfig.useDummyData) {
+        return approveMission(selected.id);
+      }
 
-    setLoading(true);
-    setApiError('');
+      await missionApi.approveMission(selected.id);
+      return true;
+    },
+    onMutate: () => {
+      setApiError('');
+      setMessage('');
+    },
+    onSuccess: (ok) => {
+      setMessage(ok ? '승인 완료 · 보상이 지급되었습니다.' : '크레딧 잔액이 부족합니다.');
+      invalidateAfterDecision();
+    },
+    onError: (error) => {
+      setApiError(getErrorMessage(error, '미션 승인에 실패했습니다.'));
+    },
+  });
+  const rejectMutation = useMutation({
+    mutationFn: async () => {
+      if (!selected) {
+        return;
+      }
 
-    try {
       if (appConfig.useDummyData) {
         rejectMission(selected.id, reason);
-      } else {
-        await missionApi.rejectMission({ missionId: selected.id, reason });
+        return;
       }
+
+      await missionApi.rejectMission({ missionId: selected.id, reason });
+    },
+    onMutate: () => {
+      setApiError('');
+      setMessage('');
+    },
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['missions'] });
       navigation.navigate('ParentHome');
-    } catch (error) {
+    },
+    onError: (error) => {
       setApiError(getErrorMessage(error, '미션 반려에 실패했습니다.'));
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+  });
+  const loading = approveMutation.isPending || rejectMutation.isPending;
 
   return (
     <ScreenFrame eyebrow="제출 확인" title="승인할 미션" description="자녀가 제출한 내용을 확인하고 보상을 지급합니다.">
@@ -90,11 +96,11 @@ export function ParentApprovalScreen({ navigation }: Props) {
           <View style={styles.twoButtons}>
             <PrimaryButton
               title={loading ? '처리 중' : '승인'}
-              onPress={approve}
+              onPress={() => approveMutation.mutate()}
               disabled={loading}
-              loading={loading}
+              loading={approveMutation.isPending}
             />
-            <SecondaryButton title="반려" onPress={reject} />
+            <SecondaryButton title="반려" onPress={() => rejectMutation.mutate()} />
           </View>
           {message && appConfig.useDummyData ? (
             <SecondaryButton

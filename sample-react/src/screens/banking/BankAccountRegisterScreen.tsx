@@ -1,6 +1,6 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { creditApi } from '../../api/creditApi';
 import { appConfig } from '../../config/appConfig';
@@ -22,41 +22,47 @@ export function BankAccountRegisterScreen({ navigation }: Props) {
   const [accountNumber, setAccountNumber] = useState(linkedBankAccount?.accountNumber ?? '123456789012');
   const [holderName, setHolderName] = useState(linkedBankAccount?.holderName ?? '민지');
   const [done, setDone] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState('');
   const valid = isValidBankAccountNumber(accountNumber);
+  const registerMutation = useMutation({
+    mutationFn: async () => {
+      if (appConfig.useDummyData) {
+        registerBankAccount({ bankName: selectedBank.bankName, accountNumber, holderName });
+        return;
+      }
 
-  const submit = async () => {
+      const account = await creditApi.registerBankAccount({
+        bankCodeStd: selectedBank.bankCodeStd,
+        bankName: selectedBank.bankName,
+        accountNumber: onlyDigits(accountNumber),
+        accountHolderName: holderName.trim(),
+      });
+      registerBankAccount({
+        bankName: account.bankName,
+        accountNumber: account.maskedAccountNumber,
+        holderName: account.accountHolderName,
+      });
+    },
+    onMutate: () => {
+      setApiError('');
+      setDone(false);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['credit', 'bankAccounts'] });
+      setDone(true);
+    },
+    onError: (error) => {
+      setApiError(getErrorMessage(error, '계좌 등록에 실패했습니다.'));
+    },
+  });
+  const loading = registerMutation.isPending;
+
+  const submit = () => {
     if (!valid || !holderName.trim()) {
       return;
     }
 
-    setLoading(true);
-    setApiError('');
-
-    try {
-      if (appConfig.useDummyData) {
-        registerBankAccount({ bankName: selectedBank.bankName, accountNumber, holderName });
-      } else {
-        const account = await creditApi.registerBankAccount({
-          bankCodeStd: selectedBank.bankCodeStd,
-          bankName: selectedBank.bankName,
-          accountNumber: onlyDigits(accountNumber),
-          accountHolderName: holderName.trim(),
-        });
-        registerBankAccount({
-          bankName: account.bankName,
-          accountNumber: account.maskedAccountNumber,
-          holderName: account.accountHolderName,
-        });
-      }
-      queryClient.invalidateQueries({ queryKey: ['credit', 'bankAccounts'] });
-      setDone(true);
-    } catch (error) {
-      setApiError(getErrorMessage(error, '계좌 등록에 실패했습니다.'));
-    } finally {
-      setLoading(false);
-    }
+    registerMutation.mutate();
   };
 
   return (

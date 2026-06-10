@@ -42,7 +42,10 @@ test('dummy MVP flow works end to end', async ({ page }) => {
   await byText('자녀 홈').click();
   await byText('계좌 등록').click();
   await expect(byText('받을 계좌 연결')).toBeVisible();
+  await expect(byText('국민은행')).toBeVisible();
+  await byText('신한은행').click();
   await byText('계좌 등록', { exact: true }).last().click();
+  await expect(byText('신한은행', { exact: true })).toBeVisible();
   await expect(byText('계좌가 연결되었습니다.')).toBeVisible();
   await byText('출금 화면으로').click();
 

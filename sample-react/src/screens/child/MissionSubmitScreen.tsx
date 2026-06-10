@@ -1,6 +1,6 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { appConfig } from '../../config/appConfig';
 import { missionApi } from '../../api/missionApi';
@@ -19,31 +19,36 @@ export function MissionSubmitScreen({ navigation, route }: Props) {
   const queryClient = useQueryClient();
   const mission = missions.find((item) => item.id === route.params?.missionId) ?? missions.find((item) => item.status === 'todo') ?? missions[0];
   const [memo, setMemo] = useState('완료 사진을 첨부했어요.');
-  const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState('');
   const canSubmit = mission.status === 'todo';
+  const submitMutation = useMutation({
+    mutationFn: async () => {
+      if (appConfig.useDummyData) {
+        submitMission(mission.id, memo);
+        return;
+      }
 
-  const submit = async () => {
+      await missionApi.submitMission({ missionId: mission.id, memo });
+    },
+    onMutate: () => {
+      setApiError('');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['missions'] });
+      navigation.navigate('ChildHome');
+    },
+    onError: (error) => {
+      setApiError(getErrorMessage(error, '미션 제출에 실패했습니다.'));
+    },
+  });
+  const loading = submitMutation.isPending;
+
+  const submit = () => {
     if (!hasMinLength(memo, 1)) {
       return;
     }
 
-    setLoading(true);
-    setApiError('');
-
-    try {
-      if (appConfig.useDummyData) {
-        submitMission(mission.id, memo);
-      } else {
-        await missionApi.submitMission({ missionId: mission.id, memo });
-      }
-      queryClient.invalidateQueries({ queryKey: ['missions'] });
-      navigation.navigate('ChildHome');
-    } catch (error) {
-      setApiError(getErrorMessage(error, '미션 제출에 실패했습니다.'));
-    } finally {
-      setLoading(false);
-    }
+    submitMutation.mutate();
   };
 
   return (
