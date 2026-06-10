@@ -2,9 +2,9 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
+import { authApi } from '../../api/authApi';
 import { RoleSwitch } from '../../components/auth/RoleSwitch';
 import { colors, FormField, InfoBox, PrimaryButton, ScreenFrame } from '../../components/common';
-import { authApi } from '../../api/authApi';
 import { appConfig } from '../../config/appConfig';
 import { RootStackParamList } from '../../navigation/routes';
 import { useAppState } from '../../state/AppState';
@@ -80,15 +80,21 @@ export function LoginScreen({ navigation }: Props) {
           error={error}
           disabled={loading}
         />
-        <PrimaryButton title={loading ? '로그인 중' : '로그인'} onPress={() => login('parent')} variant="dark" loading={loading} />
-        <TouchableOpacity style={styles.linkWrap} onPress={() => navigation.navigate('SignupRole')}>
+        <PrimaryButton
+          title={loading ? '로그인 중' : '로그인'}
+          onPress={() => login('parent')}
+          variant="dark"
+          loading={loading}
+          testID="login-submit-button"
+        />
+        <TouchableOpacity style={styles.linkWrap} onPress={() => navigation.navigate('SignupRole')} testID="login-signup-link">
           <Text style={styles.linkText}>
             처음이신가요? <Text style={styles.linkStrong}>회원가입</Text>
           </Text>
         </TouchableOpacity>
         {appConfig.useDummyData ? (
           <>
-            <InfoBox title="역할 선택" body="로그인은 부모 계정으로 시작합니다. 아래 버튼으로 자녀 홈도 바로 확인할 수 있어요." />
+            <InfoBox title="역할 선택" body="로그인은 부모 계정으로 시작합니다. 아래 버튼으로 자녀 앱도 바로 확인할 수 있어요." />
             <RoleSwitch onSelect={login} />
           </>
         ) : (

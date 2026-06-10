@@ -3,13 +3,12 @@ import { useQuery } from '@tanstack/react-query';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { cashbookApi } from '../../api/cashbookApi';
-import { missionApi } from '../../api/missionApi';
-import { defaultChildUserId } from '../../api/missionApi';
-import { appConfig } from '../../config/appConfig';
+import { defaultChildUserId, missionApi } from '../../api/missionApi';
 import { ApiErrorBox } from '../../components/common/ApiErrorBox';
 import { BalanceCard, colors, PrimaryButton, ScreenFrame, SecondaryButton } from '../../components/common';
 import { MissionCard } from '../../components/mission/MissionCard';
 import { CashbookEntryItem } from '../../components/wallet/CashbookEntryItem';
+import { appConfig } from '../../config/appConfig';
 import { RootStackParamList } from '../../navigation/routes';
 import { useAppState } from '../../state/AppState';
 import { Mission } from '../../types';
@@ -62,10 +61,17 @@ export function ChildHomeScreen({ navigation }: Props) {
         description={`진행 가능 ${todo.length}건 · 반려 ${rejected.length}건`}
       />
       <View style={styles.actionGrid}>
-        <PrimaryButton title="계좌 등록" onPress={() => navigation.navigate('BankAccountRegister')} />
-        <SecondaryButton title="출금" onPress={() => navigation.navigate('ChildWithdrawal')} />
+        <PrimaryButton title="계좌 등록" onPress={() => navigation.navigate('BankAccountRegister')} testID="child-home-bank-register-button" />
+        <SecondaryButton title="출금" onPress={() => navigation.navigate('ChildWithdrawal')} testID="child-home-withdrawal-button" />
         {appConfig.useDummyData ? (
-          <SecondaryButton title="부모 홈" onPress={() => { loginAs('parent'); navigation.navigate('ParentHome'); }} />
+          <SecondaryButton
+            title="부모 홈"
+            onPress={() => {
+              loginAs('parent');
+              navigation.navigate('ParentHome');
+            }}
+            testID="child-home-switch-parent-button"
+          />
         ) : null}
       </View>
       <ApiErrorBox error={missionsQuery.error} fallback="미션 목록 조회에 실패했습니다." />

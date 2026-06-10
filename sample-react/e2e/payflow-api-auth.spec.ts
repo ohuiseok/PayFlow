@@ -11,7 +11,7 @@ test('API mode uses auth and family endpoints', async ({ page }) => {
         accessToken: 'mock-access-token',
         user: {
           userId: 1,
-          name: 'API 지훈',
+          name: 'API 지우',
           role: 'PARENT',
           status: 'ACTIVE',
         },

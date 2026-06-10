@@ -3,6 +3,7 @@ import { expect, test } from '@playwright/test';
 test('dummy MVP flow works end to end', async ({ page }) => {
   const byText = (text: string, options?: Parameters<typeof page.getByText>[1]) =>
     page.getByText(text, options).filter({ visible: true });
+  const byTestId = (testID: string) => page.getByTestId(testID).filter({ visible: true }).first();
 
   await page.goto('/');
 
@@ -14,14 +15,14 @@ test('dummy MVP flow works end to end', async ({ page }) => {
   await byText('승인', { exact: true }).click();
 
   await expect(byText('오늘의 보상 흐름')).toBeVisible();
-  await byText('충전', { exact: true }).click();
+  await byTestId('parent-home-charge-button').click();
   await expect(byText('충전 계좌')).toBeVisible();
   await byText('충전하기').click();
   await expect(byText('충전 완료 · 보상 크레딧이 증가했습니다.')).toBeVisible({ timeout: 3000 });
   await byText('부모 홈으로').click();
 
   await expect(byText('최근 크레딧 기록')).toBeVisible();
-  await byText('미션 등록').click();
+  await byTestId('parent-home-create-mission-button').click();
   await expect(byText('새 미션 만들기')).toBeVisible();
   await byText('미션 등록', { exact: true }).last().click();
 
@@ -33,21 +34,21 @@ test('dummy MVP flow works end to end', async ({ page }) => {
   await byText('제출하기').click();
 
   await expect(byText('승인 대기').first()).toBeVisible();
-  await byText('부모 홈').click();
-  await byText('승인', { exact: true }).click();
+  await byTestId('child-home-switch-parent-button').click();
+  await byTestId('parent-home-approval-button').click();
   await expect(byText('승인할 미션')).toBeVisible();
   await byText('승인', { exact: true }).last().click();
   await expect(byText('승인 완료 · 보상이 지급되었습니다.')).toBeVisible();
 
   await byText('자녀 홈').click();
-  await byText('계좌 등록').click();
+  await byTestId('child-home-bank-register-button').click();
   await expect(byText('받을 계좌 연결')).toBeVisible();
   await expect(byText('국민은행')).toBeVisible();
   await byText('신한은행').click();
-  await byText('계좌 등록', { exact: true }).last().click();
+  await byTestId('bank-register-submit-button').click();
   await expect(byText('신한은행', { exact: true })).toBeVisible();
   await expect(byText('계좌가 연결되었습니다.')).toBeVisible();
-  await byText('출금 화면으로').click();
+  await byTestId('bank-register-go-withdrawal-button').click();
 
   await expect(byText('캐시북에서 출금')).toBeVisible();
   await byText('출금 요청', { exact: true }).click();

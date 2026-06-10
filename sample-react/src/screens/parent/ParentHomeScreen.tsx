@@ -4,12 +4,12 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { creditApi } from '../../api/creditApi';
 import { missionApi } from '../../api/missionApi';
-import { appConfig } from '../../config/appConfig';
 import { ApiErrorBox } from '../../components/common/ApiErrorBox';
 import { BalanceCard, colors, PrimaryButton, ScreenFrame, SecondaryButton } from '../../components/common';
 import { EmptyState, LoadingState } from '../../components/common/ScreenStates';
 import { MissionCard } from '../../components/mission/MissionCard';
 import { CashbookEntryItem } from '../../components/wallet/CashbookEntryItem';
+import { appConfig } from '../../config/appConfig';
 import { RootStackParamList } from '../../navigation/routes';
 import { useAppState } from '../../state/AppState';
 
@@ -46,11 +46,18 @@ export function ParentHomeScreen({ navigation }: Props) {
       <ApiErrorBox error={summaryQuery.error} fallback="부모 크레딧 요약 조회에 실패했습니다." />
       <ApiErrorBox error={missionsQuery.error} fallback="부모 미션 목록 조회에 실패했습니다." />
       <View style={styles.actionGrid}>
-        <PrimaryButton title="충전" onPress={() => navigation.navigate('CreditCharge')} />
-        <SecondaryButton title="미션 등록" onPress={() => navigation.navigate('MissionCreate')} />
-        <SecondaryButton title="승인" onPress={() => navigation.navigate('ParentApproval')} />
+        <PrimaryButton title="충전" onPress={() => navigation.navigate('CreditCharge')} testID="parent-home-charge-button" />
+        <SecondaryButton title="미션 등록" onPress={() => navigation.navigate('MissionCreate')} testID="parent-home-create-mission-button" />
+        <SecondaryButton title="승인" onPress={() => navigation.navigate('ParentApproval')} testID="parent-home-approval-button" />
         {appConfig.useDummyData ? (
-          <SecondaryButton title="자녀 홈" onPress={() => { loginAs('child'); navigation.navigate('ChildHome'); }} />
+          <SecondaryButton
+            title="자녀 홈"
+            onPress={() => {
+              loginAs('child');
+              navigation.navigate('ChildHome');
+            }}
+            testID="parent-home-switch-child-button"
+          />
         ) : null}
       </View>
       <Text style={styles.sectionTitle}>진행 중 미션</Text>

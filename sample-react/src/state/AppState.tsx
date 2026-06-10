@@ -2,11 +2,14 @@ import { createContext, PropsWithChildren, useContext, useMemo, useState } from 
 
 import { BankAccount, CashbookEntry, Mission, UserRole } from '../types';
 
+const defaultParentName = '지우';
+const defaultChildName = '민지';
+
 const initialMissions: Mission[] = [
   {
     id: 'mission-001',
     childId: 'child-001',
-    childName: '민지',
+    childName: defaultChildName,
     title: '수학 문제집 3쪽 풀기',
     description: '오늘 배운 단원 문제를 차분히 풀고 사진을 올려주세요.',
     rewardAmount: 3000,
@@ -16,7 +19,7 @@ const initialMissions: Mission[] = [
   {
     id: 'mission-002',
     childId: 'child-001',
-    childName: '민지',
+    childName: defaultChildName,
     title: '방 청소하기',
     description: '책상 위와 침대 주변을 정리하고 완료 사진을 제출하세요.',
     rewardAmount: 2000,
@@ -27,8 +30,8 @@ const initialMissions: Mission[] = [
   {
     id: 'mission-003',
     childId: 'child-001',
-    childName: '민지',
-    title: '재활용 버리기',
+    childName: defaultChildName,
+    title: '분리수거 버리기',
     description: '분리수거함을 비우고 현관 앞을 정리하세요.',
     rewardAmount: 2000,
     dueDate: '2026-06-20',
@@ -66,7 +69,7 @@ const initialParentCreditEntries: CashbookEntry[] = [
   {
     id: 'parent-credit-002',
     title: '지난주 독서 미션',
-    description: '민지에게 보상 지급',
+    description: `${defaultChildName}에게 보상 지급`,
     amount: -7000,
     type: 'reward',
   },
@@ -75,7 +78,7 @@ const initialParentCreditEntries: CashbookEntry[] = [
 const parentChargeAccount: BankAccount = {
   bankName: '국민은행',
   accountNumber: '1234-56-789012',
-  holderName: '지훈',
+  holderName: defaultParentName,
 };
 
 type AppStateValue = {
@@ -109,7 +112,7 @@ const AppStateContext = createContext<AppStateValue | null>(null);
 export function AppStateProvider({ children }: PropsWithChildren) {
   const [role, setRole] = useState<UserRole | null>(null);
   const [currentUserId, setCurrentUserId] = useState('1');
-  const [currentUserName, setCurrentUserName] = useState('지훈');
+  const [currentUserName, setCurrentUserName] = useState(defaultParentName);
   const [familyLinked, setFamilyLinked] = useState(false);
   const [parentCreditBalance, setParentCreditBalance] = useState(85000);
   const [parentCreditEntries, setParentCreditEntries] = useState<CashbookEntry[]>(initialParentCreditEntries);
@@ -135,12 +138,12 @@ export function AppStateProvider({ children }: PropsWithChildren) {
       loginAs(nextRole, name, userId) {
         setRole(nextRole);
         setCurrentUserId(userId ?? (nextRole === 'parent' ? '1' : '2'));
-        setCurrentUserName(name?.trim() || (nextRole === 'parent' ? '지훈' : '민지'));
+        setCurrentUserName(name?.trim() || (nextRole === 'parent' ? defaultParentName : defaultChildName));
       },
       signupAs(nextRole, name, userId) {
         setRole(nextRole);
         setCurrentUserId(userId ?? (nextRole === 'parent' ? '1' : '2'));
-        setCurrentUserName(name.trim() || (nextRole === 'parent' ? '지훈' : '민지'));
+        setCurrentUserName(name.trim() || (nextRole === 'parent' ? defaultParentName : defaultChildName));
       },
       completeFamilyLink() {
         setFamilyLinked(true);
@@ -164,7 +167,7 @@ export function AppStateProvider({ children }: PropsWithChildren) {
             ...mission,
             id: `mission-${Date.now()}`,
             childId: 'child-001',
-            childName: '민지',
+            childName: defaultChildName,
             status: 'todo',
           },
           ...items,

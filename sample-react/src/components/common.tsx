@@ -82,29 +82,51 @@ export function PrimaryButton({
   onPress,
   disabled,
   loading,
+  testID,
+  accessibilityLabel,
   variant = 'primary',
 }: {
   title: string;
   onPress: () => void;
   disabled?: boolean;
   loading?: boolean;
+  testID?: string;
+  accessibilityLabel?: string;
   variant?: 'primary' | 'dark';
 }) {
   return (
     <TouchableOpacity
       activeOpacity={0.8}
+      accessibilityLabel={accessibilityLabel ?? title}
       disabled={disabled || loading}
       onPress={onPress}
       style={[styles.button, variant === 'dark' && styles.darkButton, (disabled || loading) && styles.buttonDisabled]}
+      testID={testID}
     >
       {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.buttonText}>{title}</Text>}
     </TouchableOpacity>
   );
 }
 
-export function SecondaryButton({ title, onPress }: { title: string; onPress: () => void }) {
+export function SecondaryButton({
+  title,
+  onPress,
+  testID,
+  accessibilityLabel,
+}: {
+  title: string;
+  onPress: () => void;
+  testID?: string;
+  accessibilityLabel?: string;
+}) {
   return (
-    <TouchableOpacity activeOpacity={0.8} onPress={onPress} style={styles.secondaryButton}>
+    <TouchableOpacity
+      activeOpacity={0.8}
+      accessibilityLabel={accessibilityLabel ?? title}
+      onPress={onPress}
+      style={styles.secondaryButton}
+      testID={testID}
+    >
       <Text style={styles.secondaryButtonText}>{title}</Text>
     </TouchableOpacity>
   );

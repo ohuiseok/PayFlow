@@ -1,59 +1,32 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { creditApi } from '../../api/creditApi';
-import { appConfig } from '../../config/appConfig';
 import { BankSelect } from '../../components/banking/BankSelect';
 import { ApiErrorBox } from '../../components/common/ApiErrorBox';
 import { FormField, InfoBox, PrimaryButton, ScreenFrame, SecondaryButton, Toast } from '../../components/common';
 import { findBankOptionByName } from '../../constants/banks';
+import { useRegisterBankAccountMutation } from '../../hooks/useBankAccountMutations';
 import { RootStackParamList } from '../../navigation/routes';
 import { useAppState } from '../../state/AppState';
-import { getErrorMessage } from '../../utils/apiError';
 import { isValidBankAccountNumber, onlyDigits } from '../../utils/validators';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'BankAccountRegister'>;
 
 export function BankAccountRegisterScreen({ navigation }: Props) {
   const { linkedBankAccount, registerBankAccount } = useAppState();
-  const queryClient = useQueryClient();
   const [selectedBank, setSelectedBank] = useState(() => findBankOptionByName(linkedBankAccount?.bankName ?? '국민은행'));
   const [accountNumber, setAccountNumber] = useState(linkedBankAccount?.accountNumber ?? '123456789012');
   const [holderName, setHolderName] = useState(linkedBankAccount?.holderName ?? '민지');
   const [done, setDone] = useState(false);
   const [apiError, setApiError] = useState('');
   const valid = isValidBankAccountNumber(accountNumber);
-  const registerMutation = useMutation({
-    mutationFn: async () => {
-      if (appConfig.useDummyData) {
-        registerBankAccount({ bankName: selectedBank.bankName, accountNumber, holderName });
-        return;
-      }
-
-      const account = await creditApi.registerBankAccount({
-        bankCodeStd: selectedBank.bankCodeStd,
-        bankName: selectedBank.bankName,
-        accountNumber: onlyDigits(accountNumber),
-        accountHolderName: holderName.trim(),
-      });
-      registerBankAccount({
-        bankName: account.bankName,
-        accountNumber: account.maskedAccountNumber,
-        holderName: account.accountHolderName,
-      });
-    },
-    onMutate: () => {
-      setApiError('');
-      setDone(false);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['credit', 'bankAccounts'] });
-      setDone(true);
-    },
-    onError: (error) => {
-      setApiError(getErrorMessage(error, '계좌 등록에 실패했습니다.'));
-    },
+  const registerMutation = useRegisterBankAccountMutation({
+    accountNumber,
+    holderName,
+    selectedBank,
+    onError: setApiError,
+    onRegister: registerBankAccount,
+    onSuccess: () => setDone(true),
   });
   const loading = registerMutation.isPending;
 
@@ -62,6 +35,7 @@ export function BankAccountRegisterScreen({ navigation }: Props) {
       return;
     }
 
+    setDone(false);
     registerMutation.mutate();
   };
 
@@ -86,8 +60,9 @@ export function BankAccountRegisterScreen({ navigation }: Props) {
         onPress={submit}
         disabled={!valid || !holderName.trim() || loading}
         loading={loading}
+        testID="bank-register-submit-button"
       />
-      {done ? <SecondaryButton title="출금 화면으로" onPress={() => navigation.navigate('ChildWithdrawal')} /> : null}
+      {done ? <SecondaryButton title="출금 화면으로" onPress={() => navigation.navigate('ChildWithdrawal')} testID="bank-register-go-withdrawal-button" /> : null}
     </ScreenFrame>
   );
 }
