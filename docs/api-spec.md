@@ -1,672 +1,125 @@
-﻿# PayFlow API 명세서
+# API Spec
 
-이 문서는 현재 코드 기준으로 구현된 API를 정리한 명세입니다.
+PayFlow MVP API는 회원, 지갑, 은행 충전, 송금, 가족 미션 보상, 원장 조회만 다룬다.
 
-현재 구현된 API와 `sample-react` 목업 화면 기준으로 구현할 API를 함께 정리합니다.
+## Common
 
-- 기준 경로: `http://localhost:8080`
-- 외부 클라이언트는 `api-gateway`를 통해 `/api/**` 경로로 호출합니다.
-- `api-gateway`는 인증된 요청에 대해 내부 서비스로 `X-User-Id`, `X-User-Phone-Number`, `X-User-Role` 헤더를 주입합니다.
-- 클라이언트가 보낸 `X-User-*`, `X-Internal-*` 헤더는 Gateway에서 제거됩니다.
+인증이 필요한 API는 `Authorization: Bearer {accessToken}`을 사용한다.
 
-## 공통
+금액은 정수 원화 단위다.
 
-### 인증
+충전, 송금, 보상 지급은 멱등하게 처리한다.
 
-공개 API:
-
-- `POST /api/users`
-- `POST /api/users/login`
-- `/actuator/**`
-
-그 외 API는 아래 헤더가 필요합니다.
-
-```http
-Authorization: Bearer {accessToken}
-```
-
-### 공통 오류 응답
+에러 응답:
 
 ```json
 {
-  "code": "UNAUTHORIZED",
-  "message": "인증이 필요합니다.",
-  "timestamp": "2026-06-05T21:00:00"
+  "code": "ERROR_CODE",
+  "message": "error message",
+  "traceId": "trace-id"
 }
 ```
 
-주요 오류 코드:
-
-| HTTP | code | 설명 |
-|---:|---|---|
-| 400 | INVALID_REQUEST | 요청 값이 올바르지 않음 |
-| 401 | UNAUTHORIZED | 인증 필요 |
-| 401 | INVALID_CREDENTIALS | 휴대폰 번호 또는 비밀번호 오류 |
-| 403 | FORBIDDEN | 접근 권한 없음 |
-| 403 | RESOURCE_OWNER_MISMATCH | 리소스 소유자 불일치 |
-| 404 | RESOURCE_NOT_FOUND | 리소스 없음 |
-| 404 | WALLET_NOT_FOUND | 지갑 없음 |
-| 409 | USER_ALREADY_EXISTS | 이미 가입된 사용자 |
-| 409 | DUPLICATE_WALLET | 이미 생성된 지갑 |
-| 409 | DUPLICATE_WALLET_REFERENCE | 이미 처리된 지갑 거래 참조 |
-| 409 | INSUFFICIENT_BALANCE | 잔액 부족 |
-| 500 | INTERNAL_SERVER_ERROR | 서버 내부 오류 |
-
-## User API
-
-Gateway 라우트:
+## Gateway Routes
 
 ```text
-/api/users/** -> user-service /users/**
+/api/auth/**      -> user-service
+/api/users/**     -> user-service
+/api/wallets/**   -> wallet-service
+/api/bank/**      -> banking-service
+/api/transfers/** -> transfer-service
+/api/ledger/**    -> ledger-service
+/api/families/**  -> reward-service
+/api/missions/**  -> reward-service
+/api/cashbook/**  -> reward-service
 ```
 
-### 회원가입
+## Auth API
 
-```http
-POST /api/users
-Content-Type: application/json
-```
-
-요청:
+### POST /api/auth/signup
 
 ```json
 {
-  "phoneNumber": "01012345678",
-  "password": "password123",
-  "name": "지훈",
+  "email": "parent@example.com",
+  "password": "password123!",
+  "name": "Parent",
   "role": "PARENT"
 }
 ```
 
-요청 필드:
-
-| 필드 | 타입 | 필수 | 제약 |
-|---|---|---:|---|
-| phoneNumber | string | O | 숫자 10~11자리, 하이픈 없이 전송 |
-| password | string | O | 8자 이상 |
-| name | string | O | 빈 값 불가 |
-| role | string | O | `PARENT` 또는 `CHILD` |
-
-응답: `201 Created`
+응답:
 
 ```json
 {
   "userId": 1,
-  "phoneNumber": "01012345678",
-  "name": "지훈",
-  "role": "PARENT",
-  "status": "ACTIVE"
+  "email": "parent@example.com",
+  "name": "Parent",
+  "role": "PARENT"
 }
 ```
 
-### 로그인
-
-```http
-POST /api/users/login
-Content-Type: application/json
-```
-
-요청:
+### POST /api/auth/login
 
 ```json
 {
-  "phoneNumber": "01012345678",
-  "password": "password123"
+  "email": "parent@example.com",
+  "password": "password123!"
 }
 ```
 
-응답: `200 OK`
+응답:
 
 ```json
 {
-  "accessToken": "eyJhbGciOi...",
-  "tokenType": "Bearer",
-  "expiresIn": 86400000,
+  "accessToken": "jwt",
   "user": {
     "userId": 1,
-    "phoneNumber": "01012345678",
-    "name": "지훈",
+    "name": "Parent",
     "role": "PARENT",
     "status": "ACTIVE"
   }
 }
 ```
 
-### 내 사용자 조회
+### GET /api/users/me
 
-```http
-GET /api/users/me
-Authorization: Bearer {accessToken}
-```
-
-응답: `200 OK`
-
-```json
-{
-  "userId": 1,
-  "phoneNumber": "01012345678",
-  "name": "지훈",
-  "role": "PARENT",
-  "status": "ACTIVE"
-}
-```
-
-### 사용자 조회, 호환
-
-```http
-GET /api/users/{userId}
-Authorization: Bearer {accessToken}
-```
-
-`GET /api/users/me`를 우선 사용합니다. 기존 `{userId}` 조회를 유지하는 경우 `{userId}`는 인증된 사용자 ID와 같아야 하며, 다르면 `RESOURCE_OWNER_MISMATCH`가 반환됩니다.
+내 사용자 정보를 조회한다.
 
 ## Wallet API
 
-Gateway 라우트:
+### GET /api/wallets/me
 
-```text
-/api/wallets/** -> wallet-service /wallets/**
-```
+내 지갑 잔액을 조회한다.
 
-### 지갑 생성
-
-```http
-POST /api/wallets
-Authorization: Bearer {accessToken}
-Content-Type: application/json
-```
-
-요청:
-
-```json
-{
-  "userId": 1
-}
-```
-
-응답: `201 Created`
+응답:
 
 ```json
 {
   "walletId": 100,
   "userId": 1,
-  "balance": 0,
+  "balance": 50000,
+  "currency": "KRW",
   "status": "ACTIVE"
 }
 ```
 
-제약:
+### GET /api/wallets/me/transactions
 
-- 요청의 `userId`는 인증된 사용자 ID와 같아야 합니다.
-- 사용자당 지갑은 하나만 생성할 수 있습니다.
+내 지갑 거래 이력을 조회한다.
 
-### 지갑 조회
+## Bank API
 
-```http
-GET /api/wallets/{walletId}
-Authorization: Bearer {accessToken}
-```
+### GET /api/bank/accounts
 
-응답: `200 OK`
+연결 계좌 목록을 조회한다.
+
+### POST /api/bank/accounts
 
 ```json
 {
-  "walletId": 100,
-  "userId": 1,
-  "balance": 85000,
-  "status": "ACTIVE"
-}
-```
-
-제약:
-
-- 지갑 소유자만 조회할 수 있습니다.
-
-### 내부 지갑 조회
-
-내부 서비스 간 직접 호출용 API입니다. Gateway 경유 외부 호출 대상이 아닙니다.
-`transfer-service`는 송금 전 sender/receiver 지갑의 존재, 소유자, 상태를 확인할 때 이 API를 사용합니다.
-
-```http
-GET /internal/wallets/{walletId}
-X-Internal-Request: true
-X-Internal-Secret: {INTERNAL_SERVICE_SECRET}
-```
-
-응답: `200 OK`
-
-```json
-{
-  "walletId": 100,
-  "userId": 1,
-  "balance": 85000,
-  "status": "ACTIVE"
-}
-```
-
-제약:
-
-- 내부 요청만 허용됩니다.
-- 외부에서 Gateway를 통해 호출할 수 없습니다.
-- `X-Internal-Secret`이 없거나 다르면 `FORBIDDEN`이 반환됩니다.
-
-### 지갑 입금
-
-```http
-POST /api/wallets/{walletId}/deposit
-Authorization: Bearer {accessToken}
-Content-Type: application/json
-```
-
-요청:
-
-```json
-{
-  "amount": 50000,
-  "referenceType": "MANUAL_CHARGE",
-  "referenceId": "charge-20260605-0001"
-}
-```
-
-응답: `200 OK`
-
-```json
-{
-  "walletId": 100,
-  "userId": 1,
-  "balance": 135000,
-  "status": "ACTIVE"
-}
-```
-
-제약:
-
-- 외부 사용자 요청이면 지갑 소유자만 입금할 수 있습니다.
-- `amount`는 1원 이상 10,000,000원 이하의 정수여야 합니다.
-- 같은 `walletId`, 거래 유형, `referenceType`, `referenceId` 조합은 중복 처리되지 않습니다.
-- 같은 참조로 같은 금액을 다시 요청하면 기존 처리 결과를 반환합니다.
-- 같은 참조로 다른 금액을 요청하면 `DUPLICATE_WALLET_REFERENCE`가 반환됩니다.
-
-내부 요청:
-
-```http
-X-Internal-Request: true
-X-Internal-Secret: {INTERNAL_SERVICE_SECRET}
-```
-
-Gateway는 외부 요청의 `X-Internal-*` 헤더를 제거하므로 내부 서비스 간 직접 호출에서만 사용합니다.
-
-### 지갑 출금
-
-내부 서비스 간 직접 호출용 API입니다. Gateway 경유 외부 호출 대상이 아닙니다.
-
-```http
-POST /wallets/{walletId}/withdraw
-Content-Type: application/json
-X-Internal-Request: true
-X-Internal-Secret: {INTERNAL_SERVICE_SECRET}
-```
-
-요청:
-
-```json
-{
-  "amount": 3000,
-  "referenceType": "TRANSFER",
-  "referenceId": "transfer-5000"
-}
-```
-
-응답: `200 OK`
-
-```json
-{
-  "walletId": 100,
-  "userId": 1,
-  "balance": 82000,
-  "status": "ACTIVE"
-}
-```
-
-제약:
-
-- 출금은 내부 요청만 허용됩니다.
-- 외부에서 Gateway를 통해 `/api/wallets/{walletId}/withdraw`를 호출하면 `X-Internal-*` 헤더가 제거되어 `FORBIDDEN`이 반환됩니다.
-- 잔액이 부족하면 `INSUFFICIENT_BALANCE`가 반환됩니다.
-- `amount`와 참조 중복 처리 규칙은 입금과 같습니다.
-
-## Enum
-
-### UserStatus
-
-| 값 | 설명 |
-|---|---|
-| ACTIVE | 활성 |
-| LOCKED | 잠김 |
-| WITHDRAWN | 탈퇴 |
-
-### WalletStatus
-
-| 값 | 설명 |
-|---|---|
-| ACTIVE | 활성 |
-| LOCKED | 잠김 |
-| CLOSED | 종료 |
-
-### WalletReferenceType
-
-| 값 | 설명 |
-|---|---|
-| MANUAL_CHARGE | 수동 충전 |
-| TRANSFER | 송금/보상 지급 |
-| OPEN_BANKING_CHARGE | 오픈뱅킹 충전 |
-| OPEN_BANKING_WITHDRAWAL | 오픈뱅킹 출금 |
-| OPEN_BANKING_REFUND | 오픈뱅킹 환불 |
-
-## Gateway 라우트 현황
-
-아래 라우트는 Gateway에 등록되어 있거나 MVP에서 우선 등록할 라우트입니다.
-
-| 외부 경로 | 대상 서비스 | 현재 API 구현 상태 |
-|---|---|---|
-| `/api/users/**` | user-service | 구현됨 |
-| `/api/wallets/**` | wallet-service | 구현됨 |
-| `/api/credits/**` | banking-service | MVP 공개 충전 API |
-| `/api/bank/**` | banking-service | 전환/내부 테스트용 legacy 경로 |
-| `/api/transfers/**` | transfer-service | 컨트롤러 미구현 |
-| `/api/ledgers/**` | ledger-service | 컨트롤러 미구현 |
-| `/api/settlements/**` | settlement-service | 보강/2차 |
-
-추가 필요 라우트:
-
-| 외부 경로 | 권장 서비스 | 용도 |
-|---|---|---|
-| `/api/families/**` | family/reward-service | 부모-자녀 연결 |
-| `/api/missions/**` | reward-service | 미션 등록, 제출, 승인, 반려 |
-| `/api/cashbook/**` | reward/wallet-service | 자녀 캐시북 |
-| `/api/notifications/**` | notification/reward-service | 보강/2차 알림 |
-| `/api/settings/**` | user-service | 보강/2차 프로필/설정 |
-| `/api/files/**` | file/reward-service | 보강/2차 미션 인증 사진 업로드 URL |
-
-## 목업 화면 기준 구현 예정 API
-
-아래 API는 `sample-react/assets/mockups/screens` 화면 흐름을 구현하기 위한 명세입니다.
-
-### 화면과 API 매핑
-
-| 화면 | 필요한 API |
-|---|---|
-| `01-login.svg` | 로그인, 회원가입 |
-| `02-signup-role.svg` | 역할 포함 회원가입 |
-| `03-family-link.svg` | 부모 초대 코드 생성, 가족 연결 요청 승인/거절 |
-| `04-child-invite-code.svg` | 자녀 초대 코드 입력, 연결 요청 생성 |
-| `05-parent-home.svg` | 부모 홈 요약, 진행 중 미션 목록 |
-| `06-credit-charge.svg` | 크레딧 충전 요청 |
-| `07-mission-create.svg` | 미션 등록 |
-| `08-child-home.svg` | 자녀 홈 요약, 미션 목록, 캐시북 요약 |
-| `09-mission-submit.svg` | 미션 완료 제출 |
-| `10-parent-approval.svg` | 부모 승인/반려 |
-| `11-reject-resubmit.svg` | 반려 사유 조회, 재제출 |
-| `12-bank-account-register.svg` | 연결 계좌 등록, 계좌번호 입력 |
-| `13-child-withdrawal.svg` | 자녀 지갑 잔액을 연결 계좌로 출금 |
-
-추가로 화면에 직접 크게 드러나지는 않지만 구현에 필요한 API:
-
-- 미션 수정/취소
-
-보강/2차 API:
-
-- 가족 연결 완료 전용 화면
-- 충전 결과 전용 화면
-- 미션 인증 사진 업로드 URL 발급
-- 자녀 캐시북 상세/지출 기록
-- 월별 미션 캘린더
-- 부모 지급/정산 내역
-- 알림 안 읽은 개수, 전체 읽음 처리
-- 프로필 수정, 알림 설정 변경
-- 가족 연결 해제
-
-미션 목록/캘린더의 `role=parent|child` query parameter는 권한 판단 기준이 아니라 조회 관점(view mode)입니다.
-화면 진입과 기본 사용자 구분은 user-service의 `role`을 사용합니다.
-다만 MVP 리소스 권한 판단은 JWT role claim만 믿지 않고 Family 관계의 `parentUserId`, `childUserId`와 인증 사용자 ID를 비교해 수행합니다.
-
-## User Role
-
-회원가입 단계에서 부모/자녀 역할을 저장합니다.
-역할은 화면 진입과 기본 기능 노출에 사용하고, 가족/미션/캐시북의 실제 권한은 각 서비스가 소유권과 Family 관계로 다시 검증합니다.
-
-```http
-POST /api/users
-Content-Type: application/json
-```
-
-요청:
-
-```json
-{
-  "phoneNumber": "01012345678",
-  "password": "password123",
-  "name": "지훈",
-  "role": "PARENT"
-}
-```
-
-응답:
-
-```json
-{
-  "userId": 1,
-  "phoneNumber": "01012345678",
-  "name": "지훈",
-  "role": "PARENT",
-  "status": "ACTIVE"
-}
-```
-
-역할:
-
-| 값 | 설명 |
-|---|---|
-| PARENT | 크레딧 충전, 자녀 연결, 미션 등록, 제출 승인/반려 |
-| CHILD | 가족 연결 요청, 미션 조회, 완료 제출, 캐시북 조회 |
-
-## Family API
-
-### 부모 초대 코드 생성
-
-```http
-POST /api/families/invitations
-Authorization: Bearer {parentAccessToken}
-```
-
-응답:
-
-```json
-{
-  "invitationId": 10,
-  "inviteCode": "PF4829",
-  "expiresAt": "2026-06-05T22:30:00",
-  "status": "ACTIVE"
-}
-```
-
-### 자녀 초대 코드 확인
-
-```http
-GET /api/families/invitations/{inviteCode}
-Authorization: Bearer {childAccessToken}
-```
-
-응답:
-
-```json
-{
-  "inviteCode": "PF4829",
-  "parentUserId": 1,
-  "parentName": "지훈",
-  "status": "ACTIVE"
-}
-```
-
-### 자녀 가족 연결 요청
-
-```http
-POST /api/families/link-requests
-Authorization: Bearer {childAccessToken}
-Content-Type: application/json
-```
-
-요청:
-
-```json
-{
-  "inviteCode": "PF4829"
-}
-```
-
-응답:
-
-```json
-{
-  "requestId": 20,
-  "parentUserId": 1,
-  "childUserId": 2,
-  "status": "PENDING"
-}
-```
-
-### 부모 가족 연결 승인
-
-```http
-POST /api/families/link-requests/{requestId}/approve
-Authorization: Bearer {parentAccessToken}
-```
-
-응답:
-
-```json
-{
-  "familyId": 100,
-  "parentUserId": 1,
-  "childUserId": 2,
-  "childName": "민준",
-  "status": "CONNECTED"
-}
-```
-
-### 부모 가족 연결 거절
-
-```http
-POST /api/families/link-requests/{requestId}/reject
-Authorization: Bearer {parentAccessToken}
-Content-Type: application/json
-```
-
-요청:
-
-```json
-{
-  "reason": "잘못 보낸 요청입니다."
-}
-```
-
-응답:
-
-```json
-{
-  "requestId": 20,
-  "status": "REJECTED"
-}
-```
-
-### 내 가족 목록 조회
-
-```http
-GET /api/families/me
-Authorization: Bearer {accessToken}
-```
-
-응답:
-
-```json
-{
-  "role": "PARENT",
-  "families": [
-    {
-      "familyId": 100,
-      "childUserId": 2,
-      "childName": "민준",
-      "status": "CONNECTED"
-    }
-  ]
-}
-```
-
-## Credit API
-
-### 부모 크레딧 요약
-
-```http
-GET /api/credits/parent/summary
-Authorization: Bearer {parentAccessToken}
-```
-
-응답:
-
-```json
-{
-  "parentUserId": 1,
-  "walletId": 100,
-  "creditBalance": 85000,
-  "monthlyRewardPaid": 12000,
-  "pendingApprovalCount": 1
-}
-```
-
-### 연결 계좌 목록 조회
-
-```http
-GET /api/credits/bank-accounts
-Authorization: Bearer {accessToken}
-```
-
-부모 충전과 자녀 출금에 사용할 본인 소유 연결 계좌를 조회합니다.
-
-응답:
-
-```json
-{
-  "bankAccounts": [
-    {
-      "bankAccountId": "bank-account-001",
-      "bankCodeStd": "004",
-      "bankName": "국민",
-      "maskedAccountNumber": "123-****-7890",
-      "accountHolderName": "지훈",
-      "primary": true
-    }
-  ]
-}
-```
-
-### 연결 계좌 등록
-
-```http
-POST /api/credits/bank-accounts
-Authorization: Bearer {accessToken}
-Content-Type: application/json
-```
-
-부모 충전 계좌 또는 자녀 출금 계좌로 사용할 본인 명의 계좌를 등록합니다. `12-bank-account-register.svg`가 이 API를 호출합니다.
-
-요청:
-
-```json
-{
-  "bankCodeStd": "004",
-  "bankName": "국민",
+  "bankCode": "004",
   "accountNumber": "1234567890",
-  "accountHolderName": "지훈"
+  "accountHolderName": "Parent"
 }
 ```
 
@@ -674,46 +127,24 @@ Content-Type: application/json
 
 ```json
 {
-  "bankAccountId": "bank-account-001",
-  "bankCodeStd": "004",
-  "bankName": "국민",
-  "maskedAccountNumber": "123-****-7890",
-  "accountHolderName": "지훈",
-  "primary": true
+  "bankAccountId": 1,
+  "bankCode": "004",
+  "accountNumberMasked": "123-****-7890",
+  "accountHolderName": "Parent",
+  "status": "ACTIVE"
 }
 ```
 
-정책:
+### POST /api/bank/deposits
 
-- 요청 사용자는 계좌 소유자여야 합니다.
-- `bankCodeStd`는 필수입니다. 화면의 은행 선택 값에서 은행 표준 코드를 함께 전달합니다.
-- 실제 계좌번호 원문은 저장하지 않고 마스킹 값 또는 외부 식별자만 저장합니다.
-- 자녀 계좌는 실명/나이/보호자 동의 정책이 확정되기 전까지 mock 또는 테스트 식별자 등록을 우선합니다.
+Header:
 
-### 연결 계좌 삭제
-
-```http
-DELETE /api/credits/bank-accounts/{bankAccountId}
-Authorization: Bearer {accessToken}
-```
-
-응답: `204 No Content`
-
-### 크레딧 충전 요청
-
-```http
-POST /api/credits/charges
-Authorization: Bearer {parentAccessToken}
-Idempotency-Key: 20260605-user1-charge-001
-Content-Type: application/json
-```
-
-요청:
+`Idempotency-Key: 20260615-user1-deposit-001`
 
 ```json
 {
-  "amount": 50000,
-  "bankAccountId": "bank-account-001"
+  "bankAccountId": 1,
+  "amount": 50000
 }
 ```
 
@@ -721,55 +152,28 @@ Content-Type: application/json
 
 ```json
 {
-  "chargeId": "charge-20260605-0001",
+  "bankingTransferId": 1001,
   "amount": 50000,
-  "status": "PROCESSING"
+  "status": "SUCCEEDED",
+  "walletTransactionId": 9001
 }
 ```
 
-정책:
+### GET /api/bank/transfers/{bankingTransferId}
 
-- `Idempotency-Key`는 필수입니다.
-- 같은 key와 같은 body는 기존 충전 요청 결과를 반환합니다.
-- 같은 key와 다른 body는 `409 Conflict`를 반환합니다.
-- 외부 은행망 성공이 확정되기 전에는 wallet-service 입금을 호출하지 않습니다.
+충전 처리 상태를 조회한다.
 
-### 크레딧 충전 결과 조회
+## Transfer API
 
-```http
-GET /api/credits/charges/{chargeId}
-Authorization: Bearer {parentAccessToken}
-```
+### POST /api/transfers
 
-응답:
+Header:
+
+`Idempotency-Key: 20260615-user1-transfer-001`
 
 ```json
 {
-  "chargeId": "charge-20260605-0001",
-  "amount": 50000,
-  "status": "COMPLETED",
-  "walletId": 100,
-  "balanceAfter": 135000
-}
-```
-
-### 지갑 출금 요청
-
-자녀 또는 부모가 PayFlow 지갑 잔액을 본인의 연결 은행 계좌로 출금합니다. 자녀 화면에서는 `13-child-withdrawal.svg`가 이 API를 호출합니다.
-
-```http
-POST /api/credits/withdrawals
-Authorization: Bearer {accessToken}
-Idempotency-Key: 20260605-user1-withdrawal-001
-Content-Type: application/json
-```
-
-요청:
-
-```json
-{
-  "walletId": 200,
-  "bankAccountId": "bank-account-001",
+  "receiverUserId": 2,
   "amount": 10000
 }
 ```
@@ -778,786 +182,119 @@ Content-Type: application/json
 
 ```json
 {
-  "withdrawalId": "withdrawal-20260605-0001",
-  "walletId": 200,
-  "bankAccountId": "bank-account-001",
+  "transferId": 5000,
+  "senderUserId": 1,
+  "receiverUserId": 2,
   "amount": 10000,
-  "status": "PROCESSING"
+  "status": "SUCCEEDED"
 }
 ```
 
-정책:
+### GET /api/transfers/{transferId}
 
-- `Idempotency-Key`는 필수입니다.
-- 같은 key와 같은 body는 기존 출금 요청 결과를 반환합니다.
-- 요청 사용자는 `walletId`와 `bankAccountId`의 소유자여야 합니다. 연결된 부모라도 자녀 지갑을 부모 계좌로 직접 출금할 수 없습니다.
-- 출금 금액은 지갑 잔액 이하의 1원 이상 정수입니다.
-- 지갑 차감 성공 후 은행망 입금이체 실패 시 `COMPENSATION_REQUIRED`로 남깁니다.
+송금 상세를 조회한다.
 
-### 지갑 출금 결과 조회
+### GET /api/transfers
 
-```http
-GET /api/credits/withdrawals/{withdrawalId}
-Authorization: Bearer {accessToken}
-```
+내 송금 목록을 조회한다.
 
-응답:
+## Family API
+
+### POST /api/families/links
+
+부모가 자녀와 연결한다.
 
 ```json
 {
-  "withdrawalId": "withdrawal-20260605-0001",
-  "walletId": 200,
-  "bankAccountId": "bank-account-001",
-  "maskedAccountNumber": "3333-**-7890",
-  "amount": 10000,
-  "status": "COMPLETED",
-  "requestedAt": "2026-06-05T10:00:00+09:00",
-  "completedAt": "2026-06-05T10:00:03+09:00"
+  "childUserId": 2
 }
 ```
 
-정책:
+### GET /api/families/children
 
-- 요청 사용자는 해당 출금 요청을 만든 지갑 소유자여야 합니다.
-- `PROCESSING` 또는 `UNKNOWN` 상태면 화면에서 처리 중 또는 확인 필요로 표시합니다.
+부모에게 연결된 자녀 목록을 조회한다.
 
 ## Mission API
 
-### 부모 미션 등록
+### POST /api/missions
 
-```http
-POST /api/missions
-Authorization: Bearer {parentAccessToken}
-Content-Type: application/json
-```
-
-요청:
+부모가 자녀에게 미션을 생성한다.
 
 ```json
 {
   "childUserId": 2,
-  "title": "수학 문제집 3쪽 풀기",
-  "description": "오늘 배운 나눗셈까지 풀기",
-  "rewardAmount": 3000,
-  "missionDate": "2026-06-05",
-  "evidenceRequired": true
+  "title": "Read a book",
+  "description": "Read for 30 minutes",
+  "rewardAmount": 3000
 }
 ```
 
-응답:
+### GET /api/missions
+
+내 역할 기준 미션 목록을 조회한다.
+
+Query:
+
+`role=parent|child`, `status=CREATED|SUBMITTED|APPROVED|PAID|REJECTED|CANCELED`
+
+### GET /api/missions/{missionId}
+
+미션 상세를 조회한다.
+
+### PATCH /api/missions/{missionId}/submit
+
+자녀가 미션을 제출한다.
+
+### PATCH /api/missions/{missionId}/approve
+
+부모가 미션을 승인한다.
+
+### PATCH /api/missions/{missionId}/reject
+
+부모가 미션을 반려한다.
 
 ```json
 {
-  "missionId": 1000,
-  "parentUserId": 1,
-  "childUserId": 2,
-  "title": "수학 문제집 3쪽 풀기",
-  "rewardAmount": 3000,
-  "status": "REGISTERED",
-  "missionDate": "2026-06-05"
+  "reason": "Please try again after finishing the task."
 }
 ```
 
-### 미션 수정
+### POST /api/missions/{missionId}/pay
 
-미션이 아직 자녀에게 제출되지 않은 상태에서만 수정할 수 있습니다.
+승인된 미션 보상을 지급한다.
 
-```http
-PATCH /api/missions/{missionId}
-Authorization: Bearer {parentAccessToken}
-Content-Type: application/json
-```
+처리 규칙:
 
-요청:
-
-```json
-{
-  "title": "수학 문제집 4쪽 풀기",
-  "description": "오늘 배운 나눗셈까지 풀기",
-  "rewardAmount": 4000,
-  "missionDate": "2026-06-06",
-  "evidenceRequired": true
-}
-```
-
-응답:
-
-```json
-{
-  "missionId": 1000,
-  "title": "수학 문제집 4쪽 풀기",
-  "rewardAmount": 4000,
-  "status": "REGISTERED",
-  "missionDate": "2026-06-06"
-}
-```
-
-### 미션 취소
-
-```http
-POST /api/missions/{missionId}/cancel
-Authorization: Bearer {parentAccessToken}
-Content-Type: application/json
-```
-
-요청:
-
-```json
-{
-  "reason": "오늘은 미션을 진행하지 않기로 했습니다."
-}
-```
-
-응답:
-
-```json
-{
-  "missionId": 1000,
-  "status": "CANCELED"
-}
-```
-
-### 미션 목록 조회
-
-```http
-GET /api/missions?role=parent&status=active
-Authorization: Bearer {parentAccessToken}
-```
-
-```http
-GET /api/missions?role=child&status=active
-Authorization: Bearer {childAccessToken}
-```
-
-응답:
-
-```json
-{
-  "missions": [
-    {
-      "missionId": 1000,
-      "childName": "민준",
-      "title": "수학 문제집 3쪽 풀기",
-      "rewardAmount": 3000,
-      "status": "REGISTERED",
-      "missionDate": "2026-06-05"
-    }
-  ]
-}
-```
-
-### 미션 캘린더 조회
-
-부모와 자녀가 월별 날짜 기준으로 미션을 확인하기 위한 API입니다.
-
-```http
-GET /api/missions/calendar?year=2026&month=6&role=child
-Authorization: Bearer {childAccessToken}
-```
-
-부모가 특정 자녀 기준으로 조회할 때:
-
-```http
-GET /api/missions/calendar?year=2026&month=6&role=parent&childUserId=2
-Authorization: Bearer {parentAccessToken}
-```
-
-응답:
-
-```json
-{
-  "year": 2026,
-  "month": 6,
-  "summary": {
-    "completedMissionCount": 3,
-    "totalRewardAmount": 7000,
-    "pendingMissionCount": 2
-  },
-  "days": [
-    {
-      "date": "2026-06-05",
-      "missions": [
-        {
-          "missionId": 1000,
-          "childUserId": 2,
-          "childName": "민준",
-          "title": "수학 문제집 3쪽 풀기",
-          "rewardAmount": 3000,
-          "status": "PAID"
-        }
-      ]
-    }
-  ]
-}
-```
-
-### 미션 상세 조회
-
-```http
-GET /api/missions/{missionId}
-Authorization: Bearer {accessToken}
-```
-
-응답:
-
-```json
-{
-  "missionId": 1000,
-  "parentUserId": 1,
-  "parentName": "지훈",
-  "childUserId": 2,
-  "childName": "민준",
-  "title": "수학 문제집 3쪽 풀기",
-  "description": "오늘 배운 나눗셈까지 풀기",
-  "rewardAmount": 3000,
-  "status": "SUBMITTED",
-  "missionDate": "2026-06-05",
-  "submittedAt": "2026-06-05T20:30:00",
-  "rejectionReason": null
-}
-```
-
-### 자녀 미션 완료 제출
-
-```http
-POST /api/missions/{missionId}/submit
-Authorization: Bearer {childAccessToken}
-Content-Type: application/json
-```
-
-요청:
-
-```json
-{
-  "memo": "오늘 배운 나눗셈까지 풀었어요.",
-  "evidenceImageUrl": "https://example.com/evidence/mission-1000.jpg"
-}
-```
-
-응답:
-
-```json
-{
-  "missionId": 1000,
-  "status": "SUBMITTED",
-  "submittedAt": "2026-06-05T20:30:00"
-}
-```
-
-### 부모 미션 승인
-
-```http
-POST /api/missions/{missionId}/approve
-Authorization: Bearer {parentAccessToken}
-```
-
-응답:
-
-```json
-{
-  "missionId": 1000,
-  "missionSubmissionId": 9001,
-  "status": "PAID",
-  "transferId": 5000,
-  "rewardAmount": 3000,
-  "paidAt": "2026-06-05T20:40:00"
-}
-```
-
-처리 방향:
-
-- 승인 API 경로는 `missionId`를 사용하지만, 보상 지급 멱등키는 승인 대상 제출 건의 `missionSubmissionId`로 만든다.
-- 예: `missionSubmissionId = 9001`이면 `Idempotency-Key = reward-payment-9001`.
-- 이 멱등키는 클라이언트가 생성해 보내는 값이 아니라 reward-service가 내부적으로 생성해 transfer-service에 전달하는 값이다.
-- 승인 대상 제출 건은 현재 `SUBMITTED` 상태인 최신 `missionSubmissionId`로 확정한다.
-
-- 부모 지갑에서 `rewardAmount` 출금
-- 자녀 지갑에 `rewardAmount` 입금
-- 캐시북/원장 기록 생성
-- 같은 `Idempotency-Key` 재요청은 같은 결과 반환
-
-### 부모 미션 반려
-
-```http
-POST /api/missions/{missionId}/reject
-Authorization: Bearer {parentAccessToken}
-Content-Type: application/json
-```
-
-요청:
-
-```json
-{
-  "reason": "마지막 페이지 사진이 잘 안 보여."
-}
-```
-
-응답:
-
-```json
-{
-  "missionId": 1000,
-  "status": "REJECTED",
-  "rejectionReason": "마지막 페이지 사진이 잘 안 보여."
-}
-```
-
-### 자녀 미션 재제출
-
-```http
-POST /api/missions/{missionId}/resubmit
-Authorization: Bearer {childAccessToken}
-Content-Type: application/json
-```
-
-요청:
-
-```json
-{
-  "memo": "사진을 다시 첨부했어요.",
-  "evidenceImageUrl": "https://example.com/evidence/mission-1000-v2.jpg"
-}
-```
-
-응답:
-
-```json
-{
-  "missionId": 1000,
-  "status": "SUBMITTED",
-  "submittedAt": "2026-06-05T21:00:00"
-}
-```
-
-## File API, 보강/2차
-
-미션 완료 인증 사진을 직접 API 서버로 업로드하지 않고, 업로드 URL을 발급받아 사용하는 방식의 초안입니다.
-
-### 미션 인증 사진 업로드 URL 발급
-
-```http
-POST /api/files/mission-evidence/upload-url
-Authorization: Bearer {childAccessToken}
-Content-Type: application/json
-```
-
-요청:
-
-```json
-{
-  "missionId": 1000,
-  "fileName": "math-page.jpg",
-  "contentType": "image/jpeg"
-}
-```
-
-응답:
-
-```json
-{
-  "uploadUrl": "https://example.com/upload/mission-1000",
-  "fileUrl": "https://example.com/evidence/mission-1000.jpg",
-  "expiresIn": 300
-}
-```
+`reward-payment-{missionId}` 멱등키로 transfer-service에 송금을 요청한다.
 
 ## Cashbook API
 
-### 자녀 캐시북 요약
+### GET /api/cashbook/children/{childUserId}/summary
 
-```http
-GET /api/cashbook/children/{childUserId}/summary
-Authorization: Bearer {accessToken}
-```
+자녀 지갑 잔액과 지급 완료 미션 요약을 조회한다.
 
-응답:
+### GET /api/cashbook/children/{childUserId}/entries
 
-```json
-{
-  "childUserId": 2,
-  "childName": "민준",
-  "walletId": 200,
-  "balance": 17000,
-  "weeklyEarned": 7000,
-  "completedMissionCount": 3
-}
-```
+자녀의 최근 돈 기록을 조회한다.
 
-권한:
+## Ledger API
 
-- 자녀 본인
-- 연결된 부모
+### GET /api/ledger/entries
 
-### 자녀 캐시북 내역
+내 원장 기록을 조회한다.
 
-```http
-GET /api/cashbook/children/{childUserId}/entries
-Authorization: Bearer {accessToken}
-```
+### GET /api/ledger/entries/{entryId}
 
-응답:
+원장 상세를 조회한다.
 
-```json
-{
-  "entries": [
-    {
-      "entryId": 1,
-      "title": "수학 문제집 3쪽",
-      "description": "미션 보상",
-      "amount": 3000,
-      "type": "EARNED",
-      "createdAt": "2026-06-05T20:40:00"
-    }
-  ]
-}
-```
+## Internal APIs
 
-### 자녀 캐시북 지출 기록
+외부에 노출하지 않는다.
 
-보강/2차 API입니다.
-자녀가 보상금을 어디에 썼는지 기록하기 위한 기능이며, 우선은 캐시북 기록만 남깁니다.
-실제 wallet 차감은 출금/소비 도메인으로 분리해 별도 정책을 확정합니다.
-
-```http
-POST /api/cashbook/children/{childUserId}/entries
-Authorization: Bearer {childAccessToken}
-Content-Type: application/json
-```
-
-요청:
-
-```json
-{
-  "title": "간식 사기",
-  "amount": 1500,
-  "description": "편의점 간식",
-  "type": "SPENT"
-}
-```
-
-응답:
-
-```json
-{
-  "entryId": 2,
-  "title": "간식 사기",
-  "amount": -1500,
-  "type": "SPENT",
-  "createdAt": "2026-06-05T21:20:00"
-}
-```
-
-## Parent History API, 보강/2차
-
-### 부모 지급/정산 내역
-
-```http
-GET /api/parent-history/rewards
-Authorization: Bearer {parentAccessToken}
-```
-
-응답:
-
-```json
-{
-  "monthlyRewardPaid": 12000,
-  "items": [
-    {
-      "historyId": 1,
-      "title": "민준 미션 보상",
-      "amount": -3000,
-      "status": "PAID",
-      "recordedInLedger": true,
-      "createdAt": "2026-06-05T20:40:00"
-    }
-  ],
-  "settlement": {
-    "status": "PENDING",
-    "message": "일별 보상 지급 합계 정산 처리 예정"
-  }
-}
-```
-
-## Notification API, 보강/2차
-
-### 안 읽은 알림 개수 조회
-
-```http
-GET /api/notifications/unread-count
-Authorization: Bearer {accessToken}
-```
-
-응답:
-
-```json
-{
-  "unreadCount": 3
-}
-```
-
-### 알림 목록 조회
-
-```http
-GET /api/notifications
-Authorization: Bearer {accessToken}
-```
-
-응답:
-
-```json
-{
-  "notifications": [
-    {
-      "notificationId": 1,
-      "title": "민준이가 미션을 제출했어요",
-      "body": "수학 문제집 3쪽",
-      "type": "MISSION_SUBMITTED",
-      "read": false,
-      "createdAt": "2026-06-05T20:30:00"
-    }
-  ]
-}
-```
-
-### 알림 읽음 처리
-
-```http
-PATCH /api/notifications/{notificationId}/read
-Authorization: Bearer {accessToken}
-```
-
-응답:
-
-```json
-{
-  "notificationId": 1,
-  "read": true
-}
-```
-
-### 모든 알림 읽음 처리
-
-```http
-PATCH /api/notifications/read-all
-Authorization: Bearer {accessToken}
-```
-
-응답:
-
-```json
-{
-  "updatedCount": 3
-}
-```
-
-## Settings API, 보강/2차
-
-### 내 프로필 조회
-
-```http
-GET /api/settings/profile
-Authorization: Bearer {accessToken}
-```
-
-응답:
-
-```json
-{
-  "userId": 1,
-  "name": "지훈",
-  "phoneNumber": "01012345678",
-  "role": "PARENT",
-  "familyCount": 2,
-  "dummyDataMode": false
-}
-```
-
-### 내 프로필 수정
-
-```http
-PATCH /api/settings/profile
-Authorization: Bearer {accessToken}
-Content-Type: application/json
-```
-
-요청:
-
-```json
-{
-  "name": "지훈",
-  "phoneNumber": "01087654321"
-}
-```
-
-응답:
-
-```json
-{
-  "userId": 1,
-  "name": "지훈",
-  "phoneNumber": "01087654321",
-  "role": "PARENT",
-  "status": "ACTIVE"
-}
-```
-
-### 알림 설정 조회
-
-```http
-GET /api/settings/notification-preferences
-Authorization: Bearer {accessToken}
-```
-
-응답:
-
-```json
-{
-  "missionSubmitted": true,
-  "missionApproved": true,
-  "missionRejected": true,
-  "chargeCompleted": true
-}
-```
-
-### 알림 설정 변경
-
-```http
-PATCH /api/settings/notification-preferences
-Authorization: Bearer {accessToken}
-Content-Type: application/json
-```
-
-요청:
-
-```json
-{
-  "missionSubmitted": true,
-  "missionApproved": true,
-  "missionRejected": true,
-  "chargeCompleted": false
-}
-```
-
-응답:
-
-```json
-{
-  "missionSubmitted": true,
-  "missionApproved": true,
-  "missionRejected": true,
-  "chargeCompleted": false
-}
-```
-
-### 가족 연결 해제
-
-```http
-DELETE /api/families/{familyId}
-Authorization: Bearer {accessToken}
-```
-
-응답: `204 No Content`
-
-### 로그아웃
-
-JWT를 서버에서 무효화하지 않는 정책이면 클라이언트에서 토큰만 삭제합니다. 서버 블랙리스트를 사용할 경우 아래 API를 구현합니다.
-
-```http
-POST /api/users/logout
-Authorization: Bearer {accessToken}
-```
-
-응답: `204 No Content`
-
-## 추가 상태 값
-
-백엔드 내부 enum은 영어 값을 사용하고, 프론트 화면에는 한국어 라벨로 변환해서 표시합니다.
-
-### MissionStatus
-
-| 값 | 화면 라벨 | 설명 |
-|---|---|---|
-| REGISTERED | 등록 완료 | 부모가 미션을 등록함 |
-| SUBMITTED | 제출 완료 | 자녀가 완료 인증을 제출함 |
-| REJECTED | 반려됨 | 부모가 제출을 반려함 |
-| PAID | 지급 완료 | 부모 승인 후 보상 지급 완료 |
-| CANCELED | 취소됨 | 부모가 미션을 취소함 |
-
-### FamilyLinkStatus
-
-| 값 | 화면 라벨 | 설명 |
-|---|---|---|
-| ACTIVE | 사용 가능 | 초대 코드 사용 가능 |
-| PENDING | 요청 완료 | 자녀가 연결 요청을 보냄 |
-| CONNECTED | 연결 완료 | 부모가 연결 승인 |
-| REJECTED | 거절됨 | 부모가 연결 거절 |
-| EXPIRED | 만료됨 | 초대 코드 만료 |
-
-### ChargeStatus, 화면 표시용
-
-화면은 아래처럼 단순한 충전 상태를 사용한다.
-
-| 값 | 화면 라벨 | 설명 |
-|---|---|---|
-| REQUESTED | 요청 완료 | 충전 요청 생성 |
-| PROCESSING | 처리 중 | 은행망 또는 wallet 반영 처리 중 |
-| COMPLETED | 완료 | 충전 완료 |
-| FAILED | 실패 | 충전 실패 |
-| UNKNOWN | 확인 필요 | 결과조회 또는 운영자 확인 필요 |
-| RETRY_REQUIRED | 재처리 필요 | 은행 성공 후 wallet 반영 재처리 필요 |
-
-### BankingTransferStatus, 서버 enum
-
-서버는 충전/출금의 세부 상태를 `BankingTransferStatus`로 저장한다.
-
-| 값 | 화면 라벨 | 설명 |
-|---|---|---|
-| REQUESTED | 요청 완료 | 충전/출금 요청 생성 |
-| BANK_REQUESTED | 처리 중 | 오픈뱅킹 또는 mock PG 요청 직전/요청 중 |
-| BANK_PROCESSING | 처리 중 | 은행망 처리 중 또는 결과조회 대기 |
-| BANK_SUCCEEDED | 은행 성공 | 은행 거래 성공 확정, wallet 반영 전 |
-| WALLET_REFLECTING | 반영 중 | wallet-service 입금 반영 중 |
-| COMPLETED | 완료 | 은행 성공과 wallet 반영 완료 |
-| FAILED | 실패 | 은행 거래 실패 또는 wallet 반영 전 실패 |
-| UNKNOWN | 확인 필요 | timeout/응답 미수신으로 결과조회 필요 |
-| BANK_SUCCESS_BUT_WALLET_FAILED | 재처리 필요 | 은행 성공 후 wallet-service 입금 반영 실패 |
-
-서버 상태와 화면 상태 매핑:
-
-| BankingTransferStatus | ChargeStatus |
-|---|---|
-| REQUESTED | REQUESTED |
-| BANK_REQUESTED | PROCESSING |
-| BANK_PROCESSING | PROCESSING |
-| BANK_SUCCEEDED | PROCESSING |
-| WALLET_REFLECTING | PROCESSING |
-| COMPLETED | COMPLETED |
-| FAILED | FAILED |
-| UNKNOWN | UNKNOWN |
-| BANK_SUCCESS_BUT_WALLET_FAILED | RETRY_REQUIRED |
-
-### WithdrawalStatus
-
-| 값 | 화면 라벨 | 설명 |
-|---|---|---|
-| REQUESTED | 요청 완료 | 출금 요청 생성 |
-| PROCESSING | 처리 중 | 지갑 차감 또는 은행망 입금이체 처리 중 |
-| COMPLETED | 완료 | 출금 완료 |
-| FAILED | 실패 | 출금 실패 |
-| UNKNOWN | 확인 필요 | timeout/응답 미수신으로 결과조회 필요 |
-| COMPENSATION_REQUIRED | 보상 필요 | 지갑 차감 후 외부 입금이체 실패로 보상 처리 필요 |
-
-## 프론트 더미데이터 모드 참고
-
-`sample-react`는 API 없이 화면을 확인할 수 있도록 더미데이터 모드를 제공합니다.
-
-```bash
-EXPO_PUBLIC_USE_DUMMY_DATA=true
-```
-
-API 연동 모드로 전환하려면:
-
-```bash
-EXPO_PUBLIC_USE_DUMMY_DATA=false
-EXPO_PUBLIC_API_BASE_URL=http://localhost:8080
+```text
+POST /internal/wallets
+POST /internal/wallets/{userId}/credit
+POST /internal/wallets/{userId}/debit
+GET  /internal/users/{userId}
+POST /internal/ledger/entries
 ```

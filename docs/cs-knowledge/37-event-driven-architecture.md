@@ -169,7 +169,7 @@ transfer-service -> TransferCompleted -> Kafka -> ledger-service
 - PayFlow에서 송금과 원장 기록을 이벤트로 분리하는 이유는 무엇인가
 - 이벤트 기반 시스템에서 관측성이 중요한 이유는 무엇인가
 
-## 실무 설계 보강
+## 실무 설계 참고
 
 ### 대표 장애 시나리오
 

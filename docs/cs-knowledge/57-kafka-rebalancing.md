@@ -24,7 +24,7 @@ Rebalancing은 Consumer Group 안에서 Partition 할당을 다시 조정하는 
 - Rebalancing 중 메시지 처리가 지연될 수 있는 이유는 무엇인가
 - Rebalancing과 Consumer 멱등성은 어떤 관계가 있는가
 
-## 실무 설계 보강
+## 실무 설계 참고
 
 ### 대표 장애 시나리오
 

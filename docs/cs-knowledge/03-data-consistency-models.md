@@ -147,7 +147,7 @@ Eventual Consistency는 정합성을 포기하는 것이 아니다.
 - Kafka 이벤트 처리에서 Causal Consistency가 중요한 이유는 무엇인가
 - Eventual Consistency를 안전하게 운영하려면 어떤 장치가 필요한가
 
-## 실무 설계 보강
+## 실무 설계 참고
 
 ### 대표 장애 시나리오
 

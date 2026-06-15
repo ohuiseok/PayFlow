@@ -1,188 +1,83 @@
 # 15. Local And Deploy
 
-이 문서는 로컬 실행과 EC2 배포 전략이다.
+로컬 환경은 MVP 서비스를 빠르게 실행하고 테스트하는 데 집중한다.
 
-## 로컬 실행
+## Local Services
 
-로컬에 MySQL이 이미 있는 경우:
+MySQL
 
-```bash
-docker compose -f docker-compose.infra.yml up -d redis kafka
-```
+api-gateway
 
-로컬 MySQL을 사용하지 않고 Docker MySQL을 쓰는 경우:
+user-service
 
-```env
-MYSQL_PORT=3307
-```
+wallet-service
 
-```bash
-docker compose -f docker-compose.infra.yml up -d
-```
+banking-service
 
-전체 Docker 실행:
+transfer-service
+
+reward-service
+
+ledger-service
+
+nginx
+
+## Docker Compose
+
+기본 실행:
 
 ```bash
 docker compose up -d
 ```
 
-정산 서비스 포함:
+종료:
 
 ```bash
-docker compose --profile settlement up -d
+docker compose down
 ```
 
-## 로컬 MySQL DB 생성
-
-로컬 MySQL을 사용할 경우 아래 DB를 생성한다.
-
-```sql
-CREATE DATABASE payflow_user;
-CREATE DATABASE payflow_wallet;
-CREATE DATABASE payflow_banking;
-CREATE DATABASE payflow_transfer;
-CREATE DATABASE payflow_reward;
-CREATE DATABASE payflow_ledger;
-CREATE DATABASE payflow_settlement;
-```
-
-계정:
-
-```sql
-CREATE USER 'payflow'@'%' IDENTIFIED BY 'payflow';
-GRANT ALL PRIVILEGES ON payflow_user.* TO 'payflow'@'%';
-GRANT ALL PRIVILEGES ON payflow_wallet.* TO 'payflow'@'%';
-GRANT ALL PRIVILEGES ON payflow_banking.* TO 'payflow'@'%';
-GRANT ALL PRIVILEGES ON payflow_transfer.* TO 'payflow'@'%';
-GRANT ALL PRIVILEGES ON payflow_reward.* TO 'payflow'@'%';
-GRANT ALL PRIVILEGES ON payflow_ledger.* TO 'payflow'@'%';
-GRANT ALL PRIVILEGES ON payflow_settlement.* TO 'payflow'@'%';
-FLUSH PRIVILEGES;
-```
-
-## EC2 배포 기준
-
-기본 사양:
-
-```text
-EC2: t3.large
-RAM: 8GB
-Storage: gp3 30GB 이상
-OS: Ubuntu 22.04 or 24.04
-```
-
-기본 실행 서비스:
-
-```text
-nginx
-api-gateway
-user-service
-wallet-service
-banking-service
-transfer-service
-reward-service
-ledger-service
-mysql
-redis
-kafka
-```
-
-profile 실행:
-
-```text
-settlement-service
-```
-
-## 메모리 기준
-
-기본 실행 제한 합산:
-
-```text
-현재 기본 실행 약 4.8GB
-reward-service 포함 약 5.3GB
-settlement-service 포함 약 5.7GB
-```
-
-주의:
-
-```text
-부하 테스트는 t3.large 단일 인스턴스에서 신뢰하기 어렵다.
-정확한 성능 테스트는 t3.large보다 큰 인스턴스 또는 서비스 분리 환경에서 수행한다.
-```
-
-## Swap 권장
-
-EC2에는 2GB swap을 권장한다.
-
-명령 예시:
+로그 확인:
 
 ```bash
-sudo fallocate -l 2G /swapfile
-sudo chmod 600 /swapfile
-sudo mkswap /swapfile
-sudo swapon /swapfile
+docker compose logs -f api-gateway
 ```
 
-영구 적용:
+## Databases
 
-```bash
-echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
-```
+필요한 database:
 
-## GitHub Actions 배포 방향
+`payflow_user`
 
-`.env`는 Git에 올리지 않는다.
+`payflow_wallet`
 
-GitHub Secrets:
+`payflow_banking`
 
-```text
-EC2_HOST
-EC2_USER
-EC2_SSH_KEY
-MYSQL_ROOT_PASSWORD
-MYSQL_USER
-MYSQL_PASSWORD
-JWT_SECRET
-```
+`payflow_transfer`
 
-배포 흐름:
+`payflow_reward`
 
-```text
-1. main branch push
-2. GitHub Actions에서 각 서비스 bootJar
-3. Docker image build
-4. EC2로 파일 전송 또는 git pull
-5. EC2에서 .env 생성
-6. docker compose up -d --build
-7. health check
-```
+`payflow_ledger`
 
-초기에는 단순 배포로 시작한다.
+## Environment Variables
 
-```bash
-git pull
-docker compose up -d --build
-```
+`SPRING_DATASOURCE_URL`
+
+`SPRING_DATASOURCE_USERNAME`
+
+`SPRING_DATASOURCE_PASSWORD`
+
+`JWT_SECRET`
+
+`SERVICE_BASE_URL`
 
 ## Health Check
 
-각 서비스:
+각 서비스는 `/actuator/health`를 제공한다.
 
-```text
-/actuator/health
-```
+nginx는 api-gateway로 요청을 전달한다.
 
-확인 순서:
+## Deploy Notes
 
-```text
-mysql
-redis
-kafka
-user-service
-wallet-service
-transfer-service
-reward-service
-ledger-service
-api-gateway
-nginx
-```
+포트폴리오 제출용 배포는 단일 VM 또는 로컬 Docker Compose로 충분하다.
+
+README에는 실행 순서, 테스트 명령, 주요 API 호출 예시를 포함한다.

@@ -25,7 +25,7 @@ Spring Boot 웹 서버, Kafka Consumer, Batch Job, 비동기 Outbox Publisher는
 - 외부 API 타임아웃과 스레드 풀은 어떤 관계가 있는가
 - Kafka Consumer 스레드 수를 늘릴 때 조심할 점은 무엇인가
 
-## 실무 설계 보강
+## 실무 설계 참고
 
 ### 대표 장애 시나리오
 

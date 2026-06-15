@@ -169,7 +169,7 @@ Circuit Breaker가 OPEN되면 fallback이 실행된다. fallback은 비즈니스
 - 송금 요청 재시도에 멱등성이 필요한 이유는 무엇인가
 - Circuit Breaker는 어떤 문제를 줄여주는가
 
-## 실무 설계 보강
+## 실무 설계 참고
 
 ### 대표 장애 시나리오
 

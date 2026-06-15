@@ -23,7 +23,7 @@ Consumer Group은 같은 목적을 가진 Consumer들의 묶음이다. 하나의
 - Consumer 수가 Partition 수보다 많으면 어떤 일이 생기는가
 - Group ID를 바꾸면 어떤 영향이 있을 수 있는가
 
-## 실무 설계 보강
+## 실무 설계 참고
 
 ### 대표 장애 시나리오
 

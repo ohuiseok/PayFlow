@@ -143,7 +143,7 @@ FOR UPDATE SKIP LOCKED;
 - Outbox를 써도 Consumer 멱등성이 필요한 이유는 무엇인가
 - Outbox Publisher가 죽으면 시스템은 어떻게 복구할 수 있는가
 
-## 실무 설계 보강
+## 실무 설계 참고
 
 ### 대표 장애 시나리오
 

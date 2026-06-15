@@ -1,167 +1,74 @@
 # 10. Ledger Service
 
-`ledger-service`는 결제 회사 지원용 포트폴리오에서 매우 중요한 서비스다.
+ledger-service는 결제 이벤트를 복식부기 원장으로 기록한다.
 
-목표는 "잔액이 바뀐 근거를 불변 원장으로 남긴다"는 관점을 보여주는 것이다.
+## Scope
 
-## 목표
+송금 원장 기록
 
-구현할 기능:
+보상 지급 원장 기록
 
-```text
-transfer.completed 이벤트 소비
-차변/대변 원장 기록
-sourceEventId 기반 consumer 멱등성 처리
 원장 조회
-원장 합계 검증
-```
 
-## Kafka Consumer
+전표 차대 일치 검증
 
-구독 topic:
+## APIs
 
-```text
-transfer.completed
-transfer.failed
-```
+### POST /internal/ledger/entries
 
-초기에는 `transfer.completed`만 구현해도 된다.
+요청:
 
-## 원장 기록 규칙
+`sourceType`, `sourceId`, `entryType`, `occurredAt`, `lines`
 
-송금 10,000원:
+처리:
 
-```text
-sender wallet   DEBIT   10,000
-receiver wallet CREDIT  10,000
-```
+1. `sourceType`, `sourceId` 중복을 확인한다.
+2. 차변 합계와 대변 합계를 검증한다.
+3. `ledger_entries`를 생성한다.
+4. `ledger_lines`를 생성한다.
 
-주의:
+### GET /ledger/entries
 
-```text
-DEBIT/CREDIT 명칭은 회계 관점에 따라 해석이 달라질 수 있다.
-포트폴리오에서는 "송신자 차감 라인"과 "수신자 증가 라인"을 명확히 설명한다.
-```
+사용자 기준 원장 내역을 조회한다.
 
-대안 명칭:
+### GET /ledger/entries/{entryId}
 
-```text
-OUT
-IN
-```
+전표와 라인 상세를 조회한다.
 
-초기 구현에서는 이해하기 쉬운 `DEBIT`, `CREDIT`을 사용하되 README에 설명한다.
+## Account Codes
 
-## 엔티티
+`USER_WALLET`
 
-### LedgerEntry
+`SYSTEM_CLEARING`
 
-```text
-id
-transferId
-sourceEventId
-entryType
-totalAmount
-createdAt
-```
+`REWARD_EXPENSE`
 
-### LedgerLine
+## Entry Types
 
-```text
-id
-ledgerEntryId
-walletId
-direction
-amount
-createdAt
-```
+`TRANSFER`
 
-### ProcessedEvent
+`REWARD_PAYMENT`
 
-```text
-id
-sourceEventId
-consumerName
-processedAt
-```
+`BANKING_DEPOSIT`
 
-## 처리 흐름
+## Rules
 
-```text
-1. Kafka event 수신
-2. processed_events에서 sourceEventId 조회
-3. 이미 있으면 skip
-4. LedgerEntry 생성
-5. LedgerLine 2개 생성
-6. ProcessedEvent 저장
-7. commit
-```
+같은 source는 한 번만 기록한다.
 
-모든 작업은 하나의 DB 트랜잭션에서 처리한다.
-`sourceEventId`는 transfer-service OutboxEvent의 `eventId`를 그대로 저장한 값이며, `processed_events.source_event_id`에 unique 제약을 둔다.
-Kafka payload와 transfer-service outbox에서는 필드명을 `eventId`로 유지한다.
-ledger-service는 소비한 원천 이벤트 ID를 자기 DB에 저장할 때 `sourceEventId` 또는 `source_event_id`라는 이름으로 저장한다.
+차변 합계와 대변 합계가 다르면 저장하지 않는다.
 
-## 원장 조회 API
+금액은 양수만 허용한다.
 
-### 송금별 원장 조회
+원장 데이터는 수정하지 않는다.
 
-```http
-GET /ledgers/transfers/{transferId}
-```
+## Tests
 
-응답:
+송금 원장 기록 성공
 
-```json
-{
-  "transferId": 1001,
-  "sourceEventId": "uuid",
-  "totalAmount": 10000,
-  "lines": [
-    {
-      "walletId": 1,
-      "direction": "DEBIT",
-      "amount": 10000
-    },
-    {
-      "walletId": 2,
-      "direction": "CREDIT",
-      "amount": 10000
-    }
-  ]
-}
-```
+보상 지급 원장 기록 성공
 
-## 검증 규칙
+같은 source 재요청 시 기존 전표 반환
 
-원장 한 건은 반드시 line 2개를 가진다.
+차대 불일치 저장 실패
 
-```text
-sender line amount == receiver line amount
-totalAmount == line amount
-sourceEventId unique
-transferId unique 또는 중복 방지
-```
-
-## 구현 순서
-
-1. 엔티티 작성
-2. Repository 작성
-3. TransferCompletedEvent DTO 작성
-4. ProcessedEventRepository 작성
-5. LedgerApplicationService 작성
-6. Kafka Consumer 작성
-7. 조회 API 작성
-8. 테스트 작성
-
-## 테스트
-
-필수 테스트:
-
-```text
-transfer.completed 이벤트 수신 시 원장 기록
-line 2개 생성 확인
-sourceEventId 중복 소비 시 skip
-원장 조회 성공
-잘못된 amount 이벤트 실패
-```
+사용자 원장 조회 성공

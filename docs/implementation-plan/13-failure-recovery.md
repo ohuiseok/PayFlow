@@ -1,214 +1,77 @@
 # 13. Failure Recovery
 
-이 문서는 장애와 복구 시나리오를 정의한다.
+MVP의 장애 복구는 상태값, 멱등키, 거래 이력으로 설명한다.
 
-결제 포트폴리오는 정상 동작보다 장애 상황 설명이 더 중요하다.
+## Common Rules
 
-## 주요 장애 시나리오
+외부 호출 전후 상태를 저장한다.
 
-### 1. 동일 요청 반복
+재시도 가능한 요청은 같은 멱등키를 사용한다.
 
-상황:
+중복 반영 방지는 각 거래 테이블의 unique 제약으로 보장한다.
 
-```text
-사용자가 송금 버튼을 여러 번 누름
-네트워크 재시도로 같은 요청이 반복됨
-```
+실패 사유는 `failure_reason`에 남긴다.
 
-대응:
+## Banking Deposit
 
-```text
-Idempotency-Key로 한 번만 처리
-완료된 요청은 기존 응답 반환
-```
+은행 처리 실패:
 
-### 2. 같은 지갑 동시 송금
+`banking_transfers.status = FAILED`
 
-상황:
+지갑 입금 실패:
 
-```text
-잔액 10,000원 지갑에서 동시에 10,000원 송금 2건
-```
+`banking_transfers.status = FAILED`
 
-대응:
+재시도:
 
-```text
-Redis lock
-wallet-service DB row lock
-잔액 부족 실패
-```
+같은 `idempotency_key`와 같은 요청 본문이면 기존 결과를 반환한다.
 
-검증:
+## Transfer
 
-```text
-성공 1건
-실패 1건
-잔액 음수 없음
-```
+출금 전 실패:
 
-### 3. wallet-service 장애
+`transfers.status = FAILED`
 
-상황:
+출금 후 입금 실패:
 
-```text
-transfer-service가 wallet-service 호출 실패
-```
+`debit_wallet_transaction_id`를 남기고 `FAILED`로 저장한다.
 
-대응:
+재시도:
 
-```text
-CircuitBreaker
-Timeout
-Transfer FAILED
-failureReason 저장
-```
+같은 `idempotency_key`와 같은 요청 본문이면 기존 결과를 반환한다.
 
-### 4. sender 차감 성공, receiver 증가 실패
+## Reward Payment
 
-상황:
+보상 지급 전 실패:
 
-```text
-송신자 지갑 차감 성공
-수신자 지갑 증가 실패
-```
+미션 상태는 `APPROVED`를 유지한다.
 
-1차 대응:
+송금 성공 후 상태 저장 실패:
 
-```text
-Transfer COMPENSATION_REQUIRED
-failureReason 저장
-운영자 확인 필요 상태로 둠
-```
+`reward-payment-{missionId}` 멱등키로 송금 결과를 다시 조회하거나 지급 API를 재시도한다.
 
-2차 대응:
+보상 지급 완료:
 
-```text
-보상 입금 호출
-성공 시 ROLLED_BACK
-실패 시 ROLLBACK_FAILED
-```
+`paid_transfer_id`를 저장하고 `PAID`로 변경한다.
 
-초기 구현에서는 1차 대응을 먼저 구현한다.
+## Ledger
 
-### 5. DB 저장 성공, Kafka 발행 실패
+원장 기록 실패:
 
-대응:
+원천 거래의 성공 상태는 유지한다.
 
-```text
-Transactional Outbox Pattern
-OutboxEvent READY 상태 유지
-Publisher 재시도
-```
+같은 `source_type`, `source_id`로 다시 요청하면 중복 전표가 생기지 않는다.
 
-### 6. Kafka 중복 이벤트
+## Tests
 
-대응:
+충전 은행 실패
 
-```text
-consumer별 processed_events 테이블
-sourceEventId unique
-이미 처리한 이벤트 skip
-```
+충전 지갑 반영 실패
 
-### 6-1. Kafka consumer 반복 실패와 DLQ
+송금 출금 전 실패
 
-상황:
+송금 출금 후 입금 실패
 
-```text
-transfer.completed 이벤트는 발행됐지만 ledger-service consumer가 계속 실패
-consumer 재시도 후에도 원장 기록 불가
-```
+보상 지급 재시도
 
-대응:
-
-```text
-consumer retry 한도 적용
-한도 초과 시 *.dlq topic으로 원본 이벤트와 실패 원인 발행
-DLQ payload에 eventId, originalTopic, consumerGroup, attempts, failureReason 저장
-운영자 또는 재처리 API가 DLQ 이벤트를 기준으로 원인 확인 후 재처리
-```
-
-검증:
-
-```text
-일시 실패는 retry 후 성공
-반복 실패는 DLQ에 남음
-DLQ로 이동해도 원본 eventId 기준 consumer 멱등성은 유지
-```
-
-### 7. transfer-service 재시작
-
-상황:
-
-```text
-PROCESSING 상태로 남은 송금
-READY 상태의 outbox event
-```
-
-대응:
-
-```text
-PROCESSING 상태 점검 배치 또는 관리 API
-READY outbox event 재발행
-```
-
-초기 구현:
-
-```text
-READY outbox 재발행까지만 구현
-PROCESSING 복구는 5분 이상 stale 기준으로 문서화하고, 자동 복구는 후순위
-```
-
-### 8. reward-service 승인 재시도
-
-상황:
-
-```text
-부모가 승인 버튼을 여러 번 누름
-reward-service가 transfer-service 호출 후 응답을 받기 전에 timeout
-PAYMENT_PENDING 상태에서 사용자가 다시 승인 요청
-```
-
-대응:
-
-```text
-reward-service는 이미 PAID인 미션을 다시 지급하지 않는다.
-transfer-service 호출에는 reward-payment-{missionSubmissionId} Idempotency-Key를 사용한다.
-PAYMENT_PENDING 재시도도 같은 Idempotency-Key를 사용한다.
-transferId와 paidAt을 저장해 캐시북 수입 기록, 미션 캘린더 상태, 지급 결과를 연결한다.
-```
-
-## Resilience4j 설정 기준
-
-초기값:
-
-```text
-failure-rate-threshold: 50
-minimum-number-of-calls: 5
-wait-duration-in-open-state: 5s
-sliding-window-size: 10
-timeout-duration: 3s
-retry max-attempts: 2 or 3
-```
-
-주의:
-
-```text
-변경 요청에 무조건 retry를 걸면 중복 처리 위험이 있다.
-wallet-service API는 referenceId 기반 멱등성을 가져야 retry가 안전하다.
-```
-
-## 테스트 시나리오
-
-반드시 자동화할 테스트:
-
-```text
-동일 Idempotency-Key 100회 요청 -> 차감 1회
-같은 지갑 동시 송금 30건 -> 잔액 음수 없음
-wallet-service down -> Transfer FAILED
-sender 차감 성공 후 receiver 증가 실패 -> COMPENSATION_REQUIRED
-Outbox publisher 실패 -> READY 유지 또는 retryCount 증가
-Kafka 중복 이벤트 -> ledger 1회만 기록
-Kafka consumer 반복 실패 -> DLQ에 원본 이벤트와 실패 원인 저장
-reward-service 승인 재시도 -> 아이 지갑 지급 1회
-```
+원장 기록 중복 요청

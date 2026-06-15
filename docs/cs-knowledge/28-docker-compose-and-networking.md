@@ -24,7 +24,7 @@ PayFlow는 `api-gateway`, `user-service`, `wallet-service`, `transfer-service`, 
 - `depends_on`만으로 DB 준비 완료를 보장할 수 없는 이유는 무엇인가
 - 내부 서비스 포트를 외부에 모두 열면 어떤 문제가 생기는가
 
-## 실무 설계 보강
+## 실무 설계 참고
 
 ### 대표 장애 시나리오
 

@@ -24,7 +24,7 @@
 - 정산 기준일이 바뀌면 어떤 문제가 생기는가
 - 날짜 조회에서 `start <= time < end` 방식이 유리한 이유는 무엇인가
 
-## 실무 설계 보강
+## 실무 설계 참고
 
 ### 대표 장애 시나리오
 
@@ -58,7 +58,7 @@ createdAt fields, settlement batch date range, application timezone
 
 48, 50, 52
 
-## 심화 보강
+## 심화 참고
 
 ### 시간 모델을 나누어 생각하기
 

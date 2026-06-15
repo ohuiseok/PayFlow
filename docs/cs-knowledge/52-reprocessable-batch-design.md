@@ -26,7 +26,7 @@
 - 중복 정산을 막으려면 어떤 제약이 필요한가
 - 배치 실행 ID는 왜 유용한가
 
-## 실무 설계 보강
+## 실무 설계 참고
 
 ### 대표 장애 시나리오
 
@@ -60,7 +60,7 @@ settlement batch execution table, settlement target/result table
 
 40, 48, 50
 
-## 심화 보강
+## 심화 참고
 
 ### 재처리 가능한 배치의 핵심 조건
 

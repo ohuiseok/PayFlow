@@ -161,7 +161,7 @@ PayFlow에서는 Nginx가 앞단 Reverse Proxy 역할을 하고, API Gateway가 
 - Gateway에 비즈니스 로직을 많이 넣으면 어떤 문제가 생기는가
 - 내부 서비스가 Gateway를 통과한 요청만 신뢰하게 하려면 무엇이 필요한가
 
-## 실무 설계 보강
+## 실무 설계 참고
 
 ### 대표 장애 시나리오
 

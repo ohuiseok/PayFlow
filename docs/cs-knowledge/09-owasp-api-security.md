@@ -181,7 +181,7 @@ PayFlow에서 중요한 취약점은 BOLA, 즉 Broken Object Level Authorization
 - 요청자가 보낸 `userId`를 그대로 믿으면 왜 위험한가
 - 결제 API에서 Rate Limit이 필요한 이유는 무엇인가
 
-## 실무 설계 보강
+## 실무 설계 참고
 
 ### 대표 장애 시나리오
 

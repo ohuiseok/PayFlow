@@ -166,7 +166,7 @@ Outbox Publisher가 미발행 이벤트를 반복 조회한다면, `status`, `cr
 - Outbox 조회 쿼리에 인덱스가 없으면 어떤 문제가 생기는가
 - Full Table Scan은 항상 나쁜가
 
-## 실무 설계 보강
+## 실무 설계 참고
 
 ### 대표 장애 시나리오
 
