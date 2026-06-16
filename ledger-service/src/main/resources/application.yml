@@ -14,9 +14,7 @@ spring:
     consumer:
       group-id: ledger-service
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
-      properties:
-        spring.json.trusted.packages: com.payflow.transfer.event,com.payflow.ledger.event
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
   jpa:
     hibernate:
       ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:update}
@@ -33,3 +31,6 @@ management:
   endpoint:
     health:
       show-details: always
+
+topics:
+  transfer-completed: ${TRANSFER_COMPLETED_TOPIC:transfer.completed}

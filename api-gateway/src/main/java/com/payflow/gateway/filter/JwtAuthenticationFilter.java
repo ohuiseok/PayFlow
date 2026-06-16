@@ -36,9 +36,13 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+        // 외부 클라이언트가 X-User-Id 같은 내부 신뢰 헤더를 직접 보낼 수 있으므로 먼저 제거한다.
+        // 이후 JWT 검증에 성공한 값만 게이트웨이가 다시 넣어 하위 서비스로 전달한다.
         ServerHttpRequest sanitizedRequest = removeUserHeaders(exchange.getRequest());
         ServerWebExchange sanitizedExchange = exchange.mutate().request(sanitizedRequest).build();
 
+        // 회원가입/로그인/헬스체크는 토큰이 없어야 접근 가능하다.
+        // 이 외의 API는 모두 Authorization: Bearer {token}을 요구한다.
         if (isPublicRequest(sanitizedRequest)) {
             return chain.filter(sanitizedExchange);
         }
@@ -46,6 +50,8 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         try {
             String token = resolveToken(sanitizedRequest);
             AuthenticatedUser user = jwtTokenProvider.parse(token);
+            // 하위 서비스는 JWT 라이브러리를 몰라도 된다.
+            // 게이트웨이가 검증한 사용자 정보를 헤더로 전달하면 서비스들은 이 헤더를 권한 판단 입력으로 사용한다.
             ServerHttpRequest authenticatedRequest = sanitizedRequest.mutate()
                     .header(X_USER_ID, String.valueOf(user.userId()))
                     .header(X_USER_PHONE_NUMBER, user.phoneNumber())
@@ -63,6 +69,8 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     }
 
     private ServerHttpRequest removeUserHeaders(ServerHttpRequest request) {
+        // 보안 경계에서 가장 먼저 해야 할 일은 "클라이언트가 조작 가능한 신뢰 정보"를 버리는 것이다.
+        // 특히 X-Internal-* 헤더는 서비스 간 호출 여부를 나타내므로 외부에서 들어온 값은 절대 신뢰하면 안 된다.
         return request.mutate()
                 .headers(headers -> {
                     headers.remove(X_USER_ID);
@@ -84,6 +92,8 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     }
 
     private String resolveToken(ServerHttpRequest request) {
+        // Authorization 헤더는 "Bearer " 접두어를 사용한다.
+        // 접두어가 없거나 토큰이 없으면 JWT 파싱을 시도하지 않고 인증 실패로 처리한다.
         String authorization = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
         if (authorization == null || !authorization.startsWith(BEARER_PREFIX)) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED);
@@ -92,6 +102,8 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     }
 
     private Mono<Void> writeError(ServerHttpResponse response, ErrorCode errorCode, String message) {
+        // Spring Cloud Gateway는 WebFlux 기반이라 응답도 Mono<Void>로 비동기 작성한다.
+        // 필터에서 예외를 그대로 던지기보다 여기서 JSON 에러 응답을 직접 만들어 클라이언트 형식을 맞춘다.
         ErrorResponse errorResponse = ErrorResponse.of(errorCode, message);
         response.setStatusCode(errorCode.getStatus());
         response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
@@ -108,6 +120,8 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     }
 
     private String escapeJson(String value) {
+        // 직접 JSON 문자열을 만들고 있으므로 따옴표와 역슬래시는 반드시 escape해야 한다.
+        // ObjectMapper를 사용하면 더 안전하지만, 현재 구조에서는 최소한의 JSON 깨짐을 방지한다.
         return value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 }

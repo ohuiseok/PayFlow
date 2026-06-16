@@ -54,6 +54,7 @@ public class WalletTransaction {
     private LocalDateTime createdAt;
 
     protected WalletTransaction() {
+        // JPA 전용 기본 생성자다. 거래 내역은 반드시 아래 생성자로 필요한 값을 모두 받아 만들어야 한다.
     }
 
     public WalletTransaction(
@@ -64,6 +65,8 @@ public class WalletTransaction {
             String referenceType,
             String referenceId
     ) {
+        // referenceType/referenceId는 지갑 거래의 원인 업무를 가리키는 멱등성 키 역할을 한다.
+        // DB unique 제약과 함께 사용해 같은 송금/충전 이벤트가 여러 번 반영되는 일을 막는다.
         this.wallet = wallet;
         this.transactionType = transactionType;
         this.amount = amount;

@@ -17,7 +17,7 @@ spring:
     bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
     consumer:
       group-id: transfer-service
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
@@ -35,6 +35,17 @@ spring:
 feign:
   circuitbreaker:
     enabled: true
+
+clients:
+  wallet-service:
+    url: ${WALLET_SERVICE_URI:http://localhost:8082}
+
+internal:
+  secret: ${INTERNAL_SECRET:payflow-internal-local-secret}
+
+topics:
+  transfer-completed: ${TRANSFER_COMPLETED_TOPIC:transfer.completed}
+  transfer-failed: ${TRANSFER_FAILED_TOPIC:transfer.failed}
 
 resilience4j:
   circuitbreaker:
