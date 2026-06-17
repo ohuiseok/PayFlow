@@ -1,0 +1,36 @@
+server:
+  port: ${SERVER_PORT:8087}
+
+spring:
+  application:
+    name: reward-service
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/payflow_reward?serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
+    username: ${SPRING_DATASOURCE_USERNAME:payflow}
+    password: ${SPRING_DATASOURCE_PASSWORD:payflow}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:update}
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+
+clients:
+  transfer-service:
+    url: ${TRANSFER_SERVICE_URL:http://localhost:8083}
+  wallet-service:
+    url: ${WALLET_SERVICE_URL:http://localhost:8082}
+
+internal:
+  secret: ${INTERNAL_SERVICE_SECRET:}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always

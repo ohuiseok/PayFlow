@@ -92,6 +92,7 @@ services:
       USER_SERVICE_URI: http://user-service:8081
       WALLET_SERVICE_URI: http://wallet-service:8082
       BANKING_SERVICE_URI: http://banking-service:8086
+      REWARD_SERVICE_URI: http://reward-service:8087
       TRANSFER_SERVICE_URI: http://transfer-service:8083
       LEDGER_SERVICE_URI: http://ledger-service:8084
       SETTLEMENT_SERVICE_URI: http://settlement-service:8085
@@ -200,6 +201,29 @@ services:
     networks:
       - payflow-network
     mem_limit: ${TRANSFER_MEM_LIMIT:-640m}
+    restart: unless-stopped
+
+  reward-service:
+    build:
+      context: ./reward-service
+    container_name: ${PROJECT_NAME:-payflow}-reward-service
+    environment:
+      JAVA_TOOL_OPTIONS: ${REWARD_JAVA_OPTS:--Xms128m -Xmx512m}
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${REWARD_DB_NAME:-payflow_reward}?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_USER}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
+      TRANSFER_SERVICE_URL: http://transfer-service:8083
+      WALLET_SERVICE_URL: http://wallet-service:8082
+      INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET}
+    ports:
+      - "${REWARD_SERVICE_PORT:-8087}:8087"
+    depends_on:
+      - mysql
+      - transfer-service
+      - wallet-service
+    networks:
+      - payflow-network
+    mem_limit: ${REWARD_MEM_LIMIT:-640m}
     restart: unless-stopped
 
   ledger-service:
