@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -14,10 +15,12 @@ import com.payflow.transfer.client.WalletResponse;
 import com.payflow.transfer.dto.CreateTransferRequest;
 import com.payflow.transfer.entity.TransferStatus;
 import com.payflow.transfer.event.TransferEventPublisher;
+import com.payflow.transfer.lock.DistributedLock;
 import com.payflow.transfer.repository.TransferRepository;
 import com.payflow.transfer.support.error.BusinessException;
 import com.payflow.transfer.support.error.ErrorCode;
 import java.math.BigDecimal;
+import java.time.Duration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,9 +44,13 @@ class TransferServiceTest {
     @MockitoBean
     TransferEventPublisher transferEventPublisher;
 
+    @MockitoBean
+    DistributedLock distributedLock;
+
     @BeforeEach
     void setUp() {
         transferRepository.deleteAll();
+        when(distributedLock.tryLock(any(), any(), any(Duration.class))).thenReturn(true);
         when(walletClient.getWalletByUserId(eq(1L), eq(true), any())).thenReturn(new WalletResponse(10L, 1L, new BigDecimal("10000"), "ACTIVE"));
         when(walletClient.getWalletByUserId(eq(2L), eq(true), any())).thenReturn(new WalletResponse(20L, 2L, BigDecimal.ZERO, "ACTIVE"));
         when(walletClient.withdraw(eq(10L), any(WalletBalanceChangeRequest.class), eq(true), any()))
@@ -62,7 +69,22 @@ class TransferServiceTest {
         assertThat(response.status()).isEqualTo(TransferStatus.SUCCEEDED);
         verify(walletClient).withdraw(eq(10L), any(WalletBalanceChangeRequest.class), eq(true), any());
         verify(walletClient).deposit(eq(20L), any(WalletBalanceChangeRequest.class), eq(true), any());
+        verify(distributedLock).tryLock(eq("transfer:wallet-lock:10"), any(), any(Duration.class));
+        verify(distributedLock).unlock(eq("transfer:wallet-lock:10"), any());
         verify(transferEventPublisher).publishCompleted(any());
+    }
+
+    @Test
+    void createTransferFailsWithoutMovingMoneyWhenSenderWalletLockIsBusy() {
+        when(distributedLock.tryLock(any(), any(), any(Duration.class))).thenReturn(false);
+
+        var response = transferService.createTransfer(new CreateTransferRequest(2L, new BigDecimal("3000")), "key-lock", 1L);
+
+        assertThat(response.status()).isEqualTo(TransferStatus.FAILED);
+        verify(walletClient, never()).withdraw(any(), any(WalletBalanceChangeRequest.class), eq(true), any());
+        verify(walletClient, never()).deposit(any(), any(WalletBalanceChangeRequest.class), eq(true), any());
+        verify(distributedLock, never()).unlock(any(), any());
+        verify(transferEventPublisher).publishFailed(any());
     }
 
     @Test

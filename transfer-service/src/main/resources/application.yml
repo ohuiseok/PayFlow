@@ -47,6 +47,10 @@ topics:
   transfer-completed: ${TRANSFER_COMPLETED_TOPIC:transfer.completed}
   transfer-failed: ${TRANSFER_FAILED_TOPIC:transfer.failed}
 
+transfer:
+  wallet-lock:
+    ttl: ${TRANSFER_WALLET_LOCK_TTL:5s}
+
 resilience4j:
   circuitbreaker:
     instances:

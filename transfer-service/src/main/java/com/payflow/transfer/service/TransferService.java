@@ -6,6 +6,7 @@ import com.payflow.transfer.dto.CreateTransferRequest;
 import com.payflow.transfer.dto.TransferResponse;
 import com.payflow.transfer.entity.Transfer;
 import com.payflow.transfer.event.TransferEventPublisher;
+import com.payflow.transfer.lock.DistributedLock;
 import com.payflow.transfer.repository.TransferRepository;
 import com.payflow.transfer.support.error.BusinessException;
 import com.payflow.transfer.support.error.ErrorCode;
@@ -14,8 +15,10 @@ import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.Duration;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -35,9 +38,13 @@ public class TransferService {
     private final TransferRepository transferRepository;
     private final WalletClient walletClient;
     private final TransferEventPublisher transferEventPublisher;
+    private final DistributedLock distributedLock;
 
     @Value("${internal.secret:}")
     private String internalSecret;
+
+    @Value("${transfer.wallet-lock.ttl:5s}")
+    private Duration walletLockTtl;
 
     @Transactional
     public TransferResponse createTransfer(CreateTransferRequest request, String idempotencyKey, Long senderUserId) {
@@ -93,13 +100,17 @@ public class TransferService {
         // 이후 외부 호출이 실패하더라도 어떤 요청이 어떤 상태로 끝났는지 조회할 수 있어야 장애 분석이 가능하다.
         Transfer transfer = transferRepository.saveAndFlush(new Transfer(senderUserId, receiverUserId, amount, idempotencyKey, requestHash));
         try {
-            // TODO: Guard this money movement with a Redis distributed lock before production use.
-            // Suggested key: transfer:wallet-lock:{senderWalletId}, with short TTL and safe unlock token.
             // userId 기준으로 각 사용자의 지갑을 조회한다. transfer-service는 지갑 DB를 직접 보지 않고 wallet-service API만 사용한다.
             // 이 경계를 지켜야 지갑 잔액의 진실(source of truth)이 wallet-service 하나로 유지된다.
             var senderWallet = walletClient.getWalletByUserId(senderUserId, true, internalSecret);
             var receiverWallet = walletClient.getWalletByUserId(receiverUserId, true, internalSecret);
+            String lockKey = "transfer:wallet-lock:" + senderWallet.walletId();
+            String ownerToken = UUID.randomUUID().toString();
+            if (!distributedLock.tryLock(lockKey, ownerToken, walletLockTtl)) {
+                throw new BusinessException(ErrorCode.WALLET_LOCK_CONFLICT);
+            }
 
+            try {
             // PROCESSING 상태와 실제 walletId를 저장한 뒤 돈을 움직인다.
             // 상태 전이를 남겨 두면 중간 장애가 났을 때 어디까지 진행됐는지 복구 판단이 가능하다.
             transfer.start(senderWallet.walletId(), receiverWallet.walletId());
@@ -134,12 +145,23 @@ public class TransferService {
             transfer.succeed();
             transferEventPublisher.publishCompleted(transfer);
             return TransferResponse.from(transfer);
+            } finally {
+                releaseLockQuietly(lockKey, ownerToken);
+            }
         } catch (RuntimeException exception) {
             // 지갑 조회나 출금 단계에서 실패한 경우다.
             // 돈이 움직이기 전 실패일 수 있으므로 일반 FAILED로 기록하고 실패 이벤트를 발행한다.
             transfer.fail(resolveMessage(exception));
             transferEventPublisher.publishFailed(transfer);
             return TransferResponse.from(transfer);
+        }
+    }
+
+    private void releaseLockQuietly(String lockKey, String ownerToken) {
+        try {
+            distributedLock.unlock(lockKey, ownerToken);
+        } catch (RuntimeException ignored) {
+            // The lock has a short TTL, so unlock failures must not change an already decided transfer result.
         }
     }
 
