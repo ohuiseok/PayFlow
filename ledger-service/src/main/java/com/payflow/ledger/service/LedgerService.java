@@ -2,10 +2,14 @@ package com.payflow.ledger.service;
 
 import com.payflow.ledger.entity.LedgerEntry;
 import com.payflow.ledger.entity.TransferFailureEvent;
+import com.payflow.ledger.dto.TransferFailureEventResponse;
 import com.payflow.ledger.event.TransferCompletedEvent;
 import com.payflow.ledger.event.TransferFailedEvent;
 import com.payflow.ledger.repository.LedgerEntryRepository;
 import com.payflow.ledger.repository.TransferFailureEventRepository;
+import com.payflow.ledger.support.error.BusinessException;
+import com.payflow.ledger.support.error.ErrorCode;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,5 +38,20 @@ public class LedgerService {
     public TransferFailureEvent recordTransferFailure(TransferFailedEvent event) {
         return transferFailureEventRepository.findByTransferId(event.transferId())
                 .orElseGet(() -> transferFailureEventRepository.save(new TransferFailureEvent(event)));
+    }
+
+    @Transactional(readOnly = true)
+    public List<TransferFailureEventResponse> getTransferFailures() {
+        return transferFailureEventRepository.findAllByOrderByCreatedAtDesc()
+                .stream()
+                .map(TransferFailureEventResponse::from)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public TransferFailureEventResponse getTransferFailure(Long transferId) {
+        return transferFailureEventRepository.findByTransferId(transferId)
+                .map(TransferFailureEventResponse::from)
+                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
     }
 }

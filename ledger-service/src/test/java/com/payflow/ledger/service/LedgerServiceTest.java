@@ -1,6 +1,7 @@
 package com.payflow.ledger.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.payflow.ledger.entity.LedgerLineType;
 import com.payflow.ledger.event.TransferCompletedEvent;
@@ -8,6 +9,8 @@ import com.payflow.ledger.event.TransferFailedEvent;
 import com.payflow.ledger.repository.LedgerEntryRepository;
 import com.payflow.ledger.repository.LedgerLineRepository;
 import com.payflow.ledger.repository.TransferFailureEventRepository;
+import com.payflow.ledger.support.error.BusinessException;
+import com.payflow.ledger.support.error.ErrorCode;
 import java.math.BigDecimal;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -65,5 +68,28 @@ class LedgerServiceTest {
         assertThat(failure.getTransferId()).isEqualTo(200L);
         assertThat(failure.getStatus()).isEqualTo("FAILED");
         assertThat(failure.getFailureReason()).isEqualTo("wallet timeout");
+    }
+
+    @Test
+    void getTransferFailureReturnsFailureEvent() {
+        ledgerService.recordTransferFailure(new TransferFailedEvent(200L, 1L, 2L, new BigDecimal("3000"), "FAILED", "wallet timeout"));
+
+        var response = ledgerService.getTransferFailure(200L);
+
+        assertThat(response.transferId()).isEqualTo(200L);
+        assertThat(response.senderUserId()).isEqualTo(1L);
+        assertThat(response.receiverUserId()).isEqualTo(2L);
+        assertThat(response.amount()).isEqualByComparingTo("3000");
+        assertThat(response.status()).isEqualTo("FAILED");
+        assertThat(response.failureReason()).isEqualTo("wallet timeout");
+        assertThat(response.createdAt()).isNotNull();
+    }
+
+    @Test
+    void getTransferFailureThrowsWhenNotFound() {
+        assertThatThrownBy(() -> ledgerService.getTransferFailure(999L))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.RESOURCE_NOT_FOUND);
     }
 }
