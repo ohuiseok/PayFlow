@@ -20,4 +20,9 @@ public class TransferEventConsumer {
         // 컨슈머는 메시지 입출력만 담당하고, 중복 방지와 원장 생성 규칙은 LedgerService에 둔다.
         ledgerService.recordTransfer(objectMapper.readValue(payload, TransferCompletedEvent.class));
     }
+
+    @KafkaListener(topics = "${topics.transfer-failed:transfer.failed}", groupId = "${spring.kafka.consumer.group-id:ledger-service}")
+    public void handleTransferFailed(String payload) throws JsonProcessingException {
+        ledgerService.recordTransferFailure(objectMapper.readValue(payload, TransferFailedEvent.class));
+    }
 }

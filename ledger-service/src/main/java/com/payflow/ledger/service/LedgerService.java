@@ -1,8 +1,11 @@
 package com.payflow.ledger.service;
 
 import com.payflow.ledger.entity.LedgerEntry;
+import com.payflow.ledger.entity.TransferFailureEvent;
 import com.payflow.ledger.event.TransferCompletedEvent;
+import com.payflow.ledger.event.TransferFailedEvent;
 import com.payflow.ledger.repository.LedgerEntryRepository;
+import com.payflow.ledger.repository.TransferFailureEventRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class LedgerService {
 
     private final LedgerEntryRepository ledgerEntryRepository;
+    private final TransferFailureEventRepository transferFailureEventRepository;
 
     @Transactional
     public LedgerEntry recordTransfer(TransferCompletedEvent event) {
@@ -24,5 +28,11 @@ public class LedgerService {
                         event.receiverUserId(),
                         event.amount()
                 )));
+    }
+
+    @Transactional
+    public TransferFailureEvent recordTransferFailure(TransferFailedEvent event) {
+        return transferFailureEventRepository.findByTransferId(event.transferId())
+                .orElseGet(() -> transferFailureEventRepository.save(new TransferFailureEvent(event)));
     }
 }

@@ -34,3 +34,4 @@ management:
 
 topics:
   transfer-completed: ${TRANSFER_COMPLETED_TOPIC:transfer.completed}
+  transfer-failed: ${TRANSFER_FAILED_TOPIC:transfer.failed}

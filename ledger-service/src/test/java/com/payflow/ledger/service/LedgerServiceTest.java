@@ -4,8 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.payflow.ledger.entity.LedgerLineType;
 import com.payflow.ledger.event.TransferCompletedEvent;
+import com.payflow.ledger.event.TransferFailedEvent;
 import com.payflow.ledger.repository.LedgerEntryRepository;
 import com.payflow.ledger.repository.LedgerLineRepository;
+import com.payflow.ledger.repository.TransferFailureEventRepository;
 import java.math.BigDecimal;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,8 +30,12 @@ class LedgerServiceTest {
     @Autowired
     LedgerLineRepository ledgerLineRepository;
 
+    @Autowired
+    TransferFailureEventRepository transferFailureEventRepository;
+
     @BeforeEach
     void setUp() {
+        transferFailureEventRepository.deleteAll();
         ledgerEntryRepository.deleteAll();
     }
 
@@ -46,5 +52,18 @@ class LedgerServiceTest {
         assertThat(entry.getLines()).hasSize(2);
         assertThat(entry.getLines()).extracting("type")
                 .containsExactlyInAnyOrder(LedgerLineType.DEBIT, LedgerLineType.CREDIT);
+    }
+
+    @Test
+    void recordTransferFailureCreatesFailureEventOnce() {
+        var event = new TransferFailedEvent(200L, 1L, 2L, new BigDecimal("3000"), "FAILED", "wallet timeout");
+
+        ledgerService.recordTransferFailure(event);
+        var failure = ledgerService.recordTransferFailure(event);
+
+        assertThat(transferFailureEventRepository.count()).isEqualTo(1);
+        assertThat(failure.getTransferId()).isEqualTo(200L);
+        assertThat(failure.getStatus()).isEqualTo("FAILED");
+        assertThat(failure.getFailureReason()).isEqualTo("wallet timeout");
     }
 }
