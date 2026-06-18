@@ -36,6 +36,8 @@ API Gateway
 
 Infrastructure
   +-- mysql
+  +-- redis
+  +-- kafka
 ```
 
 | 서비스 | 책임 |
@@ -215,3 +217,15 @@ docs/implementation-plan/06-reward-service.md
 docs/implementation-plan/07-open-banking-service.md
 docs/implementation-plan/10-ledger-service.md
 ```
+
+## Current Event Architecture
+
+- Infrastructure now includes MySQL, Redis, and Kafka.
+- `transfer-service` guards sender wallet money movement with Redis lock key `transfer:wallet-lock:{senderWalletId}`.
+- `transfer-service` stores `transfer.completed` and `transfer.failed` in `outbox_events` inside the same DB transaction as transfer state changes.
+- Outbox relay claims events as `PROCESSING`, publishes to Kafka, marks `PUBLISHED`, retries `FAILED`, and recovers stale `PROCESSING` events.
+- `ledger-service` consumes `transfer.completed` idempotently by `transferId` and stores `ledger_entries` plus two `ledger_lines`.
+- `ledger-service` consumes `transfer.failed` idempotently by `transferId` and stores `transfer_failure_events`.
+- Failure tracking APIs:
+  - `GET /api/ledgers/transfer-failures`
+  - `GET /api/ledgers/transfer-failures/{transferId}`

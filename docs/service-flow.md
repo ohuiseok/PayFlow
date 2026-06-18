@@ -54,6 +54,46 @@ GET  /api/transfers/{transferId}
 GET  /api/transfers
 ```
 
+Current implementation:
+
+```text
+Client
+-> transfer-service
+   -> create transfers row as REQUESTED
+   -> acquire Redis lock: transfer:wallet-lock:{senderWalletId}
+   -> call wallet-service sender debit
+   -> call wallet-service receiver credit
+   -> mark transfer SUCCEEDED
+   -> store transfer.completed in outbox_events
+   -> OutboxEventRelay publishes transfer.completed to Kafka
+   -> ledger-service consumes transfer.completed
+      -> deduplicate by transfer_id
+      -> store one ledger_entries row and two ledger_lines rows
+```
+
+Failure event flow:
+
+```text
+transfer-service
+-> mark transfer FAILED or COMPENSATION_REQUIRED
+-> store transfer.failed in outbox_events
+-> OutboxEventRelay publishes transfer.failed to Kafka
+-> ledger-service consumes transfer.failed
+   -> deduplicate by transfer_id
+   -> store transfer_failure_events row with status and failureReason
+```
+
+Outbox relay rules:
+
+```text
+load PENDING/FAILED events
+-> claim as PROCESSING
+-> Kafka publish success: PUBLISHED
+-> Kafka publish failure: FAILED and retryCount + 1
+-> retryCount >= maxRetries: skip publishing
+-> stale PROCESSING: recover to FAILED and allow retry
+```
+
 흐름:
 
 ```text
@@ -141,6 +181,28 @@ reward-service
 ```
 
 ## 7. Ledger
+
+Current implementation:
+
+```text
+transfer.completed Kafka event
+-> ledger-service
+   -> deduplicate by transfer_id
+   -> store ledger_entries row
+   -> store DEBIT/CREDIT ledger_lines rows
+
+transfer.failed Kafka event
+-> ledger-service
+   -> deduplicate by transfer_id
+   -> store transfer_failure_events row
+```
+
+Failure lookup API:
+
+```text
+GET /api/ledgers/transfer-failures
+GET /api/ledgers/transfer-failures/{transferId}
+```
 
 흐름:
 

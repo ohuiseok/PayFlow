@@ -240,3 +240,15 @@ docs/implementation-plan/02-database-and-migration.md
 - [ ] 관련 서비스 `bootJar` 성공
 - [ ] 관련 테스트 성공
 - [ ] 체크리스트 갱신
+# Recent implementation status
+
+- [x] transfer-service Redis sender wallet lock
+- [x] transfer-service transactional outbox table and publisher relay
+- [x] outbox PROCESSING claim and retry limit
+- [x] outbox stale PROCESSING recovery
+- [x] ledger-service idempotent `transfer.completed` consumer verification
+- [x] ledger-service `transfer.failed` consumer and `transfer_failure_events` persistence
+- [x] ledger-service transfer failure lookup APIs
+  - `GET /api/ledgers/transfer-failures`
+  - `GET /api/ledgers/transfer-failures/{transferId}`
+- [x] documentation updated for Kafka/outbox/failure tracking flow

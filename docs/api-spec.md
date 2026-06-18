@@ -28,7 +28,7 @@ PayFlow MVP API는 회원, 지갑, 은행 충전, 송금, 가족 미션 보상, 
 /api/wallets/**   -> wallet-service
 /api/bank/**      -> banking-service
 /api/transfers/** -> transfer-service
-/api/ledger/**    -> ledger-service
+/api/ledgers/**   -> ledger-service
 /api/families/**  -> reward-service
 /api/missions/**  -> reward-service
 /api/cashbook/**  -> reward-service
@@ -278,6 +278,48 @@ Query:
 자녀의 최근 돈 기록을 조회한다.
 
 ## Ledger API
+
+Current implemented ledger APIs:
+
+### GET /api/ledgers/transfer-failures
+
+Returns failure tracking rows stored by ledger-service after consuming `transfer.failed` Kafka events.
+
+Response:
+
+```json
+[
+  {
+    "transferId": 200,
+    "senderUserId": 1,
+    "receiverUserId": 2,
+    "amount": 3000,
+    "status": "FAILED",
+    "failureReason": "wallet timeout",
+    "createdAt": "2026-06-18T21:00:00"
+  }
+]
+```
+
+### GET /api/ledgers/transfer-failures/{transferId}
+
+Returns one failure tracking row by `transferId`.
+
+Response:
+
+```json
+{
+  "transferId": 200,
+  "senderUserId": 1,
+  "receiverUserId": 2,
+  "amount": 3000,
+  "status": "FAILED",
+  "failureReason": "wallet timeout",
+  "createdAt": "2026-06-18T21:00:00"
+}
+```
+
+Planned ledger entry lookup APIs:
 
 ### GET /api/ledger/entries
 

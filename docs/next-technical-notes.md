@@ -1,50 +1,41 @@
 # Next Technical Notes
 
-## Redis Distributed Lock
+## Current Kafka MSA Status
 
-Keep Redis distributed lock as a remaining task for transfer concurrency.
+Current status: transfer-to-ledger is Kafka-driven and protected by transactional outbox.
 
-Target area:
-
-- `transfer-service`
-- Sender wallet money movement in `TransferService.processNewTransfer`
-
-Recommended lock shape:
-
-- Lock key: `transfer:wallet-lock:{senderWalletId}`
-- Value: random owner token
-- TTL: short, for example 3-5 seconds
-- Unlock: compare token before deleting
-- Scope: acquire before wallet withdraw/deposit sequence, release in `finally`
-
-Reason:
-
-- Current wallet-service already uses DB row locking for balance mutation.
-- Transfer-service still needs a service-level guard to prevent duplicated concurrent transfer processing around idempotency and cross-service calls.
-
-## Kafka MSA Status
-
-Current status: transfer-to-ledger is Kafka-driven.
-
-Already present:
+Already implemented:
 
 - Kafka container in `docker-compose.yml`
 - Kafka config/dependencies in `transfer-service`, `ledger-service`, and `settlement-service`
 - Topic plan in `infrastructure/kafka/topics.md`
-- `transfer-service` publishes `transfer.completed` and `transfer.failed`
-- `ledger-service` consumes `transfer.completed`
-
-Not implemented yet:
-
-- Transactional outbox table/publisher
-- Kafka-based wallet money movement saga
-- `transfer.failed` consumer/recovery flow
+- `transfer-service` stores `transfer.completed` and `transfer.failed` in `outbox_events`
+- Outbox relay claims events with `PROCESSING`, publishes to Kafka, marks `PUBLISHED`, and retries `FAILED`
+- Outbox relay recovers stale `PROCESSING` events after `processing-timeout`
+- `ledger-service` consumes `transfer.completed` idempotently by `transferId`
+- `ledger-service` consumes `transfer.failed` idempotently by `transferId`
+- `ledger-service` exposes failure tracking APIs:
+  - `GET /api/ledgers/transfer-failures`
+  - `GET /api/ledgers/transfer-failures/{transferId}`
 
 Current transfer flow:
 
 - API Gateway routes HTTP requests to services.
 - `transfer-service` calls `wallet-service` through OpenFeign HTTP clients for wallet debit/credit.
-- `transfer-service` publishes a Kafka event after successful wallet movement.
-- `ledger-service` records double-entry ledger rows from the Kafka event.
+- Sender wallet money movement is guarded with Redis lock key `transfer:wallet-lock:{senderWalletId}`.
+- `transfer-service` writes transfer state and outbox event intent in the same database transaction.
+- Outbox relay publishes Kafka events.
+- `ledger-service` records double-entry ledger rows from `transfer.completed`.
+- `ledger-service` records failed transfer tracking rows from `transfer.failed`.
 
-So the architecture is now mixed: synchronous HTTP for wallet money movement and Kafka event flow for ledger recording.
+The architecture is still mixed: synchronous HTTP for wallet money movement and Kafka event flow for ledger recording/failure tracking.
+
+## Remaining Technical Work
+
+Recommended next tasks:
+
+- Add observability for outbox lag, retry count, stuck recovery count, and publish failure count.
+- Add recovery workflow for `COMPENSATION_REQUIRED` transfers.
+- Add DLQ strategy for events that exceed outbox max retries.
+- Add integration tests with real Kafka/Redis via Testcontainers.
+- Decide whether wallet money movement should remain synchronous HTTP or evolve into a Kafka-based saga.
