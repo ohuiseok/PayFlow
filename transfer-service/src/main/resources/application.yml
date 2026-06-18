@@ -51,6 +51,11 @@ transfer:
   wallet-lock:
     ttl: ${TRANSFER_WALLET_LOCK_TTL:5s}
 
+outbox:
+  publisher:
+    fixed-delay: ${OUTBOX_PUBLISHER_FIXED_DELAY:2000}
+    send-timeout: ${OUTBOX_PUBLISHER_SEND_TIMEOUT:3s}
+
 resilience4j:
   circuitbreaker:
     instances:

@@ -3,17 +3,18 @@ package com.payflow.transfer.event;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.payflow.transfer.entity.Transfer;
+import com.payflow.transfer.outbox.OutboxEvent;
+import com.payflow.transfer.outbox.OutboxEventRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
 public class TransferEventPublisher {
 
-    private final KafkaTemplate<String, String> kafkaTemplate;
     private final ObjectMapper objectMapper;
+    private final OutboxEventRepository outboxEventRepository;
 
     @Value("${topics.transfer-completed:transfer.completed}")
     private String transferCompletedTopic;
@@ -54,9 +55,9 @@ public class TransferEventPublisher {
 
     private void publish(String topic, String key, Object event) {
         try {
-            // 내부 이벤트 객체를 JSON 문자열로 직렬화해 Kafka에 보낸다.
-            // 서비스 간 이벤트 스키마를 명확히 유지하려면 record 필드 변경도 호환성을 고려해야 한다.
-            kafkaTemplate.send(topic, key, objectMapper.writeValueAsString(event));
+            // 같은 DB 트랜잭션 안에서 이벤트를 outbox에 저장해 송금 상태와 이벤트 발행 의도를 함께 확정한다.
+            // 실제 Kafka 발행은 OutboxEventRelay가 재시도 가능한 방식으로 처리한다.
+            outboxEventRepository.save(new OutboxEvent(topic, key, objectMapper.writeValueAsString(event)));
         } catch (JsonProcessingException exception) {
             throw new IllegalStateException("Failed to serialize transfer event", exception);
         }
