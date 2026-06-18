@@ -198,6 +198,40 @@ Header:
 
 내 송금 목록을 조회한다.
 
+### GET /api/transfers/outbox/summary
+
+Returns operational summary for transfer-service outbox publishing state.
+
+Response:
+
+```json
+{
+  "totalCount": 10,
+  "statusCounts": [
+    {
+      "status": "PENDING",
+      "count": 2
+    },
+    {
+      "status": "PROCESSING",
+      "count": 1
+    },
+    {
+      "status": "PUBLISHED",
+      "count": 6
+    },
+    {
+      "status": "FAILED",
+      "count": 1
+    }
+  ],
+  "retryableFailureCount": 1,
+  "retryExhaustedCount": 0,
+  "oldestPendingEventAgeSeconds": 42,
+  "oldestPendingEventCreatedAt": "2026-06-18T21:00:00"
+}
+```
+
 ## Family API
 
 ### POST /api/families/links

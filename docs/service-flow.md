@@ -94,6 +94,12 @@ load PENDING/FAILED events
 -> stale PROCESSING: recover to FAILED and allow retry
 ```
 
+Outbox monitoring API:
+
+```text
+GET /api/transfers/outbox/summary
+```
+
 흐름:
 
 ```text

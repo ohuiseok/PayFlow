@@ -229,3 +229,5 @@ docs/implementation-plan/10-ledger-service.md
 - Failure tracking APIs:
   - `GET /api/ledgers/transfer-failures`
   - `GET /api/ledgers/transfer-failures/{transferId}`
+- Outbox monitoring API:
+  - `GET /api/transfers/outbox/summary`

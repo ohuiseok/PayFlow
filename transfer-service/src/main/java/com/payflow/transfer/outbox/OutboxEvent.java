@@ -146,6 +146,10 @@ public class OutboxEvent {
         return publishedAt;
     }
 
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
     public LocalDateTime getProcessingStartedAt() {
         return processingStartedAt;
     }

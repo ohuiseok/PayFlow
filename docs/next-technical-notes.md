@@ -17,6 +17,8 @@ Already implemented:
 - `ledger-service` exposes failure tracking APIs:
   - `GET /api/ledgers/transfer-failures`
   - `GET /api/ledgers/transfer-failures/{transferId}`
+- `transfer-service` exposes outbox publishing summary API:
+  - `GET /api/transfers/outbox/summary`
 
 Current transfer flow:
 
@@ -34,7 +36,7 @@ The architecture is still mixed: synchronous HTTP for wallet money movement and 
 
 Recommended next tasks:
 
-- Add observability for outbox lag, retry count, stuck recovery count, and publish failure count.
+- Add metrics/alerts for outbox lag, retry count, stuck recovery count, and publish failure count.
 - Add recovery workflow for `COMPENSATION_REQUIRED` transfers.
 - Add DLQ strategy for events that exceed outbox max retries.
 - Add integration tests with real Kafka/Redis via Testcontainers.
