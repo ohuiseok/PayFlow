@@ -7,6 +7,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.LocalDateTime;
 import java.util.concurrent.CompletableFuture;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,7 +24,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 @ActiveProfiles("test")
 @TestPropertySource(properties = {
         "outbox.publisher.enabled=true",
-        "outbox.publisher.max-retries=2"
+        "outbox.publisher.max-retries=2",
+        "outbox.publisher.processing-timeout=30s"
 })
 class OutboxEventRelayTest {
 
@@ -53,6 +55,7 @@ class OutboxEventRelayTest {
         OutboxEvent published = outboxEventRepository.findById(event.getId()).orElseThrow();
         assertThat(published.getStatus()).isEqualTo(OutboxEventStatus.PUBLISHED);
         assertThat(published.getPublishedAt()).isNotNull();
+        assertThat(published.getProcessingStartedAt()).isNull();
         assertThat(published.getRetryCount()).isZero();
     }
 
@@ -82,6 +85,38 @@ class OutboxEventRelayTest {
         OutboxEvent skipped = outboxEventRepository.findById(event.getId()).orElseThrow();
         assertThat(skipped.getStatus()).isEqualTo(OutboxEventStatus.FAILED);
         assertThat(skipped.getRetryCount()).isEqualTo(2);
+        verify(kafkaTemplate, never()).send(anyString(), anyString(), anyString());
+    }
+
+    @Test
+    void publishPendingEventsRecoversOldProcessingEventAndPublishesIt() {
+        OutboxEvent event = new OutboxEvent("transfer.completed", "1", "{}");
+        event.markProcessing(LocalDateTime.now().minusSeconds(31));
+        event = outboxEventRepository.save(event);
+        var record = new ProducerRecord<String, String>("transfer.completed", "1", "{}");
+        when(kafkaTemplate.send(eq("transfer.completed"), eq("1"), eq("{}")))
+                .thenReturn(CompletableFuture.completedFuture(new SendResult<>(record, null)));
+
+        outboxEventRelay.publishPendingEvents();
+
+        OutboxEvent published = outboxEventRepository.findById(event.getId()).orElseThrow();
+        assertThat(published.getStatus()).isEqualTo(OutboxEventStatus.PUBLISHED);
+        assertThat(published.getRetryCount()).isEqualTo(1);
+        assertThat(published.getLastError()).isNull();
+    }
+
+    @Test
+    void publishPendingEventsKeepsRecentProcessingEventUntouched() {
+        OutboxEvent event = new OutboxEvent("transfer.completed", "1", "{}");
+        event.markProcessing(LocalDateTime.now());
+        event = outboxEventRepository.save(event);
+
+        outboxEventRelay.publishPendingEvents();
+
+        OutboxEvent processing = outboxEventRepository.findById(event.getId()).orElseThrow();
+        assertThat(processing.getStatus()).isEqualTo(OutboxEventStatus.PROCESSING);
+        assertThat(processing.getRetryCount()).isZero();
+        assertThat(processing.getProcessingStartedAt()).isNotNull();
         verify(kafkaTemplate, never()).send(anyString(), anyString(), anyString());
     }
 }

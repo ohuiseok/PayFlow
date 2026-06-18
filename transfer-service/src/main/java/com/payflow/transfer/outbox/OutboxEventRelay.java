@@ -1,6 +1,7 @@
 package com.payflow.transfer.outbox;
 
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
@@ -30,9 +31,13 @@ public class OutboxEventRelay {
     @Value("${outbox.publisher.max-retries:5}")
     private int maxRetries;
 
+    @Value("${outbox.publisher.processing-timeout:30s}")
+    private Duration processingTimeout;
+
     @Scheduled(fixedDelayString = "${outbox.publisher.fixed-delay:2000}")
     @Transactional
     public void publishPendingEvents() {
+        recoverStuckProcessingEvents();
         outboxEventRepository.findTop50ByStatusInAndRetryCountLessThanOrderByCreatedAtAsc(PUBLISHABLE_STATUSES, maxRetries)
                 .forEach(event -> {
                     if (claim(event)) {
@@ -41,15 +46,26 @@ public class OutboxEventRelay {
                 });
     }
 
+    private void recoverStuckProcessingEvents() {
+        outboxEventRepository.recoverStuckProcessingEvents(
+                OutboxEventStatus.PROCESSING,
+                OutboxEventStatus.FAILED,
+                LocalDateTime.now().minus(processingTimeout),
+                "Outbox event processing timed out"
+        );
+    }
+
     private boolean claim(OutboxEvent event) {
+        LocalDateTime processingStartedAt = LocalDateTime.now();
         int updated = outboxEventRepository.claimPublishableEvent(
                 event.getId(),
                 PUBLISHABLE_STATUSES,
                 OutboxEventStatus.PROCESSING,
+                processingStartedAt,
                 maxRetries
         );
         if (updated == 1) {
-            event.markProcessing();
+            event.markProcessing(processingStartedAt);
             return true;
         }
         return false;

@@ -49,6 +49,8 @@ public class OutboxEvent {
     @Column(length = 500)
     private String lastError;
 
+    private LocalDateTime processingStartedAt;
+
     private LocalDateTime publishedAt;
 
     @Column(nullable = false, updatable = false)
@@ -71,16 +73,23 @@ public class OutboxEvent {
 
     public void markPublished() {
         this.status = OutboxEventStatus.PUBLISHED;
+        this.processingStartedAt = null;
         this.publishedAt = LocalDateTime.now();
         this.lastError = null;
     }
 
     public void markProcessing() {
+        markProcessing(LocalDateTime.now());
+    }
+
+    void markProcessing(LocalDateTime processingStartedAt) {
         this.status = OutboxEventStatus.PROCESSING;
+        this.processingStartedAt = processingStartedAt;
     }
 
     public void markFailed(String errorMessage) {
         this.status = OutboxEventStatus.FAILED;
+        this.processingStartedAt = null;
         this.retryCount++;
         if (errorMessage == null || errorMessage.isBlank()) {
             this.lastError = "Kafka publish failed";
@@ -135,5 +144,9 @@ public class OutboxEvent {
 
     public LocalDateTime getPublishedAt() {
         return publishedAt;
+    }
+
+    public LocalDateTime getProcessingStartedAt() {
+        return processingStartedAt;
     }
 }

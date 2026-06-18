@@ -56,6 +56,7 @@ outbox:
     fixed-delay: ${OUTBOX_PUBLISHER_FIXED_DELAY:2000}
     send-timeout: ${OUTBOX_PUBLISHER_SEND_TIMEOUT:3s}
     max-retries: ${OUTBOX_PUBLISHER_MAX_RETRIES:5}
+    processing-timeout: ${OUTBOX_PUBLISHER_PROCESSING_TIMEOUT:30s}
 
 resilience4j:
   circuitbreaker:
