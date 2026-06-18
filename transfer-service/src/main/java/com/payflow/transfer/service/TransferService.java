@@ -97,7 +97,7 @@ public class TransferService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.TRANSFER_NOT_FOUND));
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = BusinessException.class)
     public TransferResponse refundCompensation(Long transferId) {
         Transfer transfer = transferRepository.findByIdForUpdate(transferId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.TRANSFER_NOT_FOUND));
@@ -108,18 +108,24 @@ public class TransferService {
             throw new BusinessException(ErrorCode.INVALID_TRANSFER_STATUS);
         }
 
-        walletClient.deposit(
-                transfer.getSenderWalletId(),
-                new WalletBalanceChangeRequest(
-                        transfer.getAmount(),
-                        TRANSFER_COMPENSATION_REFERENCE_TYPE,
-                        transfer.getId().toString()
-                ),
-                true,
-                internalSecret
-        );
-        transfer.compensate();
-        return TransferResponse.from(transfer);
+        try {
+            walletClient.deposit(
+                    transfer.getSenderWalletId(),
+                    new WalletBalanceChangeRequest(
+                            transfer.getAmount(),
+                            TRANSFER_COMPENSATION_REFERENCE_TYPE,
+                            transfer.getId().toString()
+                    ),
+                    true,
+                    internalSecret
+            );
+            transfer.compensate();
+            return TransferResponse.from(transfer);
+        } catch (RuntimeException exception) {
+            String failureMessage = resolveMessage(exception);
+            transfer.recordCompensationFailure(failureMessage);
+            throw new BusinessException(ErrorCode.COMPENSATION_REFUND_FAILED, failureMessage);
+        }
     }
 
     private TransferResponse resolveExistingTransfer(Transfer transfer, String requestHash) {

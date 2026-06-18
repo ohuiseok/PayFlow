@@ -24,6 +24,7 @@ public enum ErrorCode {
     TRANSFER_NOT_FOUND(HttpStatus.NOT_FOUND, "송금을 찾을 수 없습니다."),
     INVALID_TRANSFER_STATUS(HttpStatus.CONFLICT, "송금 상태가 올바르지 않습니다."),
     WALLET_LOCK_CONFLICT(HttpStatus.CONFLICT, "지갑 처리 중입니다. 잠시 후 다시 시도해주세요."),
+    COMPENSATION_REFUND_FAILED(HttpStatus.BAD_GATEWAY, "보상 환불에 실패했습니다."),
 
     OUTBOX_PUBLISH_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "이벤트 발행에 실패했습니다."),
     LEDGER_DUPLICATE_EVENT(HttpStatus.CONFLICT, "이미 처리된 원장 이벤트입니다."),

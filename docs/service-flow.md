@@ -97,6 +97,15 @@ transfer-service
    referenceType = TRANSFER_COMPENSATION
    referenceId = {transferId}
 -> mark transfer COMPENSATED
+
+If refund deposit fails:
+
+```text
+-> keep transfer COMPENSATION_REQUIRED
+-> increment compensationRetryCount
+-> store compensationFailureReason
+-> return 502 COMPENSATION_REFUND_FAILED
+-> allow later retry
 ```
 
 Outbox relay rules:

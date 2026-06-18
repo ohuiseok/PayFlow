@@ -12,6 +12,9 @@ public record TransferResponse(
         BigDecimal amount,
         TransferStatus status,
         String failureReason,
+        int compensationRetryCount,
+        String compensationFailureReason,
+        LocalDateTime compensatedAt,
         LocalDateTime createdAt
 ) {
 
@@ -23,6 +26,9 @@ public record TransferResponse(
                 transfer.getAmount(),
                 transfer.getStatus(),
                 transfer.getFailureReason(),
+                transfer.getCompensationRetryCount(),
+                transfer.getCompensationFailureReason(),
+                transfer.getCompensatedAt(),
                 transfer.getCreatedAt()
         );
     }

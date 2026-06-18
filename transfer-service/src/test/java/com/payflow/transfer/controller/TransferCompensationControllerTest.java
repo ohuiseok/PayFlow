@@ -69,7 +69,10 @@ class TransferCompensationControllerTest {
         mockMvc.perform(get("/transfers/compensations"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].transferId").value(compensation.transferId()))
-                .andExpect(jsonPath("$[0].status").value("COMPENSATION_REQUIRED"));
+                .andExpect(jsonPath("$[0].status").value("COMPENSATION_REQUIRED"))
+                .andExpect(jsonPath("$[0].compensationRetryCount").value(0))
+                .andExpect(jsonPath("$[0].compensationFailureReason").doesNotExist())
+                .andExpect(jsonPath("$[0].compensatedAt").doesNotExist());
     }
 
     @Test
@@ -91,6 +94,27 @@ class TransferCompensationControllerTest {
         mockMvc.perform(post("/transfers/compensations/{transferId}/refund", compensation.transferId()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.transferId").value(compensation.transferId()))
-                .andExpect(jsonPath("$.status").value("COMPENSATED"));
+                .andExpect(jsonPath("$.status").value("COMPENSATED"))
+                .andExpect(jsonPath("$.compensationRetryCount").value(0))
+                .andExpect(jsonPath("$.compensationFailureReason").doesNotExist())
+                .andExpect(jsonPath("$.compensatedAt").exists());
+    }
+
+    @Test
+    void refundCompensationReturnsBadGatewayAndRecordsFailureWhenWalletDepositFails() throws Exception {
+        var compensation = transferService.createTransfer(new CreateTransferRequest(2L, new BigDecimal("3000")), "key-comp", 1L);
+        when(walletClient.deposit(eq(10L), any(WalletBalanceChangeRequest.class), eq(true), any()))
+                .thenThrow(new RuntimeException("refund deposit failed"));
+
+        mockMvc.perform(post("/transfers/compensations/{transferId}/refund", compensation.transferId()))
+                .andExpect(status().isBadGateway())
+                .andExpect(jsonPath("$.code").value("COMPENSATION_REFUND_FAILED"))
+                .andExpect(jsonPath("$.message").value("refund deposit failed"));
+
+        mockMvc.perform(get("/transfers/compensations/{transferId}", compensation.transferId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("COMPENSATION_REQUIRED"))
+                .andExpect(jsonPath("$.compensationRetryCount").value(1))
+                .andExpect(jsonPath("$.compensationFailureReason").value("refund deposit failed"));
     }
 }

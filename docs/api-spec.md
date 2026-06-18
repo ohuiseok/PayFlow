@@ -215,6 +215,10 @@ Rules:
 - Wallet deposit uses `referenceType=TRANSFER_COMPENSATION`.
 - Wallet deposit uses `referenceId={transferId}` for idempotency.
 - Successful refund changes transfer status to `COMPENSATED`.
+- Refund failure keeps transfer status as `COMPENSATION_REQUIRED`, records retry metadata, and returns
+  `502 Bad Gateway` with `code=COMPENSATION_REFUND_FAILED`.
+- Successful responses and later compensation lookups include `compensationRetryCount`,
+  `compensationFailureReason`, and `compensatedAt`.
 
 ### GET /api/transfers/outbox/summary
 

@@ -96,6 +96,9 @@ class TransferServiceTest {
 
         assertThat(response.status()).isEqualTo(TransferStatus.COMPENSATION_REQUIRED);
         assertThat(response.failureReason()).contains("receiver deposit failed");
+        assertThat(response.compensationRetryCount()).isZero();
+        assertThat(response.compensationFailureReason()).isNull();
+        assertThat(response.compensatedAt()).isNull();
         verify(walletClient).withdraw(eq(10L), any(WalletBalanceChangeRequest.class), eq(true), any());
         verify(transferEventPublisher).publishFailed(any());
     }
@@ -128,8 +131,38 @@ class TransferServiceTest {
         var retried = transferService.refundCompensation(compensation.transferId());
 
         assertThat(refunded.status()).isEqualTo(TransferStatus.COMPENSATED);
+        assertThat(refunded.compensationRetryCount()).isZero();
+        assertThat(refunded.compensationFailureReason()).isNull();
+        assertThat(refunded.compensatedAt()).isNotNull();
         assertThat(retried.status()).isEqualTo(TransferStatus.COMPENSATED);
         verify(walletClient, times(1)).deposit(eq(10L), any(WalletBalanceChangeRequest.class), eq(true), any());
+    }
+
+    @Test
+    void refundCompensationRecordsFailureAndAllowsRetrySuccess() {
+        when(walletClient.deposit(eq(20L), any(WalletBalanceChangeRequest.class), eq(true), any()))
+                .thenThrow(new RuntimeException("receiver deposit failed"));
+        var compensation = transferService.createTransfer(new CreateTransferRequest(2L, new BigDecimal("3000")), "key-comp", 1L);
+        when(walletClient.deposit(eq(10L), any(WalletBalanceChangeRequest.class), eq(true), any()))
+                .thenThrow(new RuntimeException("refund deposit failed"))
+                .thenReturn(new WalletResponse(10L, 1L, new BigDecimal("10000"), "ACTIVE"));
+
+        assertThatThrownBy(() -> transferService.refundCompensation(compensation.transferId()))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.COMPENSATION_REFUND_FAILED);
+        var failedRefund = transferService.getCompensation(compensation.transferId());
+        var succeededRefund = transferService.refundCompensation(compensation.transferId());
+
+        assertThat(failedRefund.status()).isEqualTo(TransferStatus.COMPENSATION_REQUIRED);
+        assertThat(failedRefund.compensationRetryCount()).isEqualTo(1);
+        assertThat(failedRefund.compensationFailureReason()).contains("refund deposit failed");
+        assertThat(failedRefund.compensatedAt()).isNull();
+        assertThat(succeededRefund.status()).isEqualTo(TransferStatus.COMPENSATED);
+        assertThat(succeededRefund.compensationRetryCount()).isEqualTo(1);
+        assertThat(succeededRefund.compensationFailureReason()).isNull();
+        assertThat(succeededRefund.compensatedAt()).isNotNull();
+        verify(walletClient, times(2)).deposit(eq(10L), any(WalletBalanceChangeRequest.class), eq(true), any());
     }
 
     @Test

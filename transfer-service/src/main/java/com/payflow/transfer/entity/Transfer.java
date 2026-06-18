@@ -55,6 +55,14 @@ public class Transfer {
     @Column(length = 500)
     private String failureReason;
 
+    @Column(nullable = false)
+    private int compensationRetryCount;
+
+    @Column(length = 500)
+    private String compensationFailureReason;
+
+    private LocalDateTime compensatedAt;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -103,6 +111,20 @@ public class Transfer {
     public void compensate() {
         this.status = TransferStatus.COMPENSATED;
         this.failureReason = null;
+        this.compensationFailureReason = null;
+        this.compensatedAt = LocalDateTime.now();
+    }
+
+    public void recordCompensationFailure(String failureReason) {
+        this.compensationRetryCount++;
+        this.compensationFailureReason = normalizeMessage(failureReason);
+    }
+
+    private String normalizeMessage(String message) {
+        if (message == null || message.isBlank()) {
+            return null;
+        }
+        return message.length() > 500 ? message.substring(0, 500) : message;
     }
 
     @PrePersist
@@ -155,6 +177,18 @@ public class Transfer {
 
     public String getFailureReason() {
         return failureReason;
+    }
+
+    public int getCompensationRetryCount() {
+        return compensationRetryCount;
+    }
+
+    public String getCompensationFailureReason() {
+        return compensationFailureReason;
+    }
+
+    public LocalDateTime getCompensatedAt() {
+        return compensatedAt;
     }
 
     public LocalDateTime getCreatedAt() {
