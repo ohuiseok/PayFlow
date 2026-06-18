@@ -1,12 +1,10 @@
-package com.payflow.ledger.service;
+package com.payflow.ledger.event;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.payflow.ledger.entity.LedgerLineType;
-import com.payflow.ledger.event.TransferCompletedEvent;
 import com.payflow.ledger.repository.LedgerEntryRepository;
 import com.payflow.ledger.repository.LedgerLineRepository;
-import java.math.BigDecimal;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,10 +15,10 @@ import org.springframework.transaction.annotation.Transactional;
 @SpringBootTest
 @ActiveProfiles("test")
 @Transactional
-class LedgerServiceTest {
+class TransferEventConsumerTest {
 
     @Autowired
-    LedgerService ledgerService;
+    TransferEventConsumer transferEventConsumer;
 
     @Autowired
     LedgerEntryRepository ledgerEntryRepository;
@@ -34,16 +32,22 @@ class LedgerServiceTest {
     }
 
     @Test
-    void recordTransferCreatesDoubleEntryLinesOnce() {
-        var event = new TransferCompletedEvent(100L, 1L, 2L, new BigDecimal("3000"));
+    void handleTransferCompletedSkipsDuplicateEventByTransferId() throws Exception {
+        String payload = """
+                {
+                  "transferId": 100,
+                  "senderUserId": 1,
+                  "receiverUserId": 2,
+                  "amount": 3000
+                }
+                """;
 
-        ledgerService.recordTransfer(event);
-        var entry = ledgerService.recordTransfer(event);
+        transferEventConsumer.handleTransferCompleted(payload);
+        transferEventConsumer.handleTransferCompleted(payload);
 
+        var entry = ledgerEntryRepository.findByTransferId(100L).orElseThrow();
         assertThat(ledgerEntryRepository.count()).isEqualTo(1);
         assertThat(ledgerLineRepository.countByLedgerEntryTransferId(100L)).isEqualTo(2);
-        assertThat(entry.getTransferId()).isEqualTo(100L);
-        assertThat(entry.getLines()).hasSize(2);
         assertThat(entry.getLines()).extracting("type")
                 .containsExactlyInAnyOrder(LedgerLineType.DEBIT, LedgerLineType.CREDIT);
     }
