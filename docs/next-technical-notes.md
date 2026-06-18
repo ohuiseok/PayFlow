@@ -1,5 +1,37 @@
 # Next Technical Notes
 
+## Frontend/API Integration Status
+
+Current status: `sample-react` is aligned with the current backend MVP API surface.
+
+Updated integration points:
+
+- Banking screens now use `GET /api/bank/accounts`, `POST /api/bank/accounts`, `POST /api/bank/deposits`, and `GET /api/bank/transfers/{bankingTransferId}`.
+- Mission screens now use array responses from `GET /api/missions` and PATCH actions for submit/approve/reject.
+- Parent approval calls both `PATCH /api/missions/{missionId}/approve` and `POST /api/missions/{missionId}/pay` so approval actually triggers reward payment.
+- Family linking now matches the current reward-service contract: a parent connects directly with `POST /api/families/links` using `childUserId`.
+- Cashbook entries now read the backend `MissionResponse[]` shape from `GET /api/cashbook/children/{childUserId}/entries`.
+- Frontend verification scripts now include `npm run typecheck` and `npm test` aliases.
+- `tsconfig.json` excludes generated output (`dist`, `.expo`, `node_modules`) so type checks do not race against web export.
+
+Verified on 2026-06-18:
+
+- `sample-react`: `npm run check`
+- `docker compose config --quiet`
+- `banking-service`: `gradlew test`
+- `reward-service`: `gradlew test`
+- `transfer-service`: `gradlew test`
+- `ledger-service`: `gradlew test`
+
+Not yet verified:
+
+- Full Docker Compose runtime smoke test. Docker Desktop was not running in the local environment.
+
+Remaining frontend/API gaps:
+
+- Parent credit summary is still a neutral frontend fallback because there is no dedicated backend summary endpoint yet.
+- Child-side family invitation remains a UI concept; the backend currently only supports parent-created direct links.
+
 ## Current Kafka MSA Status
 
 Current status: transfer-to-ledger is Kafka-driven and protected by transactional outbox.

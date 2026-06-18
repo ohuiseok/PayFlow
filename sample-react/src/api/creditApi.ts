@@ -3,39 +3,28 @@ import { toProcessingStatus } from './statusMapper';
 import { ProcessingStatus } from '../types';
 
 type ParentSummaryResponse = {
-  parentUserId: number | string;
-  walletId: number | string;
-  creditBalance: number;
-  monthlyRewardPaid: number;
-  pendingApprovalCount: number;
-};
-
-type BankAccountsResponse = {
-  bankAccounts: Array<{
-    bankAccountId: string;
-    bankCodeStd: string;
-    bankName: string;
-    maskedAccountNumber: string;
-    accountHolderName: string;
-    primary: boolean;
-  }>;
+  walletId?: number | string;
+  creditBalance?: number;
+  monthlyRewardPaid?: number;
+  pendingApprovalCount?: number;
 };
 
 type ChargeResponse = {
-  chargeId: string;
+  bankingTransferId: number | string;
+  bankAccountId: number | string;
+  walletId?: number | string;
   amount: number;
   status: string;
-  walletId?: number | string;
-  balanceAfter?: number;
+  walletTransactionId?: number | string;
+  failureReason?: string | null;
 };
 
 type BankAccountResponse = {
-  bankAccountId: string;
-  bankCodeStd: string;
-  bankName: string;
-  maskedAccountNumber: string;
+  bankAccountId: number | string;
+  bankCode: string;
+  accountNumberMasked: string;
   accountHolderName: string;
-  primary: boolean;
+  status: string;
 };
 
 type WithdrawalResponse = {
@@ -83,20 +72,19 @@ function makeIdempotencyKey(kind: 'charge' | 'withdrawal') {
 
 function normalizeCharge(response: ChargeResponse): ChargeResult {
   return {
-    chargeId: response.chargeId,
+    chargeId: String(response.bankingTransferId),
     amount: response.amount,
     status: toProcessingStatus(response.status),
-    balanceAfter: response.balanceAfter,
   };
 }
 
 function normalizeBankAccount(account: BankAccountResponse): CreditBankAccount {
   return {
-    bankAccountId: account.bankAccountId,
-    bankName: account.bankName,
-    maskedAccountNumber: account.maskedAccountNumber,
+    bankAccountId: String(account.bankAccountId),
+    bankName: account.bankCode,
+    maskedAccountNumber: account.accountNumberMasked,
     accountHolderName: account.accountHolderName,
-    primary: account.primary,
+    primary: account.status === 'ACTIVE',
   };
 }
 
@@ -112,18 +100,20 @@ function normalizeWithdrawal(response: WithdrawalResponse): WithdrawalResult {
 
 export const creditApi = {
   async getParentSummary(): Promise<ParentCreditSummary> {
-    const response = await apiClient.get<ParentSummaryResponse>('/api/credits/parent/summary');
+    // Dedicated parent summary API is not available yet; keep real API mode usable
+    // with a neutral summary while mission/banking endpoints carry the MVP flow.
+    const response: ParentSummaryResponse = {};
     return {
-      walletId: String(response.walletId),
-      creditBalance: response.creditBalance,
-      monthlyRewardPaid: response.monthlyRewardPaid,
-      pendingApprovalCount: response.pendingApprovalCount,
+      walletId: String(response.walletId ?? ''),
+      creditBalance: response.creditBalance ?? 0,
+      monthlyRewardPaid: response.monthlyRewardPaid ?? 0,
+      pendingApprovalCount: response.pendingApprovalCount ?? 0,
     };
   },
 
   async getBankAccounts(): Promise<CreditBankAccount[]> {
-    const response = await apiClient.get<BankAccountsResponse>('/api/credits/bank-accounts');
-    return response.bankAccounts.map(normalizeBankAccount);
+    const response = await apiClient.get<BankAccountResponse[]>('/api/bank/accounts');
+    return response.map(normalizeBankAccount);
   },
 
   async registerBankAccount(input: {
@@ -132,13 +122,17 @@ export const creditApi = {
     accountNumber: string;
     accountHolderName: string;
   }) {
-    const response = await apiClient.post<BankAccountResponse>('/api/credits/bank-accounts', input);
+    const response = await apiClient.post<BankAccountResponse>('/api/bank/accounts', {
+      bankCode: input.bankCodeStd || input.bankName,
+      accountNumber: input.accountNumber,
+      accountHolderName: input.accountHolderName,
+    });
     return normalizeBankAccount(response);
   },
 
   async requestCharge(input: { amount: number; bankAccountId: string }) {
     const response = await apiClient.post<ChargeResponse>(
-      '/api/credits/charges',
+      '/api/bank/deposits',
       {
         amount: input.amount,
         bankAccountId: input.bankAccountId,
@@ -155,7 +149,7 @@ export const creditApi = {
 
   async getCharge(chargeId: string) {
     const response = await apiClient.get<ChargeResponse>(
-      `/api/credits/charges/${encodeURIComponent(chargeId)}`,
+      `/api/bank/transfers/${encodeURIComponent(chargeId)}`,
     );
     return normalizeCharge(response);
   },

@@ -1,8 +1,9 @@
 import { expect, test } from '@playwright/test';
 
-test('API mode uses auth and family endpoints', async ({ page }) => {
+test('API mode uses auth and family link endpoints', async ({ page }) => {
   const byText = (text: string, options?: Parameters<typeof page.getByText>[1]) =>
     page.getByText(text, options).filter({ visible: true });
+  const byTestId = (testID: string) => page.getByTestId(testID).filter({ visible: true }).first();
 
   await page.route('**/api/users/login', async (route) => {
     await route.fulfill({
@@ -11,7 +12,7 @@ test('API mode uses auth and family endpoints', async ({ page }) => {
         accessToken: 'mock-access-token',
         user: {
           userId: 1,
-          name: 'API 지우',
+          name: 'API Parent',
           role: 'PARENT',
           status: 'ACTIVE',
         },
@@ -19,25 +20,30 @@ test('API mode uses auth and family endpoints', async ({ page }) => {
     });
   });
 
-  await page.route('**/api/families/invitations', async (route) => {
+  await page.route('**/api/families/links', async (route) => {
     await route.fulfill({
       contentType: 'application/json',
       body: JSON.stringify({
-        invitationId: 10,
-        inviteCode: 'PF9999',
-        expiresAt: '2026-06-09T22:30:00',
+        familyLinkId: 10,
+        parentUserId: 1,
+        childUserId: 2,
         status: 'ACTIVE',
       }),
     });
   });
 
+  await page.route('**/api/missions', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify([]),
+    });
+  });
+
   await page.goto('/');
+  await byTestId('login-submit-button').click();
 
-  await expect(byText('미션으로 배우는 돈')).toBeVisible();
-  await expect(byText('API 로그인')).toBeVisible();
-  await byText('로그인', { exact: true }).click();
+  await expect(byText('Connect a child')).toBeVisible();
+  await byText('Connect child').click();
 
-  await expect(byText('자녀와 연결하기')).toBeVisible();
-  await expect(byText('PF9999')).toBeVisible();
-  await expect(byText('가족 연결 확인')).toBeVisible();
+  await expect(byTestId('parent-home-charge-button')).toBeVisible();
 });

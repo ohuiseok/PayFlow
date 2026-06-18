@@ -27,6 +27,8 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
+    "typecheck": "npm run test:type",
+    "test": "npm run test:type",
     "test:type": "tsc --noEmit",
     "test:e2e": "playwright test --config=playwright.dummy.config.ts --reporter=line",
     "test:e2e:api": "playwright test --config=playwright.api.config.ts --reporter=line",

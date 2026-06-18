@@ -3,15 +3,15 @@ import { expect, test } from '@playwright/test';
 test('family-linked guard keeps parent on linking screen before home access', async ({ page }) => {
   const byText = (text: string, options?: Parameters<typeof page.getByText>[1]) =>
     page.getByText(text, options).filter({ visible: true });
+  const byTestId = (testID: string) => page.getByTestId(testID).filter({ visible: true }).first();
 
   await page.goto('/');
-  await byText('로그인', { exact: true }).click();
+  await byTestId('login-submit-button').click();
 
-  await expect(byText('자녀와 연결하기')).toBeVisible();
-  await expect(byText('오늘의 보상 흐름')).toHaveCount(0);
+  await expect(byText('Connect a child')).toBeVisible();
+  await expect(byTestId('parent-home-charge-button')).toHaveCount(0);
 
-  await byText('요청 표시시키기').click();
-  await byText('승인', { exact: true }).click();
+  await byText('Connect child').click();
 
-  await expect(byText('오늘의 보상 흐름')).toBeVisible();
+  await expect(byTestId('parent-home-charge-button')).toBeVisible();
 });

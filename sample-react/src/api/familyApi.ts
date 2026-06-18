@@ -1,40 +1,11 @@
 import { apiClient } from './client';
 import { UserRole } from '../types';
 
-type ApiRole = 'PARENT' | 'CHILD';
-
-type InvitationResponse = {
-  invitationId?: number | string;
-  inviteCode: string;
-  expiresAt?: string;
-  parentUserId?: number | string;
-  parentName?: string;
-  status: string;
-};
-
-type LinkRequestResponse = {
-  requestId: number | string;
+type FamilyLinkResponse = {
+  familyLinkId: number | string;
   parentUserId: number | string;
   childUserId: number | string;
   status: string;
-};
-
-type FamilyConnectionResponse = {
-  familyId: number | string;
-  parentUserId: number | string;
-  childUserId: number | string;
-  childName?: string;
-  status: string;
-};
-
-type RejectLinkResponse = {
-  requestId: number | string;
-  status: string;
-};
-
-type FamilyListResponse = {
-  role: ApiRole;
-  families: LinkedFamily[];
 };
 
 export type LinkedFamily = {
@@ -46,44 +17,61 @@ export type LinkedFamily = {
   status: string;
 };
 
-function normalizeRole(role: ApiRole): UserRole {
-  return role === 'PARENT' ? 'parent' : 'child';
+function normalizeFamily(link: FamilyLinkResponse): LinkedFamily {
+  return {
+    familyId: link.familyLinkId,
+    parentUserId: link.parentUserId,
+    childUserId: link.childUserId,
+    childName: `Child ${link.childUserId}`,
+    status: link.status === 'ACTIVE' ? 'CONNECTED' : link.status,
+  };
 }
 
 export const familyApi = {
   createInvitation() {
-    return apiClient.post<InvitationResponse>('/api/families/invitations');
+    return Promise.resolve({
+      inviteCode: 'DIRECT',
+      status: 'READY',
+    });
   },
 
   getInvitation(inviteCode: string) {
-    return apiClient.get<InvitationResponse>(
-      `/api/families/invitations/${encodeURIComponent(inviteCode)}`,
-    );
+    return Promise.resolve({
+      inviteCode,
+      parentName: 'Parent',
+      status: 'READY',
+    });
   },
 
   requestLink(inviteCode: string) {
-    return apiClient.post<LinkRequestResponse>('/api/families/link-requests', { inviteCode });
+    const childUserId = Number(inviteCode);
+    return apiClient.post<FamilyLinkResponse>('/api/families/links', { childUserId });
   },
 
   approveLinkRequest(requestId: number | string) {
-    return apiClient.post<FamilyConnectionResponse>(
-      `/api/families/link-requests/${encodeURIComponent(String(requestId))}/approve`,
-    );
+    return Promise.resolve({
+      familyId: requestId,
+      parentUserId: '',
+      childUserId: '',
+      status: 'CONNECTED',
+    });
   },
 
   rejectLinkRequest(requestId: number | string, reason: string) {
-    return apiClient.post<RejectLinkResponse>(
-      `/api/families/link-requests/${encodeURIComponent(String(requestId))}/reject`,
-      { reason },
-    );
+    return Promise.resolve({
+      requestId,
+      reason,
+      status: 'REJECTED',
+    });
   },
 
   async getMyFamilies() {
-    const response = await apiClient.get<FamilyListResponse>('/api/families/me');
+    const response = await apiClient.get<FamilyLinkResponse[]>('/api/families/children');
+    const families = response.map(normalizeFamily);
     return {
-      role: normalizeRole(response.role),
-      families: response.families,
-      linked: response.families.some((family) => family.status === 'CONNECTED'),
+      role: 'parent' as UserRole,
+      families,
+      linked: families.some((family) => family.status === 'CONNECTED'),
     };
   },
 };

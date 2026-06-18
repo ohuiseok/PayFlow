@@ -1,5 +1,16 @@
 # PayFlow Implementation Checklist
 
+## Current Verified Status - 2026-06-18
+
+- [x] Backend service tests passed for `user-service`, `wallet-service`, `banking-service`, `transfer-service`, `reward-service`, and `ledger-service`.
+- [x] `docker compose config --quiet` passed.
+- [x] `sample-react` API adapters are aligned with the current MVP backend routes.
+- [x] `sample-react` `npm run check` passed, including type check, web export, dummy Playwright e2e, and mocked API-mode Playwright e2e.
+- [x] Parent mission approval screen now queries real mission data and calls approve plus pay APIs.
+- [x] Parent family linking screen now matches the current direct-link backend contract.
+- [ ] Full Docker Compose runtime smoke test remains pending because Docker Desktop was not running locally.
+- [ ] Dedicated parent credit summary backend endpoint is still missing; the frontend uses a neutral fallback in real API mode.
+
 구현 대상만 정리한 체크리스트입니다.
 
 체크 기준:

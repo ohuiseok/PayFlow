@@ -2,16 +2,12 @@ import { apiClient } from './client';
 import { Mission, MissionStatus, UserRole } from '../types';
 
 type ApiMissionStatus =
-  | 'REGISTERED'
+  | 'CREATED'
   | 'SUBMITTED'
   | 'APPROVED'
   | 'REJECTED'
   | 'PAID'
   | 'CANCELED';
-
-type MissionListResponse = {
-  missions: ApiMission[];
-};
 
 type ApiMission = {
   missionId: number | string;
@@ -21,13 +17,16 @@ type ApiMission = {
   description?: string;
   rewardAmount: number;
   status: ApiMissionStatus | string;
-  missionDate: string;
+  missionDate?: string;
+  submissionNote?: string | null;
+  rejectReason?: string | null;
   rejectionReason?: string | null;
 };
 
 type MissionActionResponse = {
   missionId: number | string;
   status: ApiMissionStatus | string;
+  rejectReason?: string | null;
   rejectionReason?: string | null;
 };
 
@@ -36,13 +35,13 @@ type CreateMissionRequest = {
   title: string;
   description: string;
   rewardAmount: number;
-  missionDate: string;
-  evidenceRequired: boolean;
+  missionDate?: string;
+  evidenceRequired?: boolean;
 };
 
 function toMissionStatus(status: string): MissionStatus {
   switch (status.toUpperCase()) {
-    case 'REGISTERED':
+    case 'CREATED':
       return 'todo';
     case 'SUBMITTED':
       return 'submitted';
@@ -65,9 +64,10 @@ function normalizeMission(mission: ApiMission): Mission {
     title: mission.title,
     description: mission.description ?? '',
     rewardAmount: mission.rewardAmount,
-    dueDate: mission.missionDate,
+    dueDate: mission.missionDate ?? '',
     status: toMissionStatus(mission.status),
-    rejectReason: mission.rejectionReason ?? undefined,
+    submitMemo: mission.submissionNote ?? undefined,
+    rejectReason: mission.rejectReason ?? mission.rejectionReason ?? undefined,
   };
 }
 
@@ -75,12 +75,8 @@ export const defaultChildUserId = 2;
 
 export const missionApi = {
   async getMissions(input: { role: UserRole; status?: 'active' }) {
-    const params = new URLSearchParams({
-      role: input.role,
-      status: input.status ?? 'active',
-    });
-    const response = await apiClient.get<MissionListResponse>(`/api/missions?${params.toString()}`);
-    return response.missions.map(normalizeMission);
+    const response = await apiClient.get<ApiMission[]>('/api/missions');
+    return response.map(normalizeMission);
   },
 
   async createMission(input: CreateMissionRequest) {
@@ -89,11 +85,10 @@ export const missionApi = {
   },
 
   async submitMission(input: { missionId: string; memo: string; evidenceImageUrl?: string }) {
-    const response = await apiClient.post<MissionActionResponse>(
+    const response = await apiClient.patch<MissionActionResponse>(
       `/api/missions/${encodeURIComponent(input.missionId)}/submit`,
       {
-        memo: input.memo,
-        evidenceImageUrl: input.evidenceImageUrl ?? 'https://example.com/evidence/mission-placeholder.jpg',
+        submissionNote: input.memo,
       },
     );
     return {
@@ -103,8 +98,11 @@ export const missionApi = {
   },
 
   async approveMission(missionId: string) {
-    const response = await apiClient.post<MissionActionResponse>(
+    await apiClient.patch<MissionActionResponse>(
       `/api/missions/${encodeURIComponent(missionId)}/approve`,
+    );
+    const response = await apiClient.post<MissionActionResponse>(
+      `/api/missions/${encodeURIComponent(missionId)}/pay`,
     );
     return {
       missionId: String(response.missionId),
@@ -113,7 +111,7 @@ export const missionApi = {
   },
 
   async rejectMission(input: { missionId: string; reason: string }) {
-    const response = await apiClient.post<MissionActionResponse>(
+    const response = await apiClient.patch<MissionActionResponse>(
       `/api/missions/${encodeURIComponent(input.missionId)}/reject`,
       {
         reason: input.reason,
@@ -122,16 +120,15 @@ export const missionApi = {
     return {
       missionId: String(response.missionId),
       status: toMissionStatus(response.status),
-      rejectReason: response.rejectionReason ?? input.reason,
+      rejectReason: response.rejectReason ?? response.rejectionReason ?? input.reason,
     };
   },
 
   async resubmitMission(input: { missionId: string; memo: string; evidenceImageUrl?: string }) {
-    const response = await apiClient.post<MissionActionResponse>(
-      `/api/missions/${encodeURIComponent(input.missionId)}/resubmit`,
+    const response = await apiClient.patch<MissionActionResponse>(
+      `/api/missions/${encodeURIComponent(input.missionId)}/submit`,
       {
-        memo: input.memo,
-        evidenceImageUrl: input.evidenceImageUrl ?? 'https://example.com/evidence/mission-placeholder-v2.jpg',
+        submissionNote: input.memo,
       },
     );
     return {
