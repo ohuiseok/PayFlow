@@ -29,6 +29,7 @@ Current transfer flow:
 - Outbox relay publishes Kafka events.
 - `ledger-service` records double-entry ledger rows from `transfer.completed`.
 - `ledger-service` records failed transfer tracking rows from `transfer.failed`.
+- `transfer-service` exposes compensation lookup/refund APIs for `COMPENSATION_REQUIRED` transfers.
 
 The architecture is still mixed: synchronous HTTP for wallet money movement and Kafka event flow for ledger recording/failure tracking.
 
@@ -37,7 +38,7 @@ The architecture is still mixed: synchronous HTTP for wallet money movement and 
 Recommended next tasks:
 
 - Add metrics/alerts for outbox lag, retry count, stuck recovery count, and publish failure count.
-- Add recovery workflow for `COMPENSATION_REQUIRED` transfers.
+- Add automated/retry workflow for compensation refunds if manual refund API is not enough.
 - Add DLQ strategy for events that exceed outbox max retries.
 - Add integration tests with real Kafka/Redis via Testcontainers.
 - Decide whether wallet money movement should remain synchronous HTTP or evolve into a Kafka-based saga.

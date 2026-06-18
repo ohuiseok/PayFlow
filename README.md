@@ -226,8 +226,13 @@ docs/implementation-plan/10-ledger-service.md
 - Outbox relay claims events as `PROCESSING`, publishes to Kafka, marks `PUBLISHED`, retries `FAILED`, and recovers stale `PROCESSING` events.
 - `ledger-service` consumes `transfer.completed` idempotently by `transferId` and stores `ledger_entries` plus two `ledger_lines`.
 - `ledger-service` consumes `transfer.failed` idempotently by `transferId` and stores `transfer_failure_events`.
+- `transfer-service` exposes compensation lookup/refund APIs for `COMPENSATION_REQUIRED` transfers.
 - Failure tracking APIs:
   - `GET /api/ledgers/transfer-failures`
   - `GET /api/ledgers/transfer-failures/{transferId}`
+- Compensation APIs:
+  - `GET /api/transfers/compensations`
+  - `GET /api/transfers/compensations/{transferId}`
+  - `POST /api/transfers/compensations/{transferId}/refund`
 - Outbox monitoring API:
   - `GET /api/transfers/outbox/summary`

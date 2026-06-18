@@ -100,6 +100,11 @@ public class Transfer {
         this.failureReason = failureReason;
     }
 
+    public void compensate() {
+        this.status = TransferStatus.COMPENSATED;
+        this.failureReason = null;
+    }
+
     @PrePersist
     void prePersist() {
         LocalDateTime now = LocalDateTime.now();

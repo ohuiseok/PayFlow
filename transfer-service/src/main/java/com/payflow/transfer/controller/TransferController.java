@@ -50,4 +50,19 @@ public class TransferController {
         // 컨트롤러는 헤더를 전달하고, 실제 필터링 조건은 서비스/리포지토리에 둔다.
         return transferService.getTransfers(requestUserId);
     }
+
+    @GetMapping("/compensations")
+    public List<TransferResponse> getCompensations() {
+        return transferService.getCompensations();
+    }
+
+    @GetMapping("/compensations/{transferId}")
+    public TransferResponse getCompensation(@PathVariable Long transferId) {
+        return transferService.getCompensation(transferId);
+    }
+
+    @PostMapping("/compensations/{transferId}/refund")
+    public TransferResponse refundCompensation(@PathVariable Long transferId) {
+        return transferService.refundCompensation(transferId);
+    }
 }

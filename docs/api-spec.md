@@ -198,6 +198,24 @@ Header:
 
 내 송금 목록을 조회한다.
 
+### GET /api/transfers/compensations
+
+Returns transfers in `COMPENSATION_REQUIRED` state.
+
+### GET /api/transfers/compensations/{transferId}
+
+Returns one compensation-required transfer.
+
+### POST /api/transfers/compensations/{transferId}/refund
+
+Refunds a `COMPENSATION_REQUIRED` transfer back to the sender wallet.
+
+Rules:
+
+- Wallet deposit uses `referenceType=TRANSFER_COMPENSATION`.
+- Wallet deposit uses `referenceId={transferId}` for idempotency.
+- Successful refund changes transfer status to `COMPENSATED`.
+
 ### GET /api/transfers/outbox/summary
 
 Returns operational summary for transfer-service outbox publishing state.

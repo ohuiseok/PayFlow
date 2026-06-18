@@ -5,6 +5,7 @@ import com.payflow.transfer.client.WalletClient;
 import com.payflow.transfer.dto.CreateTransferRequest;
 import com.payflow.transfer.dto.TransferResponse;
 import com.payflow.transfer.entity.Transfer;
+import com.payflow.transfer.entity.TransferStatus;
 import com.payflow.transfer.event.TransferEventPublisher;
 import com.payflow.transfer.lock.DistributedLock;
 import com.payflow.transfer.repository.TransferRepository;
@@ -34,6 +35,7 @@ public class TransferService {
     private static final BigDecimal MAX_AMOUNT = new BigDecimal("10000000");
     // wallet-service에 남길 referenceType이다. 송금 1건이 지갑 거래 2건(출금/입금)의 원인이 된다.
     private static final String TRANSFER_REFERENCE_TYPE = "TRANSFER";
+    private static final String TRANSFER_COMPENSATION_REFERENCE_TYPE = "TRANSFER_COMPENSATION";
 
     private final TransferRepository transferRepository;
     private final WalletClient walletClient;
@@ -78,6 +80,46 @@ public class TransferService {
                 .stream()
                 .map(TransferResponse::from)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<TransferResponse> getCompensations() {
+        return transferRepository.findByStatusOrderByCreatedAtDesc(TransferStatus.COMPENSATION_REQUIRED)
+                .stream()
+                .map(TransferResponse::from)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public TransferResponse getCompensation(Long transferId) {
+        return transferRepository.findByIdAndStatus(transferId, TransferStatus.COMPENSATION_REQUIRED)
+                .map(TransferResponse::from)
+                .orElseThrow(() -> new BusinessException(ErrorCode.TRANSFER_NOT_FOUND));
+    }
+
+    @Transactional
+    public TransferResponse refundCompensation(Long transferId) {
+        Transfer transfer = transferRepository.findByIdForUpdate(transferId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.TRANSFER_NOT_FOUND));
+        if (transfer.getStatus() == TransferStatus.COMPENSATED) {
+            return TransferResponse.from(transfer);
+        }
+        if (transfer.getStatus() != TransferStatus.COMPENSATION_REQUIRED || transfer.getSenderWalletId() == null) {
+            throw new BusinessException(ErrorCode.INVALID_TRANSFER_STATUS);
+        }
+
+        walletClient.deposit(
+                transfer.getSenderWalletId(),
+                new WalletBalanceChangeRequest(
+                        transfer.getAmount(),
+                        TRANSFER_COMPENSATION_REFERENCE_TYPE,
+                        transfer.getId().toString()
+                ),
+                true,
+                internalSecret
+        );
+        transfer.compensate();
+        return TransferResponse.from(transfer);
     }
 
     private TransferResponse resolveExistingTransfer(Transfer transfer, String requestHash) {

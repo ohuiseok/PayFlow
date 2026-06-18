@@ -83,6 +83,22 @@ transfer-service
    -> store transfer_failure_events row with status and failureReason
 ```
 
+Compensation refund flow:
+
+```text
+GET /api/transfers/compensations
+GET /api/transfers/compensations/{transferId}
+POST /api/transfers/compensations/{transferId}/refund
+
+transfer-service
+-> lock transfer row
+-> require status COMPENSATION_REQUIRED
+-> wallet-service sender deposit
+   referenceType = TRANSFER_COMPENSATION
+   referenceId = {transferId}
+-> mark transfer COMPENSATED
+```
+
 Outbox relay rules:
 
 ```text
@@ -242,6 +258,7 @@ Transfer:
 ```text
 REQUESTED -> PROCESSING -> SUCCEEDED
 REQUESTED -> PROCESSING -> FAILED
+REQUESTED -> PROCESSING -> COMPENSATION_REQUIRED -> COMPENSATED
 ```
 
 Banking transfer:

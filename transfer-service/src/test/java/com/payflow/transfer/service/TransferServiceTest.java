@@ -88,6 +88,61 @@ class TransferServiceTest {
     }
 
     @Test
+    void createTransferRequiresCompensationWhenReceiverDepositFails() {
+        when(walletClient.deposit(eq(20L), any(WalletBalanceChangeRequest.class), eq(true), any()))
+                .thenThrow(new RuntimeException("receiver deposit failed"));
+
+        var response = transferService.createTransfer(new CreateTransferRequest(2L, new BigDecimal("3000")), "key-comp", 1L);
+
+        assertThat(response.status()).isEqualTo(TransferStatus.COMPENSATION_REQUIRED);
+        assertThat(response.failureReason()).contains("receiver deposit failed");
+        verify(walletClient).withdraw(eq(10L), any(WalletBalanceChangeRequest.class), eq(true), any());
+        verify(transferEventPublisher).publishFailed(any());
+    }
+
+    @Test
+    void getCompensationsReturnsOnlyCompensationRequiredTransfers() {
+        when(walletClient.deposit(eq(20L), any(WalletBalanceChangeRequest.class), eq(true), any()))
+                .thenThrow(new RuntimeException("receiver deposit failed"));
+        var compensation = transferService.createTransfer(new CreateTransferRequest(2L, new BigDecimal("3000")), "key-comp", 1L);
+        when(walletClient.deposit(eq(20L), any(WalletBalanceChangeRequest.class), eq(true), any()))
+                .thenReturn(new WalletResponse(20L, 2L, new BigDecimal("3000"), "ACTIVE"));
+        transferService.createTransfer(new CreateTransferRequest(2L, new BigDecimal("1000")), "key-success", 1L);
+
+        var compensations = transferService.getCompensations();
+        var found = transferService.getCompensation(compensation.transferId());
+
+        assertThat(compensations).extracting("transferId").containsExactly(compensation.transferId());
+        assertThat(found.status()).isEqualTo(TransferStatus.COMPENSATION_REQUIRED);
+    }
+
+    @Test
+    void refundCompensationDepositsBackToSenderAndMarksCompensated() {
+        when(walletClient.deposit(eq(20L), any(WalletBalanceChangeRequest.class), eq(true), any()))
+                .thenThrow(new RuntimeException("receiver deposit failed"));
+        var compensation = transferService.createTransfer(new CreateTransferRequest(2L, new BigDecimal("3000")), "key-comp", 1L);
+        when(walletClient.deposit(eq(10L), any(WalletBalanceChangeRequest.class), eq(true), any()))
+                .thenReturn(new WalletResponse(10L, 1L, new BigDecimal("10000"), "ACTIVE"));
+
+        var refunded = transferService.refundCompensation(compensation.transferId());
+        var retried = transferService.refundCompensation(compensation.transferId());
+
+        assertThat(refunded.status()).isEqualTo(TransferStatus.COMPENSATED);
+        assertThat(retried.status()).isEqualTo(TransferStatus.COMPENSATED);
+        verify(walletClient, times(1)).deposit(eq(10L), any(WalletBalanceChangeRequest.class), eq(true), any());
+    }
+
+    @Test
+    void refundCompensationRejectsInvalidTransferStatus() {
+        var succeeded = transferService.createTransfer(new CreateTransferRequest(2L, new BigDecimal("3000")), "key-success", 1L);
+
+        assertThatThrownBy(() -> transferService.refundCompensation(succeeded.transferId()))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.INVALID_TRANSFER_STATUS);
+    }
+
+    @Test
     void duplicateIdempotencyKeyWithSameRequestReturnsExistingResult() {
         transferService.createTransfer(new CreateTransferRequest(2L, new BigDecimal("3000")), "key-1", 1L);
         var response = transferService.createTransfer(new CreateTransferRequest(2L, new BigDecimal("3000")), "key-1", 1L);
