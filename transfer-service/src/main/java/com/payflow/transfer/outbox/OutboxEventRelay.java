@@ -27,11 +27,32 @@ public class OutboxEventRelay {
     @Value("${outbox.publisher.send-timeout:3s}")
     private Duration sendTimeout;
 
+    @Value("${outbox.publisher.max-retries:5}")
+    private int maxRetries;
+
     @Scheduled(fixedDelayString = "${outbox.publisher.fixed-delay:2000}")
     @Transactional
     public void publishPendingEvents() {
-        outboxEventRepository.findTop50ByStatusInOrderByCreatedAtAsc(PUBLISHABLE_STATUSES)
-                .forEach(this::publishOne);
+        outboxEventRepository.findTop50ByStatusInAndRetryCountLessThanOrderByCreatedAtAsc(PUBLISHABLE_STATUSES, maxRetries)
+                .forEach(event -> {
+                    if (claim(event)) {
+                        publishOne(event);
+                    }
+                });
+    }
+
+    private boolean claim(OutboxEvent event) {
+        int updated = outboxEventRepository.claimPublishableEvent(
+                event.getId(),
+                PUBLISHABLE_STATUSES,
+                OutboxEventStatus.PROCESSING,
+                maxRetries
+        );
+        if (updated == 1) {
+            event.markProcessing();
+            return true;
+        }
+        return false;
     }
 
     private void publishOne(OutboxEvent event) {

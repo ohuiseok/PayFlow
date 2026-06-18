@@ -75,6 +75,10 @@ public class OutboxEvent {
         this.lastError = null;
     }
 
+    public void markProcessing() {
+        this.status = OutboxEventStatus.PROCESSING;
+    }
+
     public void markFailed(String errorMessage) {
         this.status = OutboxEventStatus.FAILED;
         this.retryCount++;
