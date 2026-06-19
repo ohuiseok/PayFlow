@@ -174,7 +174,8 @@ public class RewardService {
             TransferResponse response = transferClient.createTransfer(
                     new CreateTransferRequest(task.getChildUserId(), task.getRewardAmount()),
                     "reward-payment-" + task.getId(),
-                    task.getParentUserId()
+                    task.getParentUserId(),
+                    internalSecret
             );
             if (!"SUCCEEDED".equals(response.status())) {
                 String reason = StringUtils.hasText(response.failureReason()) ? response.failureReason() : "transfer status: " + response.status();

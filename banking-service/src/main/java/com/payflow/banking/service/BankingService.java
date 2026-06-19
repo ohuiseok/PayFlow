@@ -49,6 +49,7 @@ import java.util.List;
 import java.net.URLEncoder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -313,15 +314,22 @@ public class BankingService {
             String requestHash
     ) {
         String bankTranId = createBankTranId(userId, idempotencyKey);
-        BankingTransfer transfer = bankingTransferRepository.saveAndFlush(new BankingTransfer(
-                userId,
-                account.getId(),
-                amount,
-                idempotencyKey,
-                requestHash,
-                bankTranId,
-                BankingTransferType.CHARGE
-        ));
+        BankingTransfer transfer;
+        try {
+            transfer = bankingTransferRepository.saveAndFlush(new BankingTransfer(
+                    userId,
+                    account.getId(),
+                    amount,
+                    idempotencyKey,
+                    requestHash,
+                    bankTranId,
+                    BankingTransferType.CHARGE
+            ));
+        } catch (DataIntegrityViolationException exception) {
+            return bankingTransferRepository.findByIdempotencyKey(idempotencyKey)
+                    .map(existing -> resolveExistingTransfer(existing, requestHash))
+                    .orElseThrow(() -> exception);
+        }
 
         try {
             OpenBankingTransferResponse openBankingResponse = openBankingClient.withdrawTransfer(
@@ -413,15 +421,22 @@ public class BankingService {
             String requestHash
     ) {
         String bankTranId = createBankTranId(userId, idempotencyKey);
-        BankingTransfer transfer = bankingTransferRepository.saveAndFlush(new BankingTransfer(
-                userId,
-                account.getId(),
-                amount,
-                idempotencyKey,
-                requestHash,
-                bankTranId,
-                BankingTransferType.WITHDRAWAL
-        ));
+        BankingTransfer transfer;
+        try {
+            transfer = bankingTransferRepository.saveAndFlush(new BankingTransfer(
+                    userId,
+                    account.getId(),
+                    amount,
+                    idempotencyKey,
+                    requestHash,
+                    bankTranId,
+                    BankingTransferType.WITHDRAWAL
+            ));
+        } catch (DataIntegrityViolationException exception) {
+            return bankingTransferRepository.findByIdempotencyKey(idempotencyKey)
+                    .map(existing -> resolveExistingTransfer(existing, requestHash))
+                    .orElseThrow(() -> exception);
+        }
 
         boolean walletWithdrawn = false;
         try {

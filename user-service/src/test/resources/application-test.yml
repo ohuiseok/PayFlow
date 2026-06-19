@@ -18,3 +18,7 @@ jwt:
 clients:
   wallet-service:
     provisioning-enabled: false
+
+gateway:
+  request-filter:
+    enabled: false

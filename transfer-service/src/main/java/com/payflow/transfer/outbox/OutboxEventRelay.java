@@ -10,7 +10,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @Component
 @ConditionalOnProperty(prefix = "outbox.publisher", name = "enabled", havingValue = "true", matchIfMissing = true)
@@ -24,6 +25,7 @@ public class OutboxEventRelay {
 
     private final OutboxEventRepository outboxEventRepository;
     private final KafkaTemplate<String, String> kafkaTemplate;
+    private final PlatformTransactionManager transactionManager;
 
     @Value("${outbox.publisher.send-timeout:3s}")
     private Duration sendTimeout;
@@ -35,13 +37,20 @@ public class OutboxEventRelay {
     private Duration processingTimeout;
 
     @Scheduled(fixedDelayString = "${outbox.publisher.fixed-delay:2000}")
-    @Transactional
     public void publishPendingEvents() {
-        recoverStuckProcessingEvents();
-        outboxEventRepository.findTop50ByStatusInAndRetryCountLessThanOrderByCreatedAtAsc(PUBLISHABLE_STATUSES, maxRetries)
+        TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
+        List<OutboxEvent> events = transactionTemplate.execute(status -> {
+            recoverStuckProcessingEvents();
+            return outboxEventRepository.findTop50ByStatusInAndRetryCountLessThanOrderByCreatedAtAsc(PUBLISHABLE_STATUSES, maxRetries);
+        });
+        if (events == null) {
+            return;
+        }
+        events
                 .forEach(event -> {
-                    if (claim(event)) {
-                        publishOne(event);
+                    if (claim(transactionTemplate, event.getId())) {
+                        String errorMessage = publishOne(event);
+                        recordPublishResult(transactionTemplate, event.getId(), errorMessage);
                     }
                 });
     }
@@ -55,30 +64,41 @@ public class OutboxEventRelay {
         );
     }
 
-    private boolean claim(OutboxEvent event) {
+    private boolean claim(TransactionTemplate transactionTemplate, Long eventId) {
+        return Boolean.TRUE.equals(transactionTemplate.execute(status -> claimInTransaction(eventId)));
+    }
+
+    private boolean claimInTransaction(Long eventId) {
         LocalDateTime processingStartedAt = LocalDateTime.now();
         int updated = outboxEventRepository.claimPublishableEvent(
-                event.getId(),
+                eventId,
                 PUBLISHABLE_STATUSES,
                 OutboxEventStatus.PROCESSING,
                 processingStartedAt,
                 maxRetries
         );
-        if (updated == 1) {
-            event.markProcessing(processingStartedAt);
-            return true;
-        }
-        return false;
+        return updated == 1;
     }
 
-    private void publishOne(OutboxEvent event) {
+    private String publishOne(OutboxEvent event) {
         try {
             kafkaTemplate.send(event.getTopic(), event.getEventKey(), event.getPayload())
                     .get(sendTimeout.toMillis(), TimeUnit.MILLISECONDS);
-            event.markPublished();
+            return null;
         } catch (Exception exception) {
-            event.markFailed(resolveMessage(exception));
+            return resolveMessage(exception);
         }
+    }
+
+    private void recordPublishResult(TransactionTemplate transactionTemplate, Long eventId, String errorMessage) {
+        transactionTemplate.executeWithoutResult(status -> outboxEventRepository.findById(eventId)
+                .ifPresent(event -> {
+                    if (errorMessage == null) {
+                        event.markPublished();
+                    } else {
+                        event.markFailed(errorMessage);
+                    }
+                }));
     }
 
     private String resolveMessage(Exception exception) {

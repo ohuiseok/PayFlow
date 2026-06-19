@@ -52,7 +52,7 @@ class RewardServiceTest {
     void setUp() {
         rewardTaskRepository.deleteAll();
         parentChildLinkRepository.deleteAll();
-        when(transferClient.createTransfer(any(CreateTransferRequest.class), anyString(), eq(1L)))
+        when(transferClient.createTransfer(any(CreateTransferRequest.class), anyString(), eq(1L), anyString()))
                 .thenReturn(new TransferResponse(100L, 1L, 2L, new BigDecimal("3000"), "SUCCEEDED", null));
         when(walletClient.getWalletByUserId(eq(1L), eq(true), any()))
                 .thenReturn(new WalletResponse(10L, 1L, new BigDecimal("50000"), "ACTIVE"));

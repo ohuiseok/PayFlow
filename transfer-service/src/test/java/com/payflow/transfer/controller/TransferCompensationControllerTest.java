@@ -32,6 +32,8 @@ import org.springframework.test.web.servlet.MockMvc;
 @ActiveProfiles("test")
 class TransferCompensationControllerTest {
 
+    private static final String INTERNAL_SECRET = "test-internal-secret";
+
     @Autowired
     MockMvc mockMvc;
 
@@ -66,7 +68,8 @@ class TransferCompensationControllerTest {
     void getCompensationsReturnsCompensationRequiredTransfers() throws Exception {
         var compensation = transferService.createTransfer(new CreateTransferRequest(2L, new BigDecimal("3000")), "key-comp", 1L);
 
-        mockMvc.perform(get("/transfers/compensations"))
+        mockMvc.perform(get("/transfers/compensations")
+                        .header("X-Internal-Secret", INTERNAL_SECRET))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].transferId").value(compensation.transferId()))
                 .andExpect(jsonPath("$[0].status").value("COMPENSATION_REQUIRED"))
@@ -79,7 +82,8 @@ class TransferCompensationControllerTest {
     void getCompensationReturnsTransfer() throws Exception {
         var compensation = transferService.createTransfer(new CreateTransferRequest(2L, new BigDecimal("3000")), "key-comp", 1L);
 
-        mockMvc.perform(get("/transfers/compensations/{transferId}", compensation.transferId()))
+        mockMvc.perform(get("/transfers/compensations/{transferId}", compensation.transferId())
+                        .header("X-Internal-Secret", INTERNAL_SECRET))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.transferId").value(compensation.transferId()))
                 .andExpect(jsonPath("$.status").value("COMPENSATION_REQUIRED"));
@@ -91,7 +95,8 @@ class TransferCompensationControllerTest {
         when(walletClient.deposit(eq(10L), any(WalletBalanceChangeRequest.class), eq(true), any()))
                 .thenReturn(new WalletResponse(10L, 1L, new BigDecimal("10000"), "ACTIVE"));
 
-        mockMvc.perform(post("/transfers/compensations/{transferId}/refund", compensation.transferId()))
+        mockMvc.perform(post("/transfers/compensations/{transferId}/refund", compensation.transferId())
+                        .header("X-Internal-Secret", INTERNAL_SECRET))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.transferId").value(compensation.transferId()))
                 .andExpect(jsonPath("$.status").value("COMPENSATED"))
@@ -106,12 +111,14 @@ class TransferCompensationControllerTest {
         when(walletClient.deposit(eq(10L), any(WalletBalanceChangeRequest.class), eq(true), any()))
                 .thenThrow(new RuntimeException("refund deposit failed"));
 
-        mockMvc.perform(post("/transfers/compensations/{transferId}/refund", compensation.transferId()))
+        mockMvc.perform(post("/transfers/compensations/{transferId}/refund", compensation.transferId())
+                        .header("X-Internal-Secret", INTERNAL_SECRET))
                 .andExpect(status().isBadGateway())
                 .andExpect(jsonPath("$.code").value("COMPENSATION_REFUND_FAILED"))
                 .andExpect(jsonPath("$.message").value("refund deposit failed"));
 
-        mockMvc.perform(get("/transfers/compensations/{transferId}", compensation.transferId()))
+        mockMvc.perform(get("/transfers/compensations/{transferId}", compensation.transferId())
+                        .header("X-Internal-Secret", INTERNAL_SECRET))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("COMPENSATION_REQUIRED"))
                 .andExpect(jsonPath("$.compensationRetryCount").value(1))

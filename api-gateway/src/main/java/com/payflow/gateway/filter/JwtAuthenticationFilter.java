@@ -10,6 +10,7 @@ import java.time.format.DateTimeFormatter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.Ordered;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.http.HttpHeaders;
@@ -31,8 +32,12 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     private static final String X_USER_ROLE = "X-User-Role";
     private static final String X_INTERNAL_REQUEST = "X-Internal-Request";
     private static final String X_INTERNAL_SECRET = "X-Internal-Secret";
+    private static final String X_GATEWAY_SECRET = "X-Gateway-Secret";
 
     private final JwtTokenProvider jwtTokenProvider;
+
+    @Value("${gateway.internal-secret:}")
+    private String gatewayInternalSecret;
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
@@ -44,7 +49,10 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         // 회원가입/로그인/헬스체크는 토큰이 없어야 접근 가능하다.
         // 이 외의 API는 모두 Authorization: Bearer {token}을 요구한다.
         if (isPublicRequest(sanitizedRequest)) {
-            return chain.filter(sanitizedExchange);
+            ServerHttpRequest gatewayRequest = sanitizedRequest.mutate()
+                    .header(X_GATEWAY_SECRET, gatewayInternalSecret)
+                    .build();
+            return chain.filter(sanitizedExchange.mutate().request(gatewayRequest).build());
         }
 
         try {
@@ -56,6 +64,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
                     .header(X_USER_ID, String.valueOf(user.userId()))
                     .header(X_USER_PHONE_NUMBER, user.phoneNumber())
                     .header(X_USER_ROLE, user.role())
+                    .header(X_GATEWAY_SECRET, gatewayInternalSecret)
                     .build();
             return chain.filter(sanitizedExchange.mutate().request(authenticatedRequest).build());
         } catch (BusinessException exception) {
@@ -78,6 +87,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
                     headers.remove(X_USER_ROLE);
                     headers.remove(X_INTERNAL_REQUEST);
                     headers.remove(X_INTERNAL_SECRET);
+                    headers.remove(X_GATEWAY_SECRET);
                 })
                 .build();
     }

@@ -15,6 +15,9 @@ public class WalletClient {
     @Value("${clients.wallet-service.provisioning-enabled:true}")
     private boolean provisioningEnabled;
 
+    @Value("${internal.secret:}")
+    private String internalSecret;
+
     public void createWallet(Long userId) {
         if (!provisioningEnabled) {
             return;
@@ -28,6 +31,7 @@ public class WalletClient {
                     .post()
                     .uri("/wallets")
                     .header("X-User-Id", String.valueOf(userId))
+                    .header("X-Internal-Secret", internalSecret)
                     .body(new CreateWalletRequest(userId))
                     .retrieve()
                     .toBodilessEntity();

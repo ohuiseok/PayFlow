@@ -93,6 +93,9 @@ jwt:
   secret: ${JWT_SECRET:payflow-local-development-secret-key-change-me}
   expiration: ${JWT_EXPIRATION:86400000}
 
+gateway:
+  internal-secret: ${GATEWAY_INTERNAL_SECRET:${INTERNAL_SERVICE_SECRET:}}
+
 management:
   endpoints:
     web:

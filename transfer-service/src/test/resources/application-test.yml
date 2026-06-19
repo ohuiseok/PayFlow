@@ -24,6 +24,10 @@ feign:
 internal:
   secret: test-internal-secret
 
+gateway:
+  request-filter:
+    enabled: false
+
 outbox:
   publisher:
     enabled: false

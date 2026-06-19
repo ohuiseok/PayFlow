@@ -12,6 +12,7 @@ public interface TransferClient {
     TransferResponse createTransfer(
             @RequestBody CreateTransferRequest request,
             @RequestHeader("Idempotency-Key") String idempotencyKey,
-            @RequestHeader("X-User-Id") Long requestUserId
+            @RequestHeader("X-User-Id") Long requestUserId,
+            @RequestHeader("X-Internal-Secret") String internalSecret
     );
 }

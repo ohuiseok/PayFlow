@@ -3,10 +3,14 @@ package com.payflow.transfer.controller;
 import com.payflow.transfer.dto.CreateTransferRequest;
 import com.payflow.transfer.dto.TransferResponse;
 import com.payflow.transfer.service.TransferService;
+import com.payflow.transfer.support.error.BusinessException;
+import com.payflow.transfer.support.error.ErrorCode;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -22,6 +26,9 @@ import org.springframework.web.bind.annotation.RestController;
 public class TransferController {
 
     private final TransferService transferService;
+
+    @Value("${internal.secret:}")
+    private String internalSecret;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -52,17 +59,34 @@ public class TransferController {
     }
 
     @GetMapping("/compensations")
-    public List<TransferResponse> getCompensations() {
+    public List<TransferResponse> getCompensations(
+            @RequestHeader(value = "X-Internal-Secret", required = false) String requestInternalSecret
+    ) {
+        validateInternalRequest(requestInternalSecret);
         return transferService.getCompensations();
     }
 
     @GetMapping("/compensations/{transferId}")
-    public TransferResponse getCompensation(@PathVariable Long transferId) {
+    public TransferResponse getCompensation(
+            @PathVariable Long transferId,
+            @RequestHeader(value = "X-Internal-Secret", required = false) String requestInternalSecret
+    ) {
+        validateInternalRequest(requestInternalSecret);
         return transferService.getCompensation(transferId);
     }
 
     @PostMapping("/compensations/{transferId}/refund")
-    public TransferResponse refundCompensation(@PathVariable Long transferId) {
+    public TransferResponse refundCompensation(
+            @PathVariable Long transferId,
+            @RequestHeader(value = "X-Internal-Secret", required = false) String requestInternalSecret
+    ) {
+        validateInternalRequest(requestInternalSecret);
         return transferService.refundCompensation(transferId);
+    }
+
+    private void validateInternalRequest(String requestInternalSecret) {
+        if (!StringUtils.hasText(internalSecret) || !internalSecret.equals(requestInternalSecret)) {
+            throw new BusinessException(ErrorCode.FORBIDDEN);
+        }
     }
 }

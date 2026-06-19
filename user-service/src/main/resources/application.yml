@@ -26,6 +26,9 @@ clients:
     url: ${WALLET_SERVICE_URL:http://localhost:8082}
     provisioning-enabled: ${WALLET_PROVISIONING_ENABLED:true}
 
+internal:
+  secret: ${INTERNAL_SERVICE_SECRET:}
+
 management:
   endpoints:
     web:
