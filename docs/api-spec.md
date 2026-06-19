@@ -153,9 +153,47 @@ Header:
 ```json
 {
   "bankingTransferId": 1001,
+  "transferType": "CHARGE",
+  "bankAccountId": 1,
+  "walletId": 10,
   "amount": 50000,
-  "status": "SUCCEEDED",
-  "walletTransactionId": 9001
+  "status": "COMPLETED",
+  "walletTransactionId": 9001,
+  "failureReason": null,
+  "compensationRetryCount": 0,
+  "compensationFailureReason": null,
+  "compensatedAt": null
+}
+```
+
+### POST /api/bank/withdrawals
+
+Header:
+
+`Idempotency-Key: 20260619-user1-withdrawal-001`
+
+```json
+{
+  "bankAccountId": 1,
+  "amount": 10000
+}
+```
+
+Response:
+
+```json
+{
+  "bankingTransferId": 1002,
+  "transferType": "WITHDRAWAL",
+  "bankAccountId": 1,
+  "walletId": null,
+  "amount": 10000,
+  "status": "COMPENSATION_REQUIRED",
+  "walletTransactionId": null,
+  "failureReason": "OpenBanking deposit transfer is no-permission in this environment. Wallet withdrawal requires compensation.",
+  "compensationRetryCount": 0,
+  "compensationFailureReason": null,
+  "compensatedAt": null
 }
 ```
 
@@ -181,17 +219,26 @@ Syncs linked accounts using the stored encrypted user Open Banking token.
 
 Checks Open Banking transfer result and finalizes `BANK_PROCESSING` or `UNKNOWN` banking transfers.
 
+#### POST /api/bank/transfers/{bankingTransferId}/compensate
+
+Refunds a `WITHDRAWAL` transfer in `COMPENSATION_REQUIRED` state back to the wallet.
+Successful compensation changes status to `COMPENSATED`; failed compensation keeps the transfer in `COMPENSATION_REQUIRED`
+and increments `compensationRetryCount`.
+
 Banking transfer statuses:
 
 ```text
 REQUESTED
+WALLET_WITHDRAWING
 BANK_PROCESSING
 BANK_SUCCEEDED
 WALLET_REFLECTING
 COMPLETED
+SUCCEEDED
 FAILED
 UNKNOWN
 COMPENSATION_REQUIRED
+COMPENSATED
 ```
 
 ## Transfer API

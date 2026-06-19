@@ -24,4 +24,12 @@ public interface WalletClient {
             @RequestHeader("X-Internal-Request") boolean internalRequest,
             @RequestHeader("X-Internal-Secret") String internalSecret
     );
+
+    @PostMapping("/wallets/{walletId}/withdraw")
+    WalletResponse withdraw(
+            @PathVariable Long walletId,
+            @RequestBody WalletBalanceChangeRequest request,
+            @RequestHeader("X-Internal-Request") boolean internalRequest,
+            @RequestHeader("X-Internal-Secret") String internalSecret
+    );
 }

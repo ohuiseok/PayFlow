@@ -4,6 +4,7 @@ import com.payflow.banking.dto.BankAccountResponse;
 import com.payflow.banking.dto.BankingTransferResponse;
 import com.payflow.banking.dto.CreateBankAccountRequest;
 import com.payflow.banking.dto.CreateDepositRequest;
+import com.payflow.banking.dto.CreateWithdrawalRequest;
 import com.payflow.banking.dto.OpenBankingAttemptResponse;
 import com.payflow.banking.dto.OpenBankingAuthorizeUrlResponse;
 import com.payflow.banking.dto.OpenBankingCallbackRequest;
@@ -91,6 +92,16 @@ public class BankingController {
         return bankingService.createDeposit(request, idempotencyKey, requestUserId);
     }
 
+    @PostMapping("/withdrawals")
+    @ResponseStatus(HttpStatus.CREATED)
+    public BankingTransferResponse createWithdrawal(
+            @Valid @RequestBody CreateWithdrawalRequest request,
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
+            @RequestHeader("X-User-Id") Long requestUserId
+    ) {
+        return bankingService.createWithdrawal(request, idempotencyKey, requestUserId);
+    }
+
     @GetMapping("/transfers/{bankingTransferId}")
     public BankingTransferResponse getTransfer(
             @PathVariable Long bankingTransferId,
@@ -105,5 +116,13 @@ public class BankingController {
             @RequestHeader("X-User-Id") Long requestUserId
     ) {
         return bankingService.checkTransferResult(bankingTransferId, requestUserId);
+    }
+
+    @PostMapping("/transfers/{bankingTransferId}/compensate")
+    public BankingTransferResponse compensateWithdrawal(
+            @PathVariable Long bankingTransferId,
+            @RequestHeader("X-User-Id") Long requestUserId
+    ) {
+        return bankingService.compensateWithdrawal(bankingTransferId, requestUserId);
     }
 }

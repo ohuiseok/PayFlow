@@ -2,6 +2,7 @@ package com.payflow.banking.entity;
 
 public enum BankingTransferStatus {
     REQUESTED,
+    WALLET_WITHDRAWING,
     BANK_PROCESSING,
     BANK_SUCCEEDED,
     WALLET_REFLECTING,
@@ -9,5 +10,6 @@ public enum BankingTransferStatus {
     SUCCEEDED,
     UNKNOWN,
     COMPENSATION_REQUIRED,
+    COMPENSATED,
     FAILED
 }

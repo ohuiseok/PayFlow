@@ -28,12 +28,16 @@ type BankAccountResponse = {
 };
 
 type WithdrawalResponse = {
-  withdrawalId: string;
-  walletId: number | string;
-  bankAccountId: string;
+  bankingTransferId: number | string;
+  walletId?: number | string;
+  bankAccountId: number | string;
   maskedAccountNumber?: string;
   amount: number;
   status: string;
+  failureReason?: string | null;
+  compensationRetryCount?: number;
+  compensationFailureReason?: string | null;
+  compensatedAt?: string | null;
 };
 
 export type CreditBankAccount = {
@@ -90,9 +94,9 @@ function normalizeBankAccount(account: BankAccountResponse): CreditBankAccount {
 
 function normalizeWithdrawal(response: WithdrawalResponse): WithdrawalResult {
   return {
-    withdrawalId: response.withdrawalId,
-    walletId: String(response.walletId),
-    bankAccountId: response.bankAccountId,
+    withdrawalId: String(response.bankingTransferId),
+    walletId: String(response.walletId ?? ''),
+    bankAccountId: String(response.bankAccountId),
     amount: response.amount,
     status: toProcessingStatus(response.status),
   };
@@ -156,9 +160,8 @@ export const creditApi = {
 
   async requestWithdrawal(input: { walletId: string; bankAccountId: string; amount: number }) {
     const response = await apiClient.post<WithdrawalResponse>(
-      '/api/credits/withdrawals',
+      '/api/bank/withdrawals',
       {
-        walletId: input.walletId,
         bankAccountId: input.bankAccountId,
         amount: input.amount,
       },
@@ -173,7 +176,7 @@ export const creditApi = {
 
   async getWithdrawal(withdrawalId: string) {
     const response = await apiClient.get<WithdrawalResponse>(
-      `/api/credits/withdrawals/${encodeURIComponent(withdrawalId)}`,
+      `/api/bank/transfers/${encodeURIComponent(withdrawalId)}`,
     );
     return normalizeWithdrawal(response);
   },

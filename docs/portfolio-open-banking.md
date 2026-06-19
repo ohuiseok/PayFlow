@@ -74,6 +74,29 @@ OpenBankingResultCheckScheduler
 
 The scheduler checks `BANK_PROCESSING` and `UNKNOWN` transfers when `nextResultCheckAt <= now`.
 
+### Wallet Withdrawal And Compensation
+
+PayFlow withdrawal attempts the Open Banking deposit transfer API, but the reference document marks that API as `(x)`.
+Because the service has no permission for that API in this environment, its response is never used to finalize business state.
+
+```text
+POST /bank/withdrawals
+-> wallet-service withdraw
+-> attempt /v2.0/transfer/deposit/fin_num
+-> COMPENSATION_REQUIRED
+```
+
+If wallet withdrawal fails before the external bank attempt, the transfer is marked `FAILED`.
+If wallet withdrawal succeeds but the no-permission bank transfer cannot be trusted, the transfer is isolated as `COMPENSATION_REQUIRED`.
+
+Manual compensation refunds the wallet through a wallet deposit using the original `bank_tran_id` as the idempotent reference.
+
+```text
+POST /bank/transfers/{bankingTransferId}/compensate
+referenceType = OPEN_BANKING_REFUND
+referenceId   = bank_tran_id
+```
+
 ## Idempotency Strategy
 
 | Layer | Key | Purpose |
@@ -86,6 +109,13 @@ For wallet charge reflection:
 
 ```text
 referenceType = OPEN_BANKING_CHARGE
+referenceId   = bank_tran_id
+```
+
+For withdrawal compensation:
+
+```text
+referenceType = OPEN_BANKING_REFUND
 referenceId   = bank_tran_id
 ```
 
@@ -146,7 +176,6 @@ This implementation is suitable for a portfolio-grade MVP, but production harden
 - external HTTP retry/timeout policy
 - sandbox end-to-end profile
 - richer masked API log policy
-- withdrawal and compensation state machine
 - stronger separation between DB transactions and external HTTP calls
 
 ## Interview Talking Points
@@ -157,3 +186,4 @@ This implementation is suitable for a portfolio-grade MVP, but production harden
 - I used `bank_tran_id` and wallet references to prevent duplicate balance changes.
 - I encrypted user Open Banking tokens and avoided raw account number persistence.
 - I isolated no-permission APIs from business state changes.
+- I modeled withdrawal compensation explicitly instead of pretending a no-permission bank API succeeded.

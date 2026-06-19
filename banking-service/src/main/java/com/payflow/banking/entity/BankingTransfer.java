@@ -35,11 +35,15 @@ public class BankingTransfer {
 
     private Long walletId;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private BankingTransferType transferType;
+
     @Column(nullable = false, precision = 19, scale = 0)
     private BigDecimal amount;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false, length = 30)
     private BankingTransferStatus status;
 
     @Column(nullable = false, unique = true, length = 120)
@@ -83,6 +87,14 @@ public class BankingTransfer {
 
     private Long walletTransactionId;
 
+    @Column(nullable = false)
+    private int compensationRetryCount;
+
+    @Column(length = 500)
+    private String compensationFailureReason;
+
+    private LocalDateTime compensatedAt;
+
     @Column(length = 500)
     private String failureReason;
 
@@ -95,14 +107,29 @@ public class BankingTransfer {
     protected BankingTransfer() {
     }
 
-    public BankingTransfer(Long userId, Long bankAccountId, BigDecimal amount, String idempotencyKey, String requestHash, String bankTranId) {
+    public BankingTransfer(
+            Long userId,
+            Long bankAccountId,
+            BigDecimal amount,
+            String idempotencyKey,
+            String requestHash,
+            String bankTranId,
+            BankingTransferType transferType
+    ) {
         this.userId = userId;
         this.bankAccountId = bankAccountId;
         this.amount = amount;
         this.idempotencyKey = idempotencyKey;
         this.requestHash = requestHash;
         this.bankTranId = bankTranId;
+        this.transferType = transferType;
         this.status = BankingTransferStatus.REQUESTED;
+    }
+
+    public void markWalletWithdrawing(String walletReferenceType, String walletReferenceId) {
+        this.walletReferenceType = walletReferenceType;
+        this.walletReferenceId = walletReferenceId;
+        this.status = BankingTransferStatus.WALLET_WITHDRAWING;
     }
 
     public void markBankSucceeded(String bankTranDate, String apiTranId, String apiResponseCode, String bankResponseCode) {
@@ -132,6 +159,26 @@ public class BankingTransfer {
         this.bankResponseCode = bankResponseCode;
         this.status = BankingTransferStatus.FAILED;
         this.failureReason = failureReason;
+    }
+
+    public void markCompensationRequired(String failureReason) {
+        this.status = BankingTransferStatus.COMPENSATION_REQUIRED;
+        this.failureReason = failureReason;
+    }
+
+    public void markCompensated(Long walletId, String walletReferenceType, String walletReferenceId) {
+        this.walletId = walletId;
+        this.walletReferenceType = walletReferenceType;
+        this.walletReferenceId = walletReferenceId;
+        this.status = BankingTransferStatus.COMPENSATED;
+        this.failureReason = null;
+        this.compensationFailureReason = null;
+        this.compensatedAt = LocalDateTime.now();
+    }
+
+    public void recordCompensationFailure(String reason) {
+        this.compensationRetryCount += 1;
+        this.compensationFailureReason = reason;
     }
 
     public void markWalletReflecting(String walletReferenceType, String walletReferenceId) {
@@ -193,6 +240,10 @@ public class BankingTransfer {
 
     public BankingTransferStatus getStatus() {
         return status;
+    }
+
+    public BankingTransferType getTransferType() {
+        return transferType;
     }
 
     public String getIdempotencyKey() {
@@ -257,5 +308,17 @@ public class BankingTransfer {
 
     public LocalDateTime getCompletedAt() {
         return completedAt;
+    }
+
+    public int getCompensationRetryCount() {
+        return compensationRetryCount;
+    }
+
+    public String getCompensationFailureReason() {
+        return compensationFailureReason;
+    }
+
+    public LocalDateTime getCompensatedAt() {
+        return compensatedAt;
     }
 }

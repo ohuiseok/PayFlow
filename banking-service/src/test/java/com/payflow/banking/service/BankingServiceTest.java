@@ -14,9 +14,12 @@ import com.payflow.banking.client.WalletClient;
 import com.payflow.banking.client.WalletResponse;
 import com.payflow.banking.dto.CreateBankAccountRequest;
 import com.payflow.banking.dto.CreateDepositRequest;
+import com.payflow.banking.dto.CreateWithdrawalRequest;
+import com.payflow.banking.entity.BankingTransferType;
 import com.payflow.banking.dto.OpenBankingCallbackRequest;
 import com.payflow.banking.entity.BankingTransferStatus;
 import com.payflow.banking.openbanking.OpenBankingClient;
+import com.payflow.banking.openbanking.OpenBankingDepositTransferRequest;
 import com.payflow.banking.openbanking.OpenBankingTokenResponse;
 import com.payflow.banking.openbanking.OpenBankingTransferResultRequest;
 import com.payflow.banking.openbanking.OpenBankingTransferResultResponse;
@@ -109,6 +112,8 @@ class BankingServiceTest {
                 .thenReturn(new WalletResponse(10L, 1L, BigDecimal.ZERO, "ACTIVE"));
         when(walletClient.deposit(eq(10L), any(WalletBalanceChangeRequest.class), eq(true), any()))
                 .thenReturn(new WalletResponse(10L, 1L, new BigDecimal("50000"), "ACTIVE"));
+        when(walletClient.withdraw(eq(10L), any(WalletBalanceChangeRequest.class), eq(true), any()))
+                .thenReturn(new WalletResponse(10L, 1L, BigDecimal.ZERO, "ACTIVE"));
     }
 
     @Test
@@ -188,6 +193,59 @@ class BankingServiceTest {
 
         assertThat(response.status()).isEqualTo(BankingTransferStatus.BANK_PROCESSING);
         verify(walletClient, never()).deposit(eq(10L), any(WalletBalanceChangeRequest.class), eq(true), any());
+    }
+
+    @Test
+    void createWithdrawalAttemptsDepositTransferAndRequiresCompensation() {
+        linkOpenBankingToken();
+        var account = bankingService.createBankAccount(new CreateBankAccountRequest("004", "1234567890", "Parent"), 1L);
+
+        var response = bankingService.createWithdrawal(
+                new CreateWithdrawalRequest(account.bankAccountId(), new BigDecimal("10000")),
+                "withdrawal-key-1",
+                1L
+        );
+
+        assertThat(response.transferType()).isEqualTo(BankingTransferType.WITHDRAWAL);
+        assertThat(response.status()).isEqualTo(BankingTransferStatus.COMPENSATION_REQUIRED);
+        assertThat(response.amount()).isEqualByComparingTo("10000");
+        verify(walletClient).withdraw(eq(10L), any(WalletBalanceChangeRequest.class), eq(true), any());
+        verify(openBankingClient).attemptDepositTransfer(any(OpenBankingDepositTransferRequest.class));
+    }
+
+    @Test
+    void createWithdrawalFailsWhenWalletWithdrawFailsBeforeBankAttempt() {
+        linkOpenBankingToken();
+        var account = bankingService.createBankAccount(new CreateBankAccountRequest("004", "1234567890", "Parent"), 1L);
+        when(walletClient.withdraw(eq(10L), any(WalletBalanceChangeRequest.class), eq(true), any()))
+                .thenThrow(new RuntimeException("insufficient balance"));
+
+        var response = bankingService.createWithdrawal(
+                new CreateWithdrawalRequest(account.bankAccountId(), new BigDecimal("10000")),
+                "withdrawal-key-wallet-fail",
+                1L
+        );
+
+        assertThat(response.status()).isEqualTo(BankingTransferStatus.FAILED);
+        assertThat(response.failureReason()).contains("insufficient balance");
+        verify(openBankingClient, never()).attemptDepositTransfer(any(OpenBankingDepositTransferRequest.class));
+    }
+
+    @Test
+    void compensateWithdrawalDepositsRefundAndMarksCompensated() {
+        linkOpenBankingToken();
+        var account = bankingService.createBankAccount(new CreateBankAccountRequest("004", "1234567890", "Parent"), 1L);
+        var withdrawal = bankingService.createWithdrawal(
+                new CreateWithdrawalRequest(account.bankAccountId(), new BigDecimal("10000")),
+                "withdrawal-key-compensate",
+                1L
+        );
+
+        var compensated = bankingService.compensateWithdrawal(withdrawal.bankingTransferId(), 1L);
+
+        assertThat(compensated.status()).isEqualTo(BankingTransferStatus.COMPENSATED);
+        assertThat(compensated.compensatedAt()).isNotNull();
+        verify(walletClient).deposit(eq(10L), any(WalletBalanceChangeRequest.class), eq(true), any());
     }
 
     @Test

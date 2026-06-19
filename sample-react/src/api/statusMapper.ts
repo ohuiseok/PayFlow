@@ -8,6 +8,7 @@ type ApiProcessingStatus =
   | 'BANK_SUCCEEDED'
   | 'WALLET_REFLECTING'
   | 'COMPLETED'
+  | 'COMPENSATED'
   | 'FAILED'
   | 'UNKNOWN'
   | 'COMPENSATION_REQUIRED';
@@ -24,6 +25,7 @@ export function toProcessingStatus(status: string): ProcessingStatus {
       return 'processing';
     case 'SUCCEEDED':
     case 'COMPLETED':
+    case 'COMPENSATED':
       return 'completed';
     case 'FAILED':
       return 'failed';
