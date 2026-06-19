@@ -3,37 +3,72 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { familyApi } from '../../api/familyApi';
 import { missionApi } from '../../api/missionApi';
 import { ApiErrorBox } from '../../components/common/ApiErrorBox';
 import { Body, Card, FormField, Heading, InfoBox, Label, PrimaryButton, ScreenFrame, SecondaryButton } from '../../components/common';
 import { EmptyState, LoadingState } from '../../components/common/ScreenStates';
+import { ChildOption, ChildSelector } from '../../components/mission/ChildSelector';
 import { MissionCard } from '../../components/mission/MissionCard';
 import { appConfig } from '../../config/appConfig';
 import { RootStackParamList } from '../../navigation/routes';
 import { useAppState } from '../../state/AppState';
+import { LinkedChild } from '../../types';
 import { getErrorMessage } from '../../utils/apiError';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ParentApproval'>;
 
 export function ParentApprovalScreen({ navigation }: Props) {
-  const { approveMission, loginAs, missions, rejectMission } = useAppState();
+  const { approveMission, linkedChildren, loginAs, missions, rejectMission } = useAppState();
   const queryClient = useQueryClient();
+
   const missionsQuery = useQuery({
     queryKey: ['missions', 'parent', 'approval'],
     queryFn: () => missionApi.getMissions({ role: 'parent' }),
     enabled: !appConfig.useDummyData,
   });
+
+  const familyQuery = useQuery({
+    queryKey: ['family', 'mine'],
+    queryFn: familyApi.getMyFamilies,
+    enabled: !appConfig.useDummyData,
+  });
+
+  const childOptions: ChildOption[] = appConfig.useDummyData
+    ? linkedChildren.map((c: LinkedChild) => ({
+        childUserId: c.childUserId,
+        childName: c.childName,
+        phoneNumber: c.phoneNumber,
+      }))
+    : (familyQuery.data?.families ?? [])
+        .filter((f) => f.status === 'CONNECTED' && f.childUserId != null)
+        .map((f) => ({
+          childUserId: f.childUserId!,
+          childName: f.childName ?? `자녀 ${f.childUserId}`,
+          phoneNumber: f.childPhoneNumber ?? '-',
+        }));
+
+  const [selectedChildId, setSelectedChildId] = useState<string | number | null>(
+    () => childOptions[0]?.childUserId ?? null,
+  );
+
   const displayMissions = missionsQuery.data ?? missions;
-  const pending = displayMissions.filter((mission) => mission.status === 'submitted');
+  const childMissions = selectedChildId
+    ? displayMissions.filter((m) => String(m.childId) === String(selectedChildId))
+    : displayMissions;
+  const pending = childMissions.filter((mission) => mission.status === 'submitted');
+
   const [reason, setReason] = useState('완료 내용을 더 자세히 적어서 다시 제출해 주세요.');
   const [message, setMessage] = useState('');
   const [apiError, setApiError] = useState('');
   const selected = pending[0];
+
   const invalidateAfterDecision = () => {
     queryClient.invalidateQueries({ queryKey: ['missions'] });
     queryClient.invalidateQueries({ queryKey: ['credit', 'parentSummary'] });
     queryClient.invalidateQueries({ queryKey: ['cashbook'] });
   };
+
   const approveMutation = useMutation({
     mutationFn: async () => {
       if (!selected) {
@@ -59,6 +94,7 @@ export function ParentApprovalScreen({ navigation }: Props) {
       setApiError(getErrorMessage(error, '미션 승인에 실패했습니다.'));
     },
   });
+
   const rejectMutation = useMutation({
     mutationFn: async () => {
       if (!selected) {
@@ -84,14 +120,25 @@ export function ParentApprovalScreen({ navigation }: Props) {
       setApiError(getErrorMessage(error, '미션 반려에 실패했습니다.'));
     },
   });
+
   const loading = approveMutation.isPending || rejectMutation.isPending;
 
   return (
     <ScreenFrame
       eyebrow="승인 검토"
       title="제출된 미션"
-      description="제출된 미션을 승인해 보상을 지급하거나, 사유를 적어 반려합니다."
+      description="자녀를 선택하면 해당 자녀의 제출된 미션을 승인하거나 반려합니다."
     >
+      <ChildSelector
+        children={childOptions}
+        selectedId={selectedChildId}
+        onSelect={(child) => {
+          setSelectedChildId(child.childUserId);
+          setMessage('');
+          setApiError('');
+        }}
+      />
+      <ApiErrorBox error={familyQuery.error} fallback="연결 자녀 조회에 실패했습니다." />
       {missionsQuery.isLoading ? <LoadingState title="미션 불러오는 중" body="제출된 미션을 확인하고 있습니다." /> : null}
       <ApiErrorBox error={missionsQuery.error} fallback="미션 조회에 실패했습니다." />
       {selected ? (
@@ -126,7 +173,7 @@ export function ParentApprovalScreen({ navigation }: Props) {
         </>
       ) : (
         <>
-          <EmptyState title="승인 대기 없음" body="현재 제출된 미션이 없습니다." />
+          <EmptyState title="승인 대기 없음" body="선택한 자녀의 제출된 미션이 없습니다." />
           <SecondaryButton title="부모 홈으로" onPress={() => navigation.navigate('ParentHome')} />
         </>
       )}
