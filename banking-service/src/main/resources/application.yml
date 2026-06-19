@@ -15,7 +15,7 @@ spring:
     open-in-view: false
     properties:
       hibernate:
-        format_sql: true
+        format_sql: ${HIBERNATE_FORMAT_SQL:false}
   flyway:
     enabled: ${SPRING_FLYWAY_ENABLED:true}
     locations: classpath:db/migration
@@ -56,4 +56,4 @@ management:
         include: health,info,metrics
   endpoint:
     health:
-      show-details: always
+      show-details: ${MANAGEMENT_HEALTH_SHOW_DETAILS:never}

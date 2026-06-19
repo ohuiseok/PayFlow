@@ -22,11 +22,11 @@ spring:
         spring.json.trusted.packages: com.payflow.transfer.event,com.payflow.settlement.event
   jpa:
     hibernate:
-      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:update}
+      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:validate}
     open-in-view: false
     properties:
       hibernate:
-        format_sql: true
+        format_sql: ${HIBERNATE_FORMAT_SQL:false}
 
 management:
   endpoints:
@@ -35,4 +35,4 @@ management:
         include: health,info,metrics
   endpoint:
     health:
-      show-details: always
+      show-details: ${MANAGEMENT_HEALTH_SHOW_DETAILS:never}

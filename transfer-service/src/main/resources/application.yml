@@ -26,11 +26,11 @@ spring:
         spring.json.trusted.packages: com.payflow.transfer.event
   jpa:
     hibernate:
-      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:update}
+      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:validate}
     open-in-view: false
     properties:
       hibernate:
-        format_sql: true
+        format_sql: ${HIBERNATE_FORMAT_SQL:false}
 
 feign:
   circuitbreaker:
@@ -41,7 +41,7 @@ clients:
     url: ${WALLET_SERVICE_URI:http://localhost:8082}
 
 internal:
-  secret: ${INTERNAL_SECRET:payflow-internal-local-secret}
+  secret: ${INTERNAL_SECRET:${INTERNAL_SERVICE_SECRET:}}
 
 topics:
   transfer-completed: ${TRANSFER_COMPLETED_TOPIC:transfer.completed}
@@ -85,7 +85,7 @@ management:
         include: health,info,metrics,circuitbreakers
   endpoint:
     health:
-      show-details: always
+      show-details: ${MANAGEMENT_HEALTH_SHOW_DETAILS:never}
   health:
     circuitbreakers:
       enabled: true

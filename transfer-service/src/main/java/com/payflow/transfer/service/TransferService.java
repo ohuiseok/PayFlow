@@ -57,7 +57,7 @@ public class TransferService {
         }
 
         String requestHash = createRequestHash(senderUserId, request.receiverUserId(), amount);
-        TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
+        TransactionTemplate transactionTemplate = transactionTemplate();
         InitialTransfer initialTransfer = transactionTemplate.execute(status ->
                 findOrCreateInitialTransfer(senderUserId, request.receiverUserId(), amount, normalizedIdempotencyKey, requestHash)
         );
@@ -207,11 +207,10 @@ public class TransferService {
         }
     }
 
-    private Transfer markTransferStarted(TransactionTemplate transactionTemplate, Long transferId, Long senderWalletId, Long receiverWalletId) {
-        return transactionTemplate.execute(status -> {
+    private void markTransferStarted(TransactionTemplate transactionTemplate, Long transferId, Long senderWalletId, Long receiverWalletId) {
+        transactionTemplate.executeWithoutResult(status -> {
             Transfer transfer = findTransferForUpdate(transferId);
             transfer.start(senderWalletId, receiverWalletId);
-            return transfer;
         });
     }
 
@@ -245,6 +244,10 @@ public class TransferService {
     private Transfer findTransferForUpdate(Long transferId) {
         return transferRepository.findByIdForUpdate(transferId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.TRANSFER_NOT_FOUND));
+    }
+
+    private TransactionTemplate transactionTemplate() {
+        return new TransactionTemplate(transactionManager);
     }
 
     private void releaseLockQuietly(String lockKey, String ownerToken) {
