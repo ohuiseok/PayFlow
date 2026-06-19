@@ -10,6 +10,7 @@ Updated integration points:
 - Mission screens now use array responses from `GET /api/missions` and PATCH actions for submit/approve/reject.
 - Parent approval calls both `PATCH /api/missions/{missionId}/approve` and `POST /api/missions/{missionId}/pay` so approval actually triggers reward payment.
 - Family linking now matches the current reward-service contract: a parent connects directly with `POST /api/families/links` using `childUserId`.
+- Parent credit summary reads `GET /api/cashbook/parent/summary`.
 - Cashbook entries now read the backend `MissionResponse[]` shape from `GET /api/cashbook/children/{childUserId}/entries`.
 - Frontend verification scripts now include `npm run typecheck` and `npm test` aliases.
 - `tsconfig.json` excludes generated output (`dist`, `.expo`, `node_modules`) so type checks do not race against web export.
@@ -29,7 +30,6 @@ Not yet verified:
 
 Remaining frontend/API gaps:
 
-- Parent credit summary is still a neutral frontend fallback because there is no dedicated backend summary endpoint yet.
 - Child-side family invitation remains a UI concept; the backend currently only supports parent-created direct links.
 
 ## Current Kafka MSA Status

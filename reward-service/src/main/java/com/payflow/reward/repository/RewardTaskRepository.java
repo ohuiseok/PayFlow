@@ -12,5 +12,7 @@ public interface RewardTaskRepository extends JpaRepository<RewardTask, Long> {
 
     List<RewardTask> findByChildUserIdOrderByCreatedAtDesc(Long childUserId);
 
+    List<RewardTask> findByParentUserIdAndStatusInOrderByCreatedAtDesc(Long parentUserId, Collection<RewardTaskStatus> statuses);
+
     List<RewardTask> findByChildUserIdAndStatusInOrderByCreatedAtDesc(Long childUserId, Collection<RewardTaskStatus> statuses);
 }

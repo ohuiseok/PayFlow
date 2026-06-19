@@ -9,6 +9,7 @@ import com.payflow.reward.dto.CreateFamilyLinkRequest;
 import com.payflow.reward.dto.CreateMissionRequest;
 import com.payflow.reward.dto.FamilyLinkResponse;
 import com.payflow.reward.dto.MissionResponse;
+import com.payflow.reward.dto.ParentCreditSummaryResponse;
 import com.payflow.reward.dto.RejectMissionRequest;
 import com.payflow.reward.dto.SubmitMissionRequest;
 import com.payflow.reward.entity.ParentChildLink;
@@ -21,6 +22,7 @@ import com.payflow.reward.support.error.BusinessException;
 import com.payflow.reward.support.error.ErrorCode;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.YearMonth;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -193,6 +195,26 @@ public class RewardService {
                 .map(RewardTask::getRewardAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         return new CashbookSummaryResponse(childUserId, balance, paidAmount, paidTasks.size());
+    }
+
+    @Transactional(readOnly = true)
+    public ParentCreditSummaryResponse getParentCreditSummary(Long requestUserId, String role) {
+        requireRole(role, ROLE_PARENT);
+        var wallet = walletClient.getWalletByUserId(requestUserId, true, internalSecret);
+        List<RewardTask> paidTasks = rewardTaskRepository.findByParentUserIdAndStatusInOrderByCreatedAtDesc(
+                requestUserId,
+                List.of(RewardTaskStatus.PAID)
+        );
+        YearMonth currentMonth = YearMonth.now();
+        BigDecimal monthlyRewardPaid = paidTasks.stream()
+                .filter(task -> YearMonth.from(task.getUpdatedAt()).equals(currentMonth))
+                .map(RewardTask::getRewardAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        long pendingApprovalCount = rewardTaskRepository.findByParentUserIdAndStatusInOrderByCreatedAtDesc(
+                requestUserId,
+                List.of(RewardTaskStatus.SUBMITTED)
+        ).size();
+        return new ParentCreditSummaryResponse(wallet.walletId(), wallet.balance(), monthlyRewardPaid, pendingApprovalCount);
     }
 
     @Transactional(readOnly = true)

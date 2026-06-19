@@ -47,6 +47,7 @@
 | Mission Submit | `PATCH /api/missions/{missionId}/submit` |
 | Parent Approval | `PATCH /api/missions/{missionId}/approve`, `PATCH /api/missions/{missionId}/reject` |
 | Reward Payment | `POST /api/missions/{missionId}/pay` |
+| Parent Credit Summary | `GET /api/cashbook/parent/summary` |
 | Cashbook | `GET /api/cashbook/children/{childUserId}/summary`, `GET /api/cashbook/children/{childUserId}/entries` |
 
 ## Implementation Order

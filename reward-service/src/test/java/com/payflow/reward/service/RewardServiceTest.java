@@ -54,6 +54,8 @@ class RewardServiceTest {
         parentChildLinkRepository.deleteAll();
         when(transferClient.createTransfer(any(CreateTransferRequest.class), anyString(), eq(1L)))
                 .thenReturn(new TransferResponse(100L, 1L, 2L, new BigDecimal("3000"), "SUCCEEDED", null));
+        when(walletClient.getWalletByUserId(eq(1L), eq(true), any()))
+                .thenReturn(new WalletResponse(10L, 1L, new BigDecimal("50000"), "ACTIVE"));
         when(walletClient.getWalletByUserId(eq(2L), eq(true), any()))
                 .thenReturn(new WalletResponse(20L, 2L, new BigDecimal("3000"), "ACTIVE"));
     }
@@ -152,5 +154,31 @@ class RewardServiceTest {
         assertThat(summary.paidRewardAmount()).isEqualByComparingTo("3000");
         assertThat(summary.paidMissionCount()).isEqualTo(1);
         assertThat(entries).hasSize(1);
+    }
+
+    @Test
+    void parentCreditSummaryUsesParentWalletPaidMissionsAndPendingApprovals() {
+        rewardService.createFamilyLink(new CreateFamilyLinkRequest(2L), 1L, "PARENT");
+        var paidMission = rewardService.createMission(
+                new CreateMissionRequest(2L, "Read", "Read for 30 minutes", new BigDecimal("3000")),
+                1L,
+                "PARENT"
+        );
+        var submittedMission = rewardService.createMission(
+                new CreateMissionRequest(2L, "Clean", "Clean the desk", new BigDecimal("1000")),
+                1L,
+                "PARENT"
+        );
+        rewardService.submitMission(paidMission.missionId(), new SubmitMissionRequest("done"), 2L, "CHILD");
+        rewardService.approveMission(paidMission.missionId(), 1L, "PARENT");
+        rewardService.payMission(paidMission.missionId(), 1L, "PARENT");
+        rewardService.submitMission(submittedMission.missionId(), new SubmitMissionRequest("done"), 2L, "CHILD");
+
+        var summary = rewardService.getParentCreditSummary(1L, "PARENT");
+
+        assertThat(summary.walletId()).isEqualTo(10L);
+        assertThat(summary.creditBalance()).isEqualByComparingTo("50000");
+        assertThat(summary.monthlyRewardPaid()).isEqualByComparingTo("3000");
+        assertThat(summary.pendingApprovalCount()).isEqualTo(1);
     }
 }

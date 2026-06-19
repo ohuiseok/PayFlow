@@ -104,9 +104,7 @@ function normalizeWithdrawal(response: WithdrawalResponse): WithdrawalResult {
 
 export const creditApi = {
   async getParentSummary(): Promise<ParentCreditSummary> {
-    // Dedicated parent summary API is not available yet; keep real API mode usable
-    // with a neutral summary while mission/banking endpoints carry the MVP flow.
-    const response: ParentSummaryResponse = {};
+    const response = await apiClient.get<ParentSummaryResponse>('/api/cashbook/parent/summary');
     return {
       walletId: String(response.walletId ?? ''),
       creditBalance: response.creditBalance ?? 0,

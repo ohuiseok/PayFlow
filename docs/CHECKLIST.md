@@ -8,8 +8,8 @@
 - [x] `sample-react` `npm run check` passed, including type check, web export, dummy Playwright e2e, and mocked API-mode Playwright e2e.
 - [x] Parent mission approval screen now queries real mission data and calls approve plus pay APIs.
 - [x] Parent family linking screen now matches the current direct-link backend contract.
+- [x] Dedicated parent credit summary backend endpoint is implemented and connected from the frontend.
 - [ ] Full Docker Compose runtime smoke test remains pending because Docker Desktop was not running locally.
-- [ ] Dedicated parent credit summary backend endpoint is still missing; the frontend uses a neutral fallback in real API mode.
 
 구현 대상만 정리한 체크리스트입니다.
 

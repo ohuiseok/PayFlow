@@ -2,6 +2,7 @@ package com.payflow.reward.controller;
 
 import com.payflow.reward.dto.CashbookSummaryResponse;
 import com.payflow.reward.dto.MissionResponse;
+import com.payflow.reward.dto.ParentCreditSummaryResponse;
 import com.payflow.reward.service.RewardService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +18,14 @@ import org.springframework.web.bind.annotation.RestController;
 public class CashbookController {
 
     private final RewardService rewardService;
+
+    @GetMapping("/parent/summary")
+    public ParentCreditSummaryResponse getParentSummary(
+            @RequestHeader("X-User-Id") Long requestUserId,
+            @RequestHeader("X-User-Role") String role
+    ) {
+        return rewardService.getParentCreditSummary(requestUserId, role);
+    }
 
     @GetMapping("/children/{childUserId}/summary")
     public CashbookSummaryResponse getSummary(

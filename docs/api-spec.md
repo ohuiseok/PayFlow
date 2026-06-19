@@ -403,6 +403,21 @@ Query:
 
 ## Cashbook API
 
+### GET /api/cashbook/parent/summary
+
+부모의 현재 지갑 잔액, 이번 달 지급 완료 보상 합계, 승인 대기 미션 수를 조회한다.
+
+Response:
+
+```json
+{
+  "walletId": 1,
+  "creditBalance": 50000,
+  "monthlyRewardPaid": 12000,
+  "pendingApprovalCount": 3
+}
+```
+
 ### GET /api/cashbook/children/{childUserId}/summary
 
 자녀 지갑 잔액과 지급 완료 미션 요약을 조회한다.
