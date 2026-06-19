@@ -163,6 +163,37 @@ Header:
 
 충전 처리 상태를 조회한다.
 
+### Open Banking Account Connection
+
+#### GET /api/bank/openbanking/authorize-url
+
+Returns an Open Banking authorization URL and signed `state`.
+
+#### POST /api/bank/openbanking/callback
+
+Exchanges authorization `code`, stores encrypted user token, calls `user/me`, and syncs linked accounts.
+
+#### POST /api/bank/openbanking/accounts/sync
+
+Syncs linked accounts using the stored encrypted user Open Banking token.
+
+#### POST /api/bank/transfers/{bankingTransferId}/result-check
+
+Checks Open Banking transfer result and finalizes `BANK_PROCESSING` or `UNKNOWN` banking transfers.
+
+Banking transfer statuses:
+
+```text
+REQUESTED
+BANK_PROCESSING
+BANK_SUCCEEDED
+WALLET_REFLECTING
+COMPLETED
+FAILED
+UNKNOWN
+COMPENSATION_REQUIRED
+```
+
 ## Transfer API
 
 ### POST /api/transfers

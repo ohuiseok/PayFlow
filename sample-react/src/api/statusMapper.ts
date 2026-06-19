@@ -4,6 +4,9 @@ type ApiProcessingStatus =
   | 'REQUESTED'
   | 'SUCCEEDED'
   | 'PROCESSING'
+  | 'BANK_PROCESSING'
+  | 'BANK_SUCCEEDED'
+  | 'WALLET_REFLECTING'
   | 'COMPLETED'
   | 'FAILED'
   | 'UNKNOWN'
@@ -15,6 +18,9 @@ export function toProcessingStatus(status: string): ProcessingStatus {
   switch (normalized) {
     case 'REQUESTED':
     case 'PROCESSING':
+    case 'BANK_PROCESSING':
+    case 'BANK_SUCCEEDED':
+    case 'WALLET_REFLECTING':
       return 'processing';
     case 'SUCCEEDED':
     case 'COMPLETED':

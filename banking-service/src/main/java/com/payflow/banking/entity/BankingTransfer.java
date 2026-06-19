@@ -51,6 +51,36 @@ public class BankingTransfer {
     @Column(nullable = false, unique = true, length = 80)
     private String bankTranId;
 
+    @Column(length = 8)
+    private String bankTranDate;
+
+    @Column(length = 14)
+    private String tranDtime;
+
+    @Column(length = 80)
+    private String apiTranId;
+
+    @Column(length = 20)
+    private String apiResponseCode;
+
+    @Column(length = 20)
+    private String bankResponseCode;
+
+    @Column(length = 50)
+    private String walletReferenceType;
+
+    @Column(length = 100)
+    private String walletReferenceId;
+
+    @Column(nullable = false)
+    private int resultCheckCount;
+
+    private LocalDateTime nextResultCheckAt;
+
+    private LocalDateTime lastResultCheckedAt;
+
+    private LocalDateTime completedAt;
+
     private Long walletTransactionId;
 
     @Column(length = 500)
@@ -75,16 +105,58 @@ public class BankingTransfer {
         this.status = BankingTransferStatus.REQUESTED;
     }
 
+    public void markBankSucceeded(String bankTranDate, String apiTranId, String apiResponseCode, String bankResponseCode) {
+        this.bankTranDate = bankTranDate;
+        this.apiTranId = apiTranId;
+        this.apiResponseCode = apiResponseCode;
+        this.bankResponseCode = bankResponseCode;
+        this.status = BankingTransferStatus.BANK_SUCCEEDED;
+        this.failureReason = null;
+    }
+
+    public void markBankProcessing(String apiResponseCode, String bankResponseCode, String failureReason) {
+        this.apiResponseCode = apiResponseCode;
+        this.bankResponseCode = bankResponseCode;
+        this.status = BankingTransferStatus.BANK_PROCESSING;
+        this.failureReason = failureReason;
+        this.nextResultCheckAt = LocalDateTime.now().plusMinutes(1);
+    }
+
+    public void markBankProcessing(String bankTranDate, String apiResponseCode, String bankResponseCode, String failureReason) {
+        this.bankTranDate = bankTranDate;
+        markBankProcessing(apiResponseCode, bankResponseCode, failureReason);
+    }
+
+    public void markBankFailed(String apiResponseCode, String bankResponseCode, String failureReason) {
+        this.apiResponseCode = apiResponseCode;
+        this.bankResponseCode = bankResponseCode;
+        this.status = BankingTransferStatus.FAILED;
+        this.failureReason = failureReason;
+    }
+
+    public void markWalletReflecting(String walletReferenceType, String walletReferenceId) {
+        this.walletReferenceType = walletReferenceType;
+        this.walletReferenceId = walletReferenceId;
+        this.status = BankingTransferStatus.WALLET_REFLECTING;
+    }
+
     public void succeed(Long walletId, Long walletTransactionId) {
         this.walletId = walletId;
         this.walletTransactionId = walletTransactionId;
-        this.status = BankingTransferStatus.SUCCEEDED;
+        this.status = BankingTransferStatus.COMPLETED;
         this.failureReason = null;
+        this.completedAt = LocalDateTime.now();
     }
 
     public void fail(String failureReason) {
         this.status = BankingTransferStatus.FAILED;
         this.failureReason = failureReason;
+    }
+
+    public void recordResultCheck() {
+        this.resultCheckCount += 1;
+        this.lastResultCheckedAt = LocalDateTime.now();
+        this.nextResultCheckAt = LocalDateTime.now().plusMinutes(Math.min(16, 1L << Math.min(resultCheckCount, 4)));
     }
 
     @PrePersist
@@ -135,11 +207,55 @@ public class BankingTransfer {
         return bankTranId;
     }
 
+    public String getBankTranDate() {
+        return bankTranDate;
+    }
+
+    public String getTranDtime() {
+        return tranDtime;
+    }
+
+    public String getApiTranId() {
+        return apiTranId;
+    }
+
+    public String getApiResponseCode() {
+        return apiResponseCode;
+    }
+
+    public String getBankResponseCode() {
+        return bankResponseCode;
+    }
+
     public Long getWalletTransactionId() {
         return walletTransactionId;
     }
 
     public String getFailureReason() {
         return failureReason;
+    }
+
+    public int getResultCheckCount() {
+        return resultCheckCount;
+    }
+
+    public LocalDateTime getNextResultCheckAt() {
+        return nextResultCheckAt;
+    }
+
+    public LocalDateTime getLastResultCheckedAt() {
+        return lastResultCheckedAt;
+    }
+
+    public String getWalletReferenceType() {
+        return walletReferenceType;
+    }
+
+    public String getWalletReferenceId() {
+        return walletReferenceId;
+    }
+
+    public LocalDateTime getCompletedAt() {
+        return completedAt;
     }
 }

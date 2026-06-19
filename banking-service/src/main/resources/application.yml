@@ -11,11 +11,14 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
-      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:update}
+      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:validate}
     open-in-view: false
     properties:
       hibernate:
         format_sql: true
+  flyway:
+    enabled: ${SPRING_FLYWAY_ENABLED:true}
+    locations: classpath:db/migration
 
 clients:
   wallet-service:
@@ -29,6 +32,19 @@ openbanking:
   callback-url: ${OPENBANKING_CALLBACK_URL:${API_CALLBACK_URL:}}
   client-use-code: ${OPENBANKING_CLIENT_USE_CODE:}
   access-token: ${OPENBANKING_ACCESS_TOKEN:}
+  user-access-token: ${OPENBANKING_USER_ACCESS_TOKEN:${OPENBANKING_ACCESS_TOKEN:}}
+  org-access-token: ${OPENBANKING_ORG_ACCESS_TOKEN:${OPENBANKING_ACCESS_TOKEN:}}
+  cntr-account-type: ${OPENBANKING_CNTR_ACCOUNT_TYPE:N}
+  cntr-account-num: ${OPENBANKING_CNTR_ACCOUNT_NUM:}
+  wd-pass-phrase: ${OPENBANKING_WD_PASS_PHRASE:NONE}
+  charge-dps-print-content: ${OPENBANKING_CHARGE_DPS_PRINT_CONTENT:PAYFLOW_CHARGE}
+  charge-wd-print-content: ${OPENBANKING_CHARGE_WD_PRINT_CONTENT:PAYFLOW}
+  withdrawal-wd-print-content: ${OPENBANKING_WITHDRAWAL_WD_PRINT_CONTENT:PAYFLOW_WITHDRAWAL}
+  transfer-purpose: ${OPENBANKING_TRANSFER_PURPOSE:TR}
+  token-encryption-secret: ${OPENBANKING_TOKEN_ENCRYPTION_SECRET:${INTERNAL_SERVICE_SECRET:payflow-local-token-secret}}
+  result-check-fixed-delay-ms: ${OPENBANKING_RESULT_CHECK_FIXED_DELAY_MS:60000}
+  connect-timeout-ms: ${OPENBANKING_CONNECT_TIMEOUT_MS:3000}
+  read-timeout-ms: ${OPENBANKING_READ_TIMEOUT_MS:5000}
 
 internal:
   secret: ${INTERNAL_SERVICE_SECRET:}

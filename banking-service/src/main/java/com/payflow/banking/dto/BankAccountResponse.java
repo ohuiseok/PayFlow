@@ -8,6 +8,9 @@ public record BankAccountResponse(
         String bankCode,
         String accountNumberMasked,
         String accountHolderName,
+        String bankName,
+        String inquiryAgreeYn,
+        String transferAgreeYn,
         BankAccountStatus status
 ) {
 
@@ -17,6 +20,9 @@ public record BankAccountResponse(
                 account.getBankCode(),
                 account.getAccountNumberMasked(),
                 account.getAccountHolderName(),
+                account.getBankName(),
+                account.getInquiryAgreeYn(),
+                account.getTransferAgreeYn(),
                 account.getStatus()
         );
     }

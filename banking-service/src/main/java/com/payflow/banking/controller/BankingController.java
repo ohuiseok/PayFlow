@@ -4,6 +4,13 @@ import com.payflow.banking.dto.BankAccountResponse;
 import com.payflow.banking.dto.BankingTransferResponse;
 import com.payflow.banking.dto.CreateBankAccountRequest;
 import com.payflow.banking.dto.CreateDepositRequest;
+import com.payflow.banking.dto.OpenBankingAttemptResponse;
+import com.payflow.banking.dto.OpenBankingAuthorizeUrlResponse;
+import com.payflow.banking.dto.OpenBankingCallbackRequest;
+import com.payflow.banking.dto.OpenBankingCallbackResponse;
+import com.payflow.banking.openbanking.OpenBankingDepositTransferRequest;
+import com.payflow.banking.openbanking.OpenBankingRealNameInquiryRequest;
+import com.payflow.banking.openbanking.OpenBankingReceiveInquiryRequest;
 import com.payflow.banking.service.BankingService;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -39,6 +46,41 @@ public class BankingController {
         return bankingService.getBankAccounts(requestUserId);
     }
 
+    @GetMapping("/openbanking/authorize-url")
+    public OpenBankingAuthorizeUrlResponse createAuthorizeUrl(@RequestHeader("X-User-Id") Long requestUserId) {
+        return bankingService.createAuthorizeUrl(requestUserId);
+    }
+
+    @PostMapping("/openbanking/callback")
+    public OpenBankingCallbackResponse handleOpenBankingCallback(
+            @Valid @RequestBody OpenBankingCallbackRequest request,
+            @RequestHeader("X-User-Id") Long requestUserId
+    ) {
+        return bankingService.handleOpenBankingCallback(request, requestUserId);
+    }
+
+    @PostMapping("/openbanking/accounts/sync")
+    public List<BankAccountResponse> syncOpenBankingAccounts(
+            @RequestHeader("X-User-Id") Long requestUserId
+    ) {
+        return bankingService.syncOpenBankingAccounts(requestUserId);
+    }
+
+    @PostMapping("/openbanking/attempts/real-name")
+    public OpenBankingAttemptResponse attemptRealNameInquiry(@RequestBody OpenBankingRealNameInquiryRequest request) {
+        return bankingService.attemptRealNameInquiry(request);
+    }
+
+    @PostMapping("/openbanking/attempts/receive")
+    public OpenBankingAttemptResponse attemptReceiveInquiry(@RequestBody OpenBankingReceiveInquiryRequest request) {
+        return bankingService.attemptReceiveInquiry(request);
+    }
+
+    @PostMapping("/openbanking/attempts/deposit-transfer")
+    public OpenBankingAttemptResponse attemptDepositTransfer(@RequestBody OpenBankingDepositTransferRequest request) {
+        return bankingService.attemptDepositTransfer(request);
+    }
+
     @PostMapping("/deposits")
     @ResponseStatus(HttpStatus.CREATED)
     public BankingTransferResponse createDeposit(
@@ -55,5 +97,13 @@ public class BankingController {
             @RequestHeader("X-User-Id") Long requestUserId
     ) {
         return bankingService.getTransfer(bankingTransferId, requestUserId);
+    }
+
+    @PostMapping("/transfers/{bankingTransferId}/result-check")
+    public BankingTransferResponse checkTransferResult(
+            @PathVariable Long bankingTransferId,
+            @RequestHeader("X-User-Id") Long requestUserId
+    ) {
+        return bankingService.checkTransferResult(bankingTransferId, requestUserId);
     }
 }

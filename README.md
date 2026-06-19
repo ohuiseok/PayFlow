@@ -236,3 +236,17 @@ docs/implementation-plan/10-ledger-service.md
   - `POST /api/transfers/compensations/{transferId}/refund`
 - Outbox monitoring API:
   - `GET /api/transfers/outbox/summary`
+
+## Portfolio Highlights
+
+- Open Banking is modeled as a financial state machine, not a simple HTTP call.
+- Banking charge status uses `REQUESTED -> BANK_PROCESSING -> BANK_SUCCEEDED -> WALLET_REFLECTING -> COMPLETED`.
+- Ambiguous Open Banking responses stay retryable and are finalized by result-check APIs/scheduler.
+- User Open Banking tokens are encrypted before storage; raw account numbers and request body values are not persisted.
+- Reference APIs marked `(x)` are exposed only as attempt endpoints and are not connected to business state changes.
+
+Portfolio note:
+
+```text
+docs/portfolio-open-banking.md
+```

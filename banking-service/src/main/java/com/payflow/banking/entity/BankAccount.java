@@ -41,6 +41,21 @@ public class BankAccount {
     @Column(nullable = false, length = 100)
     private String accountHolderName;
 
+    @Column(length = 30)
+    private String fintechUseNum;
+
+    @Column(length = 20)
+    private String userSeqNo;
+
+    @Column(length = 100)
+    private String bankName;
+
+    @Column(length = 5)
+    private String inquiryAgreeYn;
+
+    @Column(length = 5)
+    private String transferAgreeYn;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private BankAccountStatus status;
@@ -54,12 +69,28 @@ public class BankAccount {
     protected BankAccount() {
     }
 
-    public BankAccount(Long userId, String bankCode, String accountNumber, String accountNumberMasked, String accountHolderName) {
+    public BankAccount(
+            Long userId,
+            String bankCode,
+            String accountNumber,
+            String accountNumberMasked,
+            String accountHolderName,
+            String fintechUseNum,
+            String userSeqNo,
+            String bankName,
+            String inquiryAgreeYn,
+            String transferAgreeYn
+    ) {
         this.userId = userId;
         this.bankCode = bankCode;
         this.accountNumber = accountNumber;
         this.accountNumberMasked = accountNumberMasked;
         this.accountHolderName = accountHolderName;
+        this.fintechUseNum = fintechUseNum;
+        this.userSeqNo = userSeqNo;
+        this.bankName = bankName;
+        this.inquiryAgreeYn = inquiryAgreeYn;
+        this.transferAgreeYn = transferAgreeYn;
         this.status = BankAccountStatus.ACTIVE;
     }
 
@@ -101,5 +132,25 @@ public class BankAccount {
 
     public BankAccountStatus getStatus() {
         return status;
+    }
+
+    public String getFintechUseNum() {
+        return fintechUseNum;
+    }
+
+    public String getUserSeqNo() {
+        return userSeqNo;
+    }
+
+    public String getBankName() {
+        return bankName;
+    }
+
+    public String getInquiryAgreeYn() {
+        return inquiryAgreeYn;
+    }
+
+    public String getTransferAgreeYn() {
+        return transferAgreeYn;
     }
 }
