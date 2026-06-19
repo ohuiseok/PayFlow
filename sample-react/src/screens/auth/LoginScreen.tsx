@@ -62,8 +62,8 @@ export function LoginScreen({ navigation }: Props) {
     <ScreenFrame>
       <View style={styles.loginCard}>
         <Text style={styles.brand}>PayFlow Family</Text>
-        <Text style={styles.loginTitle}>미션으로 배우는 돈</Text>
-        <Text style={styles.loginSub}>부모가 미션을 만들고 자녀가 보상을 벌어요.</Text>
+        <Text style={styles.loginTitle}>미션으로 배우는 용돈 관리</Text>
+        <Text style={styles.loginSub}>부모가 미션을 만들고 자녀가 보상을 받아요.</Text>
         <View style={styles.spacer} />
         <FormField
           placeholder="휴대폰 번호"
@@ -94,11 +94,11 @@ export function LoginScreen({ navigation }: Props) {
         </TouchableOpacity>
         {appConfig.useDummyData ? (
           <>
-            <InfoBox title="역할 선택" body="로그인은 부모 계정으로 시작합니다. 아래 버튼으로 자녀 앱도 바로 확인할 수 있어요." />
+            <InfoBox title="역할 선택" body="로그인은 부모 계정으로 시작합니다. 아래 버튼으로 자녀 계정도 바로 확인할 수 있어요." />
             <RoleSwitch onSelect={login} />
           </>
         ) : (
-          <InfoBox title="API 로그인" body="로그인 응답의 role 값으로 부모/자녀 화면을 자동 분기합니다." />
+          <InfoBox title="API 로그인" body="로그인 응답의 role 값에 따라 부모/자녀 화면으로 자동 이동합니다." />
         )}
       </View>
     </ScreenFrame>

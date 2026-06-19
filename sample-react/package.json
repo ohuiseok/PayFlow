@@ -32,6 +32,7 @@
     "test:type": "tsc --noEmit",
     "test:e2e": "playwright test --config=playwright.dummy.config.ts --reporter=line",
     "test:e2e:api": "playwright test --config=playwright.api.config.ts --reporter=line",
+    "test:e2e:live": "playwright test --config=playwright.live.config.ts --reporter=line",
     "check": "npm run test:type && npm run build:web && npm run test:e2e && npm run test:e2e:api",
     "build:web": "expo export --platform web",
     "preview:web": "npx serve dist",

@@ -2,10 +2,10 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { RoleSelectCard } from '../../components/auth/RoleSelectCard';
 import { authApi } from '../../api/authApi';
-import { appConfig } from '../../config/appConfig';
+import { RoleSelectCard } from '../../components/auth/RoleSelectCard';
 import { FormField, InfoBox, PrimaryButton, ScreenFrame } from '../../components/common';
+import { appConfig } from '../../config/appConfig';
 import { RootStackParamList } from '../../navigation/routes';
 import { useAppState } from '../../state/AppState';
 import { UserRole } from '../../types';
@@ -56,7 +56,7 @@ export function SignupRoleScreen({ navigation }: Props) {
   };
 
   return (
-    <ScreenFrame eyebrow="회원가입" title="어떤 계정인가요?" description="역할에 따라 홈 화면과 권한이 달라집니다.">
+    <ScreenFrame eyebrow="회원가입" title="어떤 계정인가요?" description="역할에 따라 화면과 권한이 달라집니다.">
       <View style={styles.roleCards}>
         <RoleSelectCard
           label="부모 계정"
@@ -90,7 +90,7 @@ export function SignupRoleScreen({ navigation }: Props) {
         disabled={loading}
       />
       {!appConfig.useDummyData ? (
-        <InfoBox tone="blue" title="API 회원가입" body="가입 응답의 role 값으로 다음 화면을 결정합니다." />
+        <InfoBox tone="blue" title="API 회원가입" body="가입과 동시에 지갑이 생성되고, role 값에 따라 다음 화면이 결정됩니다." />
       ) : null}
       <PrimaryButton title={loading ? '처리 중' : '다음으로'} onPress={submit} disabled={!canSubmit || loading} loading={loading} />
     </ScreenFrame>

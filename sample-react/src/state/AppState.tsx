@@ -2,7 +2,7 @@ import { createContext, PropsWithChildren, useContext, useMemo, useState } from 
 
 import { BankAccount, CashbookEntry, Mission, UserRole } from '../types';
 
-const defaultParentName = '지우';
+const defaultParentName = '지수';
 const defaultChildName = '민지';
 
 const initialMissions: Mission[] = [

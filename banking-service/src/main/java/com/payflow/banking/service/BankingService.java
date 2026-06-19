@@ -522,6 +522,9 @@ public class BankingService {
     }
 
     private String getUserAccessToken(Long userId) {
+        if (!"real".equalsIgnoreCase(openBankingProperties.mode())) {
+            return "mock-user-token";
+        }
         return tokenCryptoService.decrypt(getUserToken(userId).getAccessTokenEncrypted());
     }
 
