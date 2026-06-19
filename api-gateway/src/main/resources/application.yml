@@ -33,61 +33,61 @@ spring:
                 exposedHeaders:
                   - Location
                 allowCredentials: true
-      routes:
-        - id: user-service
-          uri: ${USER_SERVICE_URI:http://localhost:8081}
-          predicates:
-            - Path=/api/users/**
-          filters:
-            - StripPrefix=1
-        - id: wallet-service
-          uri: ${WALLET_SERVICE_URI:http://localhost:8082}
-          predicates:
-            - Path=/api/wallets/**
-          filters:
-            - StripPrefix=1
-        - id: banking-service
-          uri: ${BANKING_SERVICE_URI:http://localhost:8086}
-          predicates:
-            - Path=/api/bank/**
-          filters:
-            - StripPrefix=1
-        - id: reward-service-families
-          uri: ${REWARD_SERVICE_URI:http://localhost:8087}
-          predicates:
-            - Path=/api/families/**
-          filters:
-            - StripPrefix=1
-        - id: reward-service-missions
-          uri: ${REWARD_SERVICE_URI:http://localhost:8087}
-          predicates:
-            - Path=/api/missions/**
-          filters:
-            - StripPrefix=1
-        - id: reward-service-cashbook
-          uri: ${REWARD_SERVICE_URI:http://localhost:8087}
-          predicates:
-            - Path=/api/cashbook/**
-          filters:
-            - StripPrefix=1
-        - id: transfer-service
-          uri: ${TRANSFER_SERVICE_URI:http://localhost:8083}
-          predicates:
-            - Path=/api/transfers/**
-          filters:
-            - StripPrefix=1
-        - id: ledger-service
-          uri: ${LEDGER_SERVICE_URI:http://localhost:8084}
-          predicates:
-            - Path=/api/ledgers/**
-          filters:
-            - StripPrefix=1
-        - id: settlement-service
-          uri: ${SETTLEMENT_SERVICE_URI:http://localhost:8085}
-          predicates:
-            - Path=/api/settlements/**
-          filters:
-            - StripPrefix=1
+          routes:
+            - id: user-service
+              uri: ${USER_SERVICE_URI:http://localhost:8081}
+              predicates:
+                - Path=/api/users/**
+              filters:
+                - StripPrefix=1
+            - id: wallet-service
+              uri: ${WALLET_SERVICE_URI:http://localhost:8082}
+              predicates:
+                - Path=/api/wallets/**
+              filters:
+                - StripPrefix=1
+            - id: banking-service
+              uri: ${BANKING_SERVICE_URI:http://localhost:8086}
+              predicates:
+                - Path=/api/bank/**
+              filters:
+                - StripPrefix=1
+            - id: reward-service-families
+              uri: ${REWARD_SERVICE_URI:http://localhost:8087}
+              predicates:
+                - Path=/api/families/**
+              filters:
+                - StripPrefix=1
+            - id: reward-service-missions
+              uri: ${REWARD_SERVICE_URI:http://localhost:8087}
+              predicates:
+                - Path=/api/missions/**
+              filters:
+                - StripPrefix=1
+            - id: reward-service-cashbook
+              uri: ${REWARD_SERVICE_URI:http://localhost:8087}
+              predicates:
+                - Path=/api/cashbook/**
+              filters:
+                - StripPrefix=1
+            - id: transfer-service
+              uri: ${TRANSFER_SERVICE_URI:http://localhost:8083}
+              predicates:
+                - Path=/api/transfers/**
+              filters:
+                - StripPrefix=1
+            - id: ledger-service
+              uri: ${LEDGER_SERVICE_URI:http://localhost:8084}
+              predicates:
+                - Path=/api/ledgers/**
+              filters:
+                - StripPrefix=1
+            - id: settlement-service
+              uri: ${SETTLEMENT_SERVICE_URI:http://localhost:8085}
+              predicates:
+                - Path=/api/settlements/**
+              filters:
+                - StripPrefix=1
 
 jwt:
   secret: ${JWT_SECRET:payflow-local-development-secret-key-change-me}

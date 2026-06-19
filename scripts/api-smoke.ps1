@@ -1,5 +1,5 @@
 param(
-  [string]$BaseUrl = "http://localhost:8080"
+  [string]$BaseUrl = "http://127.0.0.1:8080"
 )
 
 $ErrorActionPreference = "Stop"
@@ -41,10 +41,10 @@ function Write-Step {
   Write-Host "[api-smoke] $Message"
 }
 
-$suffix = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
+$suffix = Get-Random -Minimum 10000000 -Maximum 99999999
 $password = "password12"
-$parentPhone = "0107$($suffix.ToString().Substring($suffix.ToString().Length - 7))"
-$childPhone = "0108$($suffix.ToString().Substring($suffix.ToString().Length - 7))"
+$parentPhone = "010$($suffix)"
+$childPhone = "011$($suffix)"
 
 Write-Step "sign up parent and child"
 $parent = Invoke-Api -Method Post -Path "/api/users" -Body @{
