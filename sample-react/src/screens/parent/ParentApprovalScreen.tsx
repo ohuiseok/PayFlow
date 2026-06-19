@@ -25,7 +25,7 @@ export function ParentApprovalScreen({ navigation }: Props) {
   });
   const displayMissions = missionsQuery.data ?? missions;
   const pending = displayMissions.filter((mission) => mission.status === 'submitted');
-  const [reason, setReason] = useState('Please add a clearer note and submit again.');
+  const [reason, setReason] = useState('완료 내용을 더 자세히 적어서 다시 제출해 주세요.');
   const [message, setMessage] = useState('');
   const [apiError, setApiError] = useState('');
   const selected = pending[0];
@@ -52,11 +52,11 @@ export function ParentApprovalScreen({ navigation }: Props) {
       setMessage('');
     },
     onSuccess: (ok) => {
-      setMessage(ok ? 'Mission approved and reward paid.' : 'Not enough parent credit.');
+      setMessage(ok ? '미션을 승인했고 보상을 지급했습니다.' : '부모 크레딧이 부족합니다.');
       invalidateAfterDecision();
     },
     onError: (error) => {
-      setApiError(getErrorMessage(error, 'Mission approval failed.'));
+      setApiError(getErrorMessage(error, '미션 승인에 실패했습니다.'));
     },
   });
   const rejectMutation = useMutation({
@@ -81,42 +81,42 @@ export function ParentApprovalScreen({ navigation }: Props) {
       navigation.navigate('ParentHome');
     },
     onError: (error) => {
-      setApiError(getErrorMessage(error, 'Mission rejection failed.'));
+      setApiError(getErrorMessage(error, '미션 반려에 실패했습니다.'));
     },
   });
   const loading = approveMutation.isPending || rejectMutation.isPending;
 
   return (
     <ScreenFrame
-      eyebrow="Review"
-      title="Submitted missions"
-      description="Approve a submitted mission to pay the reward, or reject it with a reason."
+      eyebrow="승인 검토"
+      title="제출된 미션"
+      description="제출된 미션을 승인해 보상을 지급하거나, 사유를 적어 반려합니다."
     >
-      {missionsQuery.isLoading ? <LoadingState title="Loading missions" body="Checking submitted missions." /> : null}
-      <ApiErrorBox error={missionsQuery.error} fallback="Mission lookup failed." />
+      {missionsQuery.isLoading ? <LoadingState title="미션 불러오는 중" body="제출된 미션을 확인하고 있습니다." /> : null}
+      <ApiErrorBox error={missionsQuery.error} fallback="미션 조회에 실패했습니다." />
       {selected ? (
         <>
           <MissionCard mission={selected} />
           <Card>
-            <Label>Submission note</Label>
-            <Heading>{selected.submitMemo || 'No submission note.'}</Heading>
-            <Body>Approval calls the mission approval API and then the reward payment API.</Body>
+            <Label>제출 메모</Label>
+            <Heading>{selected.submitMemo || '제출 메모가 없습니다.'}</Heading>
+            <Body>승인하면 미션 승인 처리 후 보상 지급이 이어집니다.</Body>
           </Card>
-          <FormField label="Reject reason" placeholder="Reject reason" value={reason} onChangeText={setReason} disabled={loading} />
-          <ApiErrorBox error={apiError} fallback="Mission decision failed." />
-          {message ? <InfoBox tone="yellow" title="Result" body={message} /> : null}
+          <FormField label="반려 사유" placeholder="반려 사유" value={reason} onChangeText={setReason} disabled={loading} />
+          <ApiErrorBox error={apiError} fallback="미션 처리에 실패했습니다." />
+          {message ? <InfoBox tone="yellow" title="처리 결과" body={message} /> : null}
           <View style={styles.twoButtons}>
             <PrimaryButton
-              title={loading ? 'Processing' : 'Approve and pay'}
+              title={loading ? '처리 중' : '승인하고 지급'}
               onPress={() => approveMutation.mutate()}
               disabled={loading}
               loading={approveMutation.isPending}
             />
-            <SecondaryButton title="Reject" onPress={() => rejectMutation.mutate()} />
+            <SecondaryButton title="반려" onPress={() => rejectMutation.mutate()} />
           </View>
           {message && appConfig.useDummyData ? (
             <SecondaryButton
-              title="Switch to child"
+              title="자녀로 보기"
               onPress={() => {
                 loginAs('child');
                 navigation.navigate('ChildHome');
@@ -126,8 +126,8 @@ export function ParentApprovalScreen({ navigation }: Props) {
         </>
       ) : (
         <>
-          <EmptyState title="No pending approvals" body="There are no submitted missions right now." />
-          <SecondaryButton title="Back to parent home" onPress={() => navigation.navigate('ParentHome')} />
+          <EmptyState title="승인 대기 없음" body="현재 제출된 미션이 없습니다." />
+          <SecondaryButton title="부모 홈으로" onPress={() => navigation.navigate('ParentHome')} />
         </>
       )}
     </ScreenFrame>

@@ -23,6 +23,32 @@ import { UserRole } from '../types';
 const Stack = createNativeStackNavigator<RootStackParamList>();
 type RouteName = keyof RootStackParamList;
 
+const screenTitles: Record<RouteName, string> = {
+  Login: '로그인',
+  SignupRole: '회원가입',
+  ParentFamilyLink: '자녀 연결',
+  ChildInviteCode: '보호자 연결',
+  ParentHome: '부모 홈',
+  CreditCharge: '크레딧 충전',
+  MissionCreate: '미션 등록',
+  ParentApproval: '승인 대기',
+  ChildHome: '자녀 홈',
+  MissionSubmit: '완료 제출',
+  RejectResubmit: '재제출',
+  BankAccountRegister: '계좌 등록',
+  ChildWithdrawal: '출금',
+};
+
+const screenOptions = {
+  contentStyle: { backgroundColor: '#F5F7F8' },
+  headerBackTitle: '뒤로',
+  headerShadowVisible: false,
+  headerStyle: { backgroundColor: '#F5F7F8' },
+  headerTintColor: '#20262D',
+  headerTitleAlign: 'center' as const,
+  headerTitleStyle: { fontSize: 16, fontWeight: '900' as const },
+};
+
 function RoleGuard({
   allowedRoles,
   fallbackRoute,
@@ -87,24 +113,21 @@ export function AppNavigator() {
   return (
     <Stack.Navigator
       initialRouteName="Login"
-      screenOptions={{
-        contentStyle: { backgroundColor: '#F5F7F8' },
-        headerShown: false,
-      }}
+      screenOptions={screenOptions}
     >
-      <Stack.Screen name="Login" component={LoginScreen} />
-      <Stack.Screen name="SignupRole" component={SignupRoleScreen} />
-      <Stack.Screen name="ParentFamilyLink" component={GuardedParentFamilyLinkScreen} />
-      <Stack.Screen name="ChildInviteCode" component={GuardedChildInviteCodeScreen} />
-      <Stack.Screen name="ParentHome" component={GuardedParentHomeScreen} />
-      <Stack.Screen name="CreditCharge" component={GuardedCreditChargeScreen} />
-      <Stack.Screen name="MissionCreate" component={GuardedMissionCreateScreen} />
-      <Stack.Screen name="ParentApproval" component={GuardedParentApprovalScreen} />
-      <Stack.Screen name="ChildHome" component={GuardedChildHomeScreen} />
-      <Stack.Screen name="MissionSubmit" component={GuardedMissionSubmitScreen} />
-      <Stack.Screen name="RejectResubmit" component={GuardedRejectResubmitScreen} />
-      <Stack.Screen name="BankAccountRegister" component={GuardedBankAccountRegisterScreen} />
-      <Stack.Screen name="ChildWithdrawal" component={GuardedChildWithdrawalScreen} />
+      <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false, title: screenTitles.Login }} />
+      <Stack.Screen name="SignupRole" component={SignupRoleScreen} options={{ title: screenTitles.SignupRole }} />
+      <Stack.Screen name="ParentFamilyLink" component={GuardedParentFamilyLinkScreen} options={{ title: screenTitles.ParentFamilyLink }} />
+      <Stack.Screen name="ChildInviteCode" component={GuardedChildInviteCodeScreen} options={{ title: screenTitles.ChildInviteCode }} />
+      <Stack.Screen name="ParentHome" component={GuardedParentHomeScreen} options={{ title: screenTitles.ParentHome }} />
+      <Stack.Screen name="CreditCharge" component={GuardedCreditChargeScreen} options={{ title: screenTitles.CreditCharge }} />
+      <Stack.Screen name="MissionCreate" component={GuardedMissionCreateScreen} options={{ title: screenTitles.MissionCreate }} />
+      <Stack.Screen name="ParentApproval" component={GuardedParentApprovalScreen} options={{ title: screenTitles.ParentApproval }} />
+      <Stack.Screen name="ChildHome" component={GuardedChildHomeScreen} options={{ title: screenTitles.ChildHome }} />
+      <Stack.Screen name="MissionSubmit" component={GuardedMissionSubmitScreen} options={{ title: screenTitles.MissionSubmit }} />
+      <Stack.Screen name="RejectResubmit" component={GuardedRejectResubmitScreen} options={{ title: screenTitles.RejectResubmit }} />
+      <Stack.Screen name="BankAccountRegister" component={GuardedBankAccountRegisterScreen} options={{ title: screenTitles.BankAccountRegister }} />
+      <Stack.Screen name="ChildWithdrawal" component={GuardedChildWithdrawalScreen} options={{ title: screenTitles.ChildWithdrawal }} />
     </Stack.Navigator>
   );
 }

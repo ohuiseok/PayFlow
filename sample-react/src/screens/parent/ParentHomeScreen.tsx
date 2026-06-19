@@ -42,7 +42,7 @@ export function ParentHomeScreen({ navigation }: Props) {
         amount={displayBalance}
         description={`승인 대기 ${displayPendingCount}건 · 진행 미션 ${active.length}건`}
       />
-      {summaryQuery.isLoading || missionsQuery.isLoading ? <LoadingState title="API 조회 중" body="부모 홈 정보를 불러오고 있습니다." /> : null}
+      {summaryQuery.isLoading || missionsQuery.isLoading ? <LoadingState title="서버 조회 중" body="부모 홈 정보를 불러오고 있습니다." /> : null}
       <ApiErrorBox error={summaryQuery.error} fallback="부모 크레딧 요약 조회에 실패했습니다." />
       <ApiErrorBox error={missionsQuery.error} fallback="부모 미션 목록 조회에 실패했습니다." />
       <View style={styles.actionGrid}>

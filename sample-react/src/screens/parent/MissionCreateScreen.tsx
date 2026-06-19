@@ -90,7 +90,7 @@ export function MissionCreateScreen({ navigation }: Props) {
       <FormField label="조건 안내" placeholder="완료 기준" value={description} onChangeText={setDescription} disabled={loading} />
       <FormField
         label="수행 날짜"
-        placeholder="YYYY-MM-DD"
+        placeholder="예: 2026-06-30"
         value={dueDate}
         onChangeText={setDueDate}
         error={dueDateError}

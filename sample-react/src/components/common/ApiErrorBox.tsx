@@ -6,5 +6,5 @@ export function ApiErrorBox({ error, fallback }: { error: unknown; fallback: str
     return null;
   }
 
-  return <InfoBox tone="yellow" title="API 오류" body={getErrorMessage(error, fallback)} />;
+  return <InfoBox tone="yellow" title="서버 오류" body={getErrorMessage(error, fallback)} />;
 }

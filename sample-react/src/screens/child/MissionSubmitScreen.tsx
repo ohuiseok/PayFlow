@@ -39,7 +39,7 @@ export function MissionSubmitScreen({ navigation, route }: Props) {
       <MissionCard mission={mission} />
       {canSubmit ? (
         <>
-          <InfoBox tone="blue" title="사진 첨부" body="MVP에서는 사진 URL placeholder로 제출합니다." />
+          <InfoBox tone="blue" title="사진 첨부" body="현재 버전에서는 사진 주소 예시값으로 제출합니다." />
           <ApiErrorBox error={apiError} fallback="미션 제출에 실패했습니다." />
           <FormField label="제출 메모" placeholder="완료 내용을 적어주세요." value={memo} onChangeText={setMemo} disabled={loading} />
           <PrimaryButton

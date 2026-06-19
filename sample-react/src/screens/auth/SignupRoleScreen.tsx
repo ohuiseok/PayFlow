@@ -90,7 +90,7 @@ export function SignupRoleScreen({ navigation }: Props) {
         disabled={loading}
       />
       {!appConfig.useDummyData ? (
-        <InfoBox tone="blue" title="API 회원가입" body="가입과 동시에 지갑이 생성되고, role 값에 따라 다음 화면이 결정됩니다." />
+        <InfoBox tone="blue" title="서버 회원가입" body="가입과 동시에 지갑이 생성되고, 역할 값에 따라 다음 화면이 결정됩니다." />
       ) : null}
       <PrimaryButton title={loading ? '처리 중' : '다음으로'} onPress={submit} disabled={!canSubmit || loading} loading={loading} />
     </ScreenFrame>

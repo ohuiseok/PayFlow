@@ -61,7 +61,7 @@ export function LoginScreen({ navigation }: Props) {
   return (
     <ScreenFrame>
       <View style={styles.loginCard}>
-        <Text style={styles.brand}>PayFlow Family</Text>
+        <Text style={styles.brand}>페이플로우 패밀리</Text>
         <Text style={styles.loginTitle}>미션으로 배우는 용돈 관리</Text>
         <Text style={styles.loginSub}>부모가 미션을 만들고 자녀가 보상을 받아요.</Text>
         <View style={styles.spacer} />
@@ -98,7 +98,7 @@ export function LoginScreen({ navigation }: Props) {
             <RoleSwitch onSelect={login} />
           </>
         ) : (
-          <InfoBox title="API 로그인" body="로그인 응답의 role 값에 따라 부모/자녀 화면으로 자동 이동합니다." />
+          <InfoBox title="서버 로그인" body="로그인 응답의 역할 값에 따라 부모/자녀 화면으로 자동 이동합니다." />
         )}
       </View>
     </ScreenFrame>

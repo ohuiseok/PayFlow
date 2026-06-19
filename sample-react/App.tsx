@@ -4,13 +4,14 @@ import { StatusBar } from 'expo-status-bar';
 
 import { AppStateProvider } from './src/state/AppState';
 import { AppNavigator } from './src/navigation/AppNavigator';
+import { linking } from './src/navigation/routes';
 import { queryClient } from './src/query/queryClient';
 
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AppStateProvider>
-        <NavigationContainer>
+        <NavigationContainer linking={linking}>
           <StatusBar style="dark" />
           <AppNavigator />
         </NavigationContainer>

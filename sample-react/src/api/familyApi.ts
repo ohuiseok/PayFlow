@@ -22,7 +22,7 @@ function normalizeFamily(link: FamilyLinkResponse): LinkedFamily {
     familyId: link.familyLinkId,
     parentUserId: link.parentUserId,
     childUserId: link.childUserId,
-    childName: `Child ${link.childUserId}`,
+    childName: `자녀 ${link.childUserId}`,
     status: link.status === 'ACTIVE' ? 'CONNECTED' : link.status,
   };
 }

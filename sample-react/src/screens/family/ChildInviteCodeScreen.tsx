@@ -29,14 +29,14 @@ export function ChildInviteCodeScreen({ navigation }: Props) {
     try {
       const family = await familyApi.getMyParents();
       if (!family.linked) {
-        setApiError('Parent link is not active yet. Share your user ID with your parent first.');
+        setApiError('아직 보호자 연결이 완료되지 않았습니다. 먼저 보호자에게 내 사용자 번호를 알려주세요.');
         return;
       }
 
       completeFamilyLink();
       navigation.replace('ChildHome');
     } catch (error) {
-      setApiError(getErrorMessage(error, 'Failed to check family link.'));
+      setApiError(getErrorMessage(error, '가족 연결 확인에 실패했습니다.'));
     } finally {
       setLoading(false);
     }
@@ -44,22 +44,22 @@ export function ChildInviteCodeScreen({ navigation }: Props) {
 
   return (
     <ScreenFrame
-      eyebrow="Family link"
-      title="Share your user ID"
-      description="Ask your parent to enter this user ID from the parent account."
+      eyebrow="가족 연결"
+      title="내 사용자 번호 공유"
+      description="보호자 계정에서 이 사용자 번호를 입력해 달라고 요청하세요."
     >
       <Card tone="blue">
-        <Heading>Your user ID</Heading>
+        <Heading>내 사용자 번호</Heading>
         <Body>{currentUserId}</Body>
       </Card>
       <InfoBox
         tone="yellow"
-        title="Backend flow"
-        body="The current API creates an active family link when a parent enters the child user ID."
+        title="서버 처리 흐름"
+        body="현재 서버는 보호자가 자녀 사용자 번호를 입력하면 활성 가족 연결을 생성합니다."
       />
-      <ApiErrorBox error={apiError} fallback="Failed to check family link." />
+      <ApiErrorBox error={apiError} fallback="가족 연결 확인에 실패했습니다." />
       <PrimaryButton
-        title={loading ? 'Checking' : 'Check link status'}
+        title={loading ? '확인 중' : '연결 상태 확인'}
         onPress={checkLink}
         disabled={loading}
         loading={loading}
