@@ -39,4 +39,12 @@ public class FamilyController {
     ) {
         return rewardService.getChildren(requestUserId, role);
     }
+
+    @GetMapping("/parents")
+    public List<FamilyLinkResponse> getParents(
+            @RequestHeader("X-User-Id") Long requestUserId,
+            @RequestHeader("X-User-Role") String role
+    ) {
+        return rewardService.getParents(requestUserId, role);
+    }
 }

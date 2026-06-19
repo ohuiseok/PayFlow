@@ -21,6 +21,11 @@ jwt:
   secret: ${JWT_SECRET:payflow-local-development-secret-key-change-me}
   expiration: ${JWT_EXPIRATION:86400000}
 
+clients:
+  wallet-service:
+    url: ${WALLET_SERVICE_URL:http://localhost:8082}
+    provisioning-enabled: ${WALLET_PROVISIONING_ENABLED:true}
+
 management:
   endpoints:
     web:

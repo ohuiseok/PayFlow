@@ -1,6 +1,7 @@
 package com.payflow.user.service;
 
 import com.payflow.user.auth.JwtTokenProvider;
+import com.payflow.user.client.WalletClient;
 import com.payflow.user.dto.AuthTokenResponse;
 import com.payflow.user.dto.CreateUserRequest;
 import com.payflow.user.dto.LoginRequest;
@@ -23,6 +24,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
+    private final WalletClient walletClient;
 
     @Transactional
     public UserResponse createUser(CreateUserRequest request) {
@@ -48,7 +50,9 @@ public class UserService {
         try {
             // saveAndFlush를 사용하면 트랜잭션 종료 시점까지 미루지 않고 즉시 INSERT를 실행한다.
             // 그래서 unique 제약 위반을 이 메서드 안에서 잡아 도메인 에러로 바꿔 줄 수 있다.
-            return UserResponse.from(userRepository.saveAndFlush(user));
+            User savedUser = userRepository.saveAndFlush(user);
+            walletClient.createWallet(savedUser.getId());
+            return UserResponse.from(savedUser);
         } catch (DataIntegrityViolationException exception) {
             throw new BusinessException(ErrorCode.USER_ALREADY_EXISTS);
         }

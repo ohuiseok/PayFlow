@@ -74,6 +74,15 @@ public class RewardService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public List<FamilyLinkResponse> getParents(Long requestUserId, String role) {
+        requireRole(role, ROLE_CHILD);
+        return parentChildLinkRepository.findByChildUserIdAndStatusOrderByIdDesc(requestUserId, ParentChildLinkStatus.ACTIVE)
+                .stream()
+                .map(FamilyLinkResponse::from)
+                .toList();
+    }
+
     @Transactional
     public MissionResponse createMission(CreateMissionRequest request, Long requestUserId, String role) {
         requireRole(role, ROLE_PARENT);

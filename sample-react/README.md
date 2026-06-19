@@ -49,12 +49,16 @@ API Gateway 주소는 Expo public env로 설정합니다.
 
 ```bash
 EXPO_PUBLIC_API_BASE_URL=http://localhost:8080
-EXPO_PUBLIC_USE_DUMMY_DATA=true
+EXPO_PUBLIC_USE_DUMMY_DATA=false
 ```
 
 실기기에서 로컬 백엔드에 붙일 때는 `localhost` 대신 개발 PC의 LAN IP를 사용하세요.
 
 `EXPO_PUBLIC_USE_DUMMY_DATA=true`이면 API를 호출하지 않고 더미 데이터만 사용합니다. 백엔드 API 연동 모드로 바꾸려면 `false`로 설정하세요.
+
+현재 API 연동 모드의 가족 연결은 초대코드가 아니라 자녀 사용자 ID 기반입니다.
+자녀 계정에서 표시되는 user ID를 부모 계정의 가족 연결 화면에 입력하면 즉시 ACTIVE 링크가 생성됩니다.
+회원가입 시 백엔드가 지갑을 자동 생성하므로, 신규 계정도 충전/보상/출금 플로우를 바로 시작할 수 있습니다.
 
 ## 예상 화면
 

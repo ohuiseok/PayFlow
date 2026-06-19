@@ -10,6 +10,29 @@ spring:
       port: ${REDIS_PORT:6379}
   cloud:
     gateway:
+      server:
+        webflux:
+          globalcors:
+            corsConfigurations:
+              '[/**]':
+                allowedOrigins:
+                  - ${FRONTEND_ORIGIN:http://localhost:19006}
+                  - http://localhost:19007
+                  - http://127.0.0.1:19007
+                  - http://localhost:8081
+                allowedMethods:
+                  - GET
+                  - POST
+                  - PATCH
+                  - DELETE
+                  - OPTIONS
+                allowedHeaders:
+                  - Authorization
+                  - Content-Type
+                  - Idempotency-Key
+                exposedHeaders:
+                  - Location
+                allowCredentials: true
       routes:
         - id: user-service
           uri: ${USER_SERVICE_URI:http://localhost:8081}

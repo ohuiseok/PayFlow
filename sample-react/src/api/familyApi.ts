@@ -28,41 +28,9 @@ function normalizeFamily(link: FamilyLinkResponse): LinkedFamily {
 }
 
 export const familyApi = {
-  createInvitation() {
-    return Promise.resolve({
-      inviteCode: 'DIRECT',
-      status: 'READY',
-    });
-  },
-
-  getInvitation(inviteCode: string) {
-    return Promise.resolve({
-      inviteCode,
-      parentName: 'Parent',
-      status: 'READY',
-    });
-  },
-
-  requestLink(inviteCode: string) {
-    const childUserId = Number(inviteCode);
+  requestLink(childUserIdInput: number | string) {
+    const childUserId = Number(childUserIdInput);
     return apiClient.post<FamilyLinkResponse>('/api/families/links', { childUserId });
-  },
-
-  approveLinkRequest(requestId: number | string) {
-    return Promise.resolve({
-      familyId: requestId,
-      parentUserId: '',
-      childUserId: '',
-      status: 'CONNECTED',
-    });
-  },
-
-  rejectLinkRequest(requestId: number | string, reason: string) {
-    return Promise.resolve({
-      requestId,
-      reason,
-      status: 'REJECTED',
-    });
   },
 
   async getMyFamilies() {
@@ -70,6 +38,16 @@ export const familyApi = {
     const families = response.map(normalizeFamily);
     return {
       role: 'parent' as UserRole,
+      families,
+      linked: families.some((family) => family.status === 'CONNECTED'),
+    };
+  },
+
+  async getMyParents() {
+    const response = await apiClient.get<FamilyLinkResponse[]>('/api/families/parents');
+    const families = response.map(normalizeFamily);
+    return {
+      role: 'child' as UserRole,
       families,
       linked: families.some((family) => family.status === 'CONNECTED'),
     };

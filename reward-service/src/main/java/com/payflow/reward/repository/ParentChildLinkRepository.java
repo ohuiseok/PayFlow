@@ -13,4 +13,6 @@ public interface ParentChildLinkRepository extends JpaRepository<ParentChildLink
     boolean existsByParentUserIdAndChildUserIdAndStatus(Long parentUserId, Long childUserId, ParentChildLinkStatus status);
 
     List<ParentChildLink> findByParentUserIdAndStatusOrderByIdDesc(Long parentUserId, ParentChildLinkStatus status);
+
+    List<ParentChildLink> findByChildUserIdAndStatusOrderByIdDesc(Long childUserId, ParentChildLinkStatus status);
 }
