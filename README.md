@@ -87,6 +87,14 @@ Infrastructure
 docker compose up --build
 ```
 
+실행 후 브라우저에서 아래 주소로 접속합니다.
+
+```text
+http://localhost:19006
+```
+
+`sample-react`는 Docker 빌드 시 `FRONTEND_API_BASE_URL` 값을 `EXPO_PUBLIC_API_BASE_URL`로 주입합니다. 기본값은 `http://localhost:8080`이며, 화면은 compose로 올라간 로컬 API Gateway와 자동 연동됩니다.
+
 현재 로컬 `.env`는 개발 편의를 위해 Hibernate `ddl-auto=update`를 사용합니다. 운영 또는 배포 검증 환경에서는 `*_JPA_DDL_AUTO=validate`로 두고 migration 도구로 스키마를 관리하세요.
 
 ## 테스트
