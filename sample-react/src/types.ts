@@ -36,3 +36,9 @@ export type BankAccount = {
   accountNumber: string;
   holderName: string;
 };
+
+export type LinkedChild = {
+  childUserId: string | number;
+  childName: string;
+  phoneNumber: string;
+};

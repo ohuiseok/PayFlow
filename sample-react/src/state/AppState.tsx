@@ -1,9 +1,14 @@
 import { createContext, PropsWithChildren, useContext, useMemo, useState } from 'react';
 
-import { BankAccount, CashbookEntry, Mission, UserRole } from '../types';
+import { BankAccount, CashbookEntry, LinkedChild, Mission, UserRole } from '../types';
 
 const defaultParentName = '지수';
 const defaultChildName = '민지';
+
+const dummyLinkedChildren: LinkedChild[] = [
+  { childUserId: 'child-001', childName: '민지', phoneNumber: '010-1234-5678' },
+  { childUserId: 'child-002', childName: '서연', phoneNumber: '010-8765-4321' },
+];
 
 const initialMissions: Mission[] = [
   {
@@ -87,6 +92,7 @@ type AppStateValue = {
   currentUserName: string;
   familyLinked: boolean;
   inviteCode: string;
+  linkedChildren: LinkedChild[];
   parentCreditBalance: number;
   parentChargeAccount: BankAccount;
   parentCreditEntries: CashbookEntry[];
@@ -128,6 +134,7 @@ export function AppStateProvider({ children }: PropsWithChildren) {
       currentUserName,
       familyLinked,
       inviteCode: 'PF-4829',
+      linkedChildren: dummyLinkedChildren,
       parentCreditBalance,
       parentChargeAccount,
       parentCreditEntries,

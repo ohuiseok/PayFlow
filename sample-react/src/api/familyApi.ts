@@ -5,6 +5,8 @@ type FamilyLinkResponse = {
   familyLinkId: number | string;
   parentUserId: number | string;
   childUserId: number | string;
+  childName?: string;
+  childPhoneNumber?: string;
   status: string;
 };
 
@@ -12,6 +14,7 @@ export type LinkedFamily = {
   familyId: number | string;
   childUserId?: number | string;
   childName?: string;
+  childPhoneNumber?: string;
   parentUserId?: number | string;
   parentName?: string;
   status: string;
@@ -22,7 +25,8 @@ function normalizeFamily(link: FamilyLinkResponse): LinkedFamily {
     familyId: link.familyLinkId,
     parentUserId: link.parentUserId,
     childUserId: link.childUserId,
-    childName: `자녀 ${link.childUserId}`,
+    childName: link.childName ?? `자녀 ${link.childUserId}`,
+    childPhoneNumber: link.childPhoneNumber,
     status: link.status === 'ACTIVE' ? 'CONNECTED' : link.status,
   };
 }
