@@ -23,7 +23,7 @@ export function LoginScreen({ navigation }: Props) {
 
   const moveAfterAuth = (role: UserRole) => {
     if (role === 'parent') {
-      navigation.replace(familyLinked ? 'ParentHome' : 'ParentFamilyLink');
+      navigation.replace('ParentHome');
       return;
     }
     navigation.replace(familyLinked ? 'ChildHome' : 'ChildInviteCode');

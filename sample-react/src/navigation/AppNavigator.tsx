@@ -97,8 +97,9 @@ function withRoleGuard<Name extends RouteName>(
 
 const parentOnly = ['parent'] as UserRole[];
 const childOnly = ['child'] as UserRole[];
+const parentOrChild = ['parent', 'child'] as UserRole[];
 const GuardedParentFamilyLinkScreen = withRoleGuard(ParentFamilyLinkScreen, parentOnly, 'ChildHome');
-const GuardedParentHomeScreen = withRoleGuard(ParentHomeScreen, parentOnly, 'ChildHome', true);
+const GuardedParentHomeScreen = withRoleGuard(ParentHomeScreen, parentOnly, 'ChildHome');
 const GuardedCreditChargeScreen = withRoleGuard(CreditChargeScreen, parentOnly, 'ChildHome', true);
 const GuardedMissionCreateScreen = withRoleGuard(MissionCreateScreen, parentOnly, 'ChildHome', true);
 const GuardedParentApprovalScreen = withRoleGuard(ParentApprovalScreen, parentOnly, 'ChildHome', true);
@@ -106,7 +107,7 @@ const GuardedChildInviteCodeScreen = withRoleGuard(ChildInviteCodeScreen, childO
 const GuardedChildHomeScreen = withRoleGuard(ChildHomeScreen, childOnly, 'ParentHome', true);
 const GuardedMissionSubmitScreen = withRoleGuard(MissionSubmitScreen, childOnly, 'ParentHome', true);
 const GuardedRejectResubmitScreen = withRoleGuard(RejectResubmitScreen, childOnly, 'ParentHome', true);
-const GuardedBankAccountRegisterScreen = withRoleGuard(BankAccountRegisterScreen, childOnly, 'ParentHome', true);
+const GuardedBankAccountRegisterScreen = withRoleGuard(BankAccountRegisterScreen, parentOrChild, 'Login');
 const GuardedChildWithdrawalScreen = withRoleGuard(ChildWithdrawalScreen, childOnly, 'ParentHome', true);
 
 export function AppNavigator() {
