@@ -29,6 +29,12 @@ clients:
 internal:
   secret: ${INTERNAL_SERVICE_SECRET:}
 
+# [H-4] PARENT 역할은 초대 코드를 제출한 사용자에게만 부여된다.
+# 운영 환경에서는 PARENT_INVITE_CODE 환경 변수로 교체한다.
+# 빈 문자열이면 초대 코드 기능이 비활성화(PARENT 가입 불가)된다.
+registration:
+  parent-invite-code: ${PARENT_INVITE_CODE:PAYFLOW-PARENT-2024}
+
 management:
   endpoints:
     web:

@@ -6,15 +6,18 @@ import com.payflow.user.dto.CreateUserRequest;
 import com.payflow.user.dto.LoginRequest;
 import com.payflow.user.dto.UserResponse;
 import com.payflow.user.entity.User;
+import com.payflow.user.entity.UserRole;
 import com.payflow.user.entity.UserStatus;
 import com.payflow.user.repository.UserRepository;
 import com.payflow.user.support.error.BusinessException;
 import com.payflow.user.support.error.ErrorCode;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +29,10 @@ public class UserService {
     // [H-2] 지갑 생성 재시도는 WalletProvisioningService에 위임한다.
     // @Retryable은 AOP 프록시로 동작하므로 별도 빈에서만 올바르게 작동한다.
     private final WalletProvisioningService walletProvisioningService;
+
+    // [H-4] PARENT 초대 코드. 빈 문자열이면 PARENT 가입이 완전히 차단된다.
+    @Value("${registration.parent-invite-code:}")
+    private String parentInviteCode;
 
     @Transactional
     public UserResponse createUser(CreateUserRequest request) {
@@ -39,13 +46,18 @@ public class UserService {
             throw new BusinessException(ErrorCode.USER_ALREADY_EXISTS);
         }
 
+        // [H-4] 클라이언트가 role을 직접 지정하는 대신 서버가 inviteCode를 검증해 역할을 결정한다.
+        // 초대 코드가 일치하면 PARENT, 그 외 모든 경우는 CHILD로 가입된다.
+        // 초대 코드가 설정되어 있지 않은 환경에서는 PARENT 가입 자체가 차단된다.
+        UserRole role = resolveRole(request.inviteCode());
+
         // 비밀번호는 절대 원문으로 저장하지 않는다.
         // PasswordEncoder가 단방향 해시로 바꿔 저장하고, 로그인 때는 matches로 원문 입력값과 해시를 비교한다.
         User user = new User(
                 phoneNumber,
                 passwordEncoder.encode(request.password()),
                 request.name().trim(),
-                request.role()
+                role
         );
 
         try {
@@ -103,6 +115,20 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
         return UserResponse.from(user);
+    }
+
+    // [H-4] 초대 코드 검증으로 역할을 결정한다.
+    // 초대 코드 미설정(빈 문자열) 또는 코드 불일치 시 CHILD를 반환한다.
+    // 상수 시간 비교(MessageDigest.isEqual)를 사용해 타이밍 공격을 방지한다.
+    private UserRole resolveRole(String inviteCode) {
+        if (!StringUtils.hasText(parentInviteCode) || !StringUtils.hasText(inviteCode)) {
+            return UserRole.CHILD;
+        }
+        byte[] expected = parentInviteCode.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        byte[] actual   = inviteCode.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        return java.security.MessageDigest.isEqual(expected, actual)
+                ? UserRole.PARENT
+                : UserRole.CHILD;
     }
 
     private String normalizePhoneNumber(String phoneNumber) {

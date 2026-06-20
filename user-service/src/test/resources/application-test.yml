@@ -22,3 +22,6 @@ clients:
 gateway:
   request-filter:
     enabled: false
+
+registration:
+  parent-invite-code: TEST-PARENT-CODE

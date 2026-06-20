@@ -27,49 +27,76 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 class UserServiceTest {
 
-    @Autowired
-    UserService userService;
+    // 테스트 환경의 초대 코드는 application-test.yml에서 TEST-PARENT-CODE로 설정된다.
+    private static final String VALID_INVITE_CODE = "TEST-PARENT-CODE";
 
-    @Autowired
-    UserRepository userRepository;
+    @Autowired UserService userService;
+    @Autowired UserRepository userRepository;
+    @Autowired PasswordEncoder passwordEncoder;
+    @Value("${jwt.secret}") String jwtSecret;
 
-    @Autowired
-    PasswordEncoder passwordEncoder;
+    // ── 회원가입: 역할 결정 ────────────────────────────────────────────────────
 
-    @Value("${jwt.secret}")
-    String jwtSecret;
+    @Test
+    void createUserWithValidInviteCodeAssignsParentRole() {
+        UserResponse response = userService.createUser(
+                new CreateUserRequest("01012345678", "password1234", " Parent ", VALID_INVITE_CODE)
+        );
+
+        assertThat(response.role()).isEqualTo(UserRole.PARENT);
+        assertThat(response.name()).isEqualTo("Parent");
+        assertThat(response.phoneNumber()).isEqualTo("01012345678");
+    }
+
+    @Test
+    void createUserWithoutInviteCodeAssignsChildRole() {
+        UserResponse response = userService.createUser(
+                new CreateUserRequest("01012345678", "password1234", "Child", null)
+        );
+
+        assertThat(response.role()).isEqualTo(UserRole.CHILD);
+    }
+
+    @Test
+    void createUserWithWrongInviteCodeAssignsChildRole() {
+        UserResponse response = userService.createUser(
+                new CreateUserRequest("01012345678", "password1234", "User", "WRONG-CODE")
+        );
+
+        // 잘못된 코드는 CHILD로 가입된다 (에러가 아님).
+        assertThat(response.role()).isEqualTo(UserRole.CHILD);
+    }
 
     @Test
     void createUserEncodesPassword() {
         UserResponse response = userService.createUser(
-                new CreateUserRequest("01012345678", "password1234", " User ", UserRole.PARENT)
+                new CreateUserRequest("01012345678", "password1234", " User ", VALID_INVITE_CODE)
         );
 
         var user = userRepository.findById(response.userId()).orElseThrow();
 
-        assertThat(response.phoneNumber()).isEqualTo("01012345678");
-        assertThat(response.name()).isEqualTo("User");
-        assertThat(response.role()).isEqualTo(UserRole.PARENT);
         assertThat(passwordEncoder.matches("password1234", user.getPassword())).isTrue();
         assertThat(user.getPassword()).isNotEqualTo("password1234");
     }
 
     @Test
     void createUserRejectsDuplicatePhoneNumber() {
-        userService.createUser(new CreateUserRequest("01012345678", "password1234", "User", UserRole.PARENT));
+        userService.createUser(new CreateUserRequest("01012345678", "password1234", "User", VALID_INVITE_CODE));
 
         assertThatThrownBy(() -> userService.createUser(
-                new CreateUserRequest("01012345678", "password1234", "Other", UserRole.CHILD)
+                new CreateUserRequest("01012345678", "password1234", "Other", null)
         ))
                 .isInstanceOf(BusinessException.class)
                 .extracting("errorCode")
                 .isEqualTo(ErrorCode.USER_ALREADY_EXISTS);
     }
 
+    // ── 로그인 ─────────────────────────────────────────────────────────────────
+
     @Test
     void loginReturnsJwtWithUserInfoClaimsAndResponse() {
         UserResponse user = userService.createUser(
-                new CreateUserRequest("01012345678", "password1234", "User", UserRole.CHILD)
+                new CreateUserRequest("01012345678", "password1234", "User", null)
         );
 
         var token = userService.login(new LoginRequest("01012345678", "password1234"));
@@ -93,7 +120,7 @@ class UserServiceTest {
     @Test
     void loginRejectsLockedUser() {
         UserResponse response = userService.createUser(
-                new CreateUserRequest("01012345678", "password1234", "User", UserRole.PARENT)
+                new CreateUserRequest("01012345678", "password1234", "User", VALID_INVITE_CODE)
         );
         var user = userRepository.findById(response.userId()).orElseThrow();
         user.lock();
@@ -106,13 +133,15 @@ class UserServiceTest {
 
     @Test
     void loginRejectsWrongPassword() {
-        userService.createUser(new CreateUserRequest("01012345678", "password1234", "User", UserRole.PARENT));
+        userService.createUser(new CreateUserRequest("01012345678", "password1234", "User", VALID_INVITE_CODE));
 
         assertThatThrownBy(() -> userService.login(new LoginRequest("01012345678", "wrong-password")))
                 .isInstanceOf(BusinessException.class)
                 .extracting("errorCode")
                 .isEqualTo(ErrorCode.INVALID_CREDENTIALS);
     }
+
+    // ── 사용자 조회 ────────────────────────────────────────────────────────────
 
     @Test
     void getUserRejectsMissingUser() {
