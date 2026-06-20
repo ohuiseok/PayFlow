@@ -1,8 +1,9 @@
 import { apiClient } from './client';
 import { tokenStorage } from '../storage/tokenStorage';
+import { appConfig } from '../config/appConfig';
 import { UserRole } from '../types';
 
-type ApiRole = 'PARENT' | 'CHILD';
+type ApiRole = 'PARENT' | 'CHILD' | string;
 
 type ApiUser = {
   userId: number | string;
@@ -32,12 +33,8 @@ export type AuthUser = {
   status?: string;
 };
 
-function toApiRole(role: UserRole): ApiRole {
-  return role === 'parent' ? 'PARENT' : 'CHILD';
-}
-
 function toUserRole(role: ApiRole): UserRole {
-  return role === 'PARENT' ? 'parent' : 'child';
+  return role.trim().toUpperCase() === 'PARENT' ? 'parent' : 'child';
 }
 
 function normalizeUser(user: ApiUser): AuthUser {
@@ -57,10 +54,15 @@ export const authApi = {
         name: input.name,
         phoneNumber: input.phoneNumber,
         password: input.password,
-        role: toApiRole(input.role),
+        inviteCode: input.role === 'parent' ? appConfig.parentInviteCode : undefined,
       },
       { auth: false },
     );
+
+    await this.login({
+      phoneNumber: input.phoneNumber,
+      password: input.password,
+    });
 
     return normalizeUser(response);
   },

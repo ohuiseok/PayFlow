@@ -36,6 +36,8 @@ CREATE TABLE IF NOT EXISTS outbox_events (
     status      VARCHAR(20)     NOT NULL,
     retry_count INT             NOT NULL DEFAULT 0,
     last_error  VARCHAR(500),
+    processing_started_at DATETIME(6),
+    published_at DATETIME(6),
     created_at  DATETIME(6)     NOT NULL,
     updated_at  DATETIME(6)     NOT NULL,
     PRIMARY KEY (id),

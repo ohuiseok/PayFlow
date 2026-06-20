@@ -46,6 +46,12 @@ export function SignupRoleScreen({ navigation }: Props) {
         password,
         role,
       });
+
+      if (role === 'parent' && user.role !== 'parent') {
+        setError('부모 계정 생성에 실패했습니다. 부모 초대 코드 설정을 확인하세요.');
+        return;
+      }
+
       signupAs(user.role, user.name, user.userId);
       navigation.replace(user.role === 'parent' ? 'ParentFamilyLink' : 'ChildInviteCode');
     } catch (signupError) {

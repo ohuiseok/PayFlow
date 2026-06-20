@@ -22,6 +22,7 @@ services:
       args:
         EXPO_PUBLIC_API_BASE_URL: ${FRONTEND_API_BASE_URL:-http://localhost:8080}
         EXPO_PUBLIC_USE_DUMMY_DATA: ${FRONTEND_USE_DUMMY_DATA:-false}
+        EXPO_PUBLIC_PARENT_INVITE_CODE: ${FRONTEND_PARENT_INVITE_CODE:-PAYFLOW-PARENT-2024}
         EXPO_PUBLIC_TOSS_CLIENT_KEY: ${EXPO_PUBLIC_TOSS_CLIENT_KEY:-}
     container_name: ${PROJECT_NAME:-payflow}-sample-react
     ports:

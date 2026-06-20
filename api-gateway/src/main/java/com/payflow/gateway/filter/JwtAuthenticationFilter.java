@@ -39,7 +39,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     private final JwtTokenProvider jwtTokenProvider;
     // [M-5] ObjectMapper를 주입받아 JSON 직렬화를 위임한다.
     // 직접 문자열 포맷으로 JSON을 만들면 따옴표/역슬래시 이스케이프를 놓치기 쉬워 XSS 또는 파싱 오류가 발생할 수 있다.
-    private final ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
 
     @Value("${gateway.internal-secret:}")
     private String gatewayInternalSecret;

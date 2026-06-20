@@ -33,6 +33,10 @@ spring:
                 exposedHeaders:
                   - Location
                 allowCredentials: true
+          default-filters:
+            - RemoveRequestHeader=X-Gateway-Secret
+            - RemoveRequestHeader=X-Internal-Secret
+            - SetRequestHeader=X-Gateway-Secret, ${GATEWAY_INTERNAL_SECRET:${INTERNAL_SERVICE_SECRET:}}
           routes:
             - id: user-service
               uri: ${USER_SERVICE_URI:http://localhost:8081}
