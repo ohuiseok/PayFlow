@@ -10,5 +10,6 @@ function readBoolean(value: string | undefined, fallback = false) {
 
 export const appConfig = {
   apiBaseUrl: process.env.EXPO_PUBLIC_API_BASE_URL ?? 'http://localhost:8080',
+  tossClientKey: process.env.EXPO_PUBLIC_TOSS_CLIENT_KEY ?? '',
   useDummyData: readBoolean(process.env.EXPO_PUBLIC_USE_DUMMY_DATA, true),
 };

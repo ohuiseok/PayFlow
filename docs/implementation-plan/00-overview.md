@@ -72,3 +72,12 @@ Docker Compose
 동일 요청 재시도 시 중복 충전, 중복 송금, 중복 보상이 발생하지 않는다.
 
 주요 실패 케이스가 상태값과 테스트로 설명된다.
+## 결제 수단 확장 계획
+
+기존 MVP는 `banking-service`의 계좌 기반 충전 흐름을 중심으로 한다. 다음 단계에서는 같은 충전 도메인 안에 Toss Payments PG 충전과 Open Banking 계좌 연결을 추가한다.
+
+- Toss 충전은 별도 `payment_charges`, `toss_payment_orders`, `toss_payment_events` 테이블로 외부 결제 상태를 추적한다.
+- Open Banking 계좌 연결은 `open_banking_authorizations` 테이블과 확장된 `bank_accounts`로 인증/계좌 동기화 상태를 저장한다.
+- 지갑 잔액 변경은 계속 `wallet-service`의 내부 입금 API만 사용한다.
+- 화면은 부모 홈의 `Toss 충전` 버튼과 `Open Banking 계좌 연결` 버튼을 기준으로 재구성한다.
+- 상세 계획은 `docs/implementation-plan/08-toss-pg-extension.md`를 따른다.

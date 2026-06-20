@@ -1,9 +1,14 @@
 package com.payflow.ledger.controller;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.payflow.ledger.dto.PaymentLedgerRequest;
+import com.payflow.ledger.entity.LedgerEntryType;
+import com.payflow.ledger.entity.LedgerSourceType;
 import com.payflow.ledger.event.TransferFailedEvent;
 import com.payflow.ledger.repository.LedgerEntryRepository;
 import com.payflow.ledger.repository.TransferFailureEventRepository;
@@ -28,6 +33,9 @@ class LedgerControllerTest {
     MockMvc mockMvc;
 
     @Autowired
+    ObjectMapper objectMapper;
+
+    @Autowired
     LedgerService ledgerService;
 
     @Autowired
@@ -40,6 +48,42 @@ class LedgerControllerTest {
     void setUp() {
         transferFailureEventRepository.deleteAll();
         ledgerEntryRepository.deleteAll();
+    }
+
+    @Test
+    void recordPaymentChargeReturnsLedgerEntry() throws Exception {
+        var request = new PaymentLedgerRequest(
+                LedgerSourceType.TOSS_CHARGE,
+                300L,
+                LedgerEntryType.USER_WALLET_TOPUP,
+                1L,
+                new BigDecimal("10000")
+        );
+
+        mockMvc.perform(post("/ledgers/internal/payment-charge")
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.sourceType").value("TOSS_CHARGE"))
+                .andExpect(jsonPath("$.sourceId").value(300))
+                .andExpect(jsonPath("$.entryType").value("USER_WALLET_TOPUP"))
+                .andExpect(jsonPath("$.lines.length()").value(2));
+    }
+
+    @Test
+    void getLedgerEntriesReturnsRecentEntries() throws Exception {
+        ledgerService.recordPaymentCharge(new PaymentLedgerRequest(
+                LedgerSourceType.TOSS_CHARGE,
+                300L,
+                LedgerEntryType.USER_WALLET_TOPUP,
+                1L,
+                new BigDecimal("10000")
+        ));
+
+        mockMvc.perform(get("/ledgers/entries"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].sourceType").value("TOSS_CHARGE"))
+                .andExpect(jsonPath("$[0].lines.length()").value(2));
     }
 
     @Test

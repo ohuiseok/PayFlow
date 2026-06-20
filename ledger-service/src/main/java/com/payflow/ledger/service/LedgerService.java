@@ -1,7 +1,11 @@
 package com.payflow.ledger.service;
 
 import com.payflow.ledger.entity.LedgerEntry;
+import com.payflow.ledger.entity.LedgerEntryType;
+import com.payflow.ledger.entity.LedgerSourceType;
 import com.payflow.ledger.entity.TransferFailureEvent;
+import com.payflow.ledger.dto.LedgerEntryResponse;
+import com.payflow.ledger.dto.PaymentLedgerRequest;
 import com.payflow.ledger.dto.TransferFailureEventResponse;
 import com.payflow.ledger.event.TransferCompletedEvent;
 import com.payflow.ledger.event.TransferFailedEvent;
@@ -45,6 +49,34 @@ public class LedgerService {
     }
 
     @Transactional
+    public LedgerEntryResponse recordPaymentCharge(PaymentLedgerRequest request) {
+        return LedgerEntryResponse.from(ledgerEntryRepository
+                .findBySourceTypeAndSourceId(request.sourceType(), request.sourceId())
+                .orElseGet(() -> savePaymentLedgerEntryIdempotently(request)));
+    }
+
+    private LedgerEntry savePaymentLedgerEntryIdempotently(PaymentLedgerRequest request) {
+        try {
+            return ledgerEntryRepository.save(createPaymentLedgerEntry(request));
+        } catch (DataIntegrityViolationException exception) {
+            return ledgerEntryRepository.findBySourceTypeAndSourceId(request.sourceType(), request.sourceId())
+                    .orElseThrow(() -> exception);
+        }
+    }
+
+    private LedgerEntry createPaymentLedgerEntry(PaymentLedgerRequest request) {
+        if (request.sourceType() == LedgerSourceType.TOSS_CHARGE
+                && request.entryType() == LedgerEntryType.USER_WALLET_TOPUP) {
+            return LedgerEntry.paymentCharge(request.sourceId(), request.userId(), request.amount());
+        }
+        if (request.sourceType() == LedgerSourceType.TOSS_CANCEL
+                && request.entryType() == LedgerEntryType.PG_CANCEL) {
+            return LedgerEntry.paymentCancel(request.sourceId(), request.userId(), request.amount());
+        }
+        throw new BusinessException(ErrorCode.INVALID_REQUEST, "Unsupported payment ledger source.");
+    }
+
+    @Transactional
     public TransferFailureEvent recordTransferFailure(TransferFailedEvent event) {
         return transferFailureEventRepository.findByTransferId(event.transferId())
                 .orElseGet(() -> transferFailureEventRepository.save(new TransferFailureEvent(event)));
@@ -62,6 +94,21 @@ public class LedgerService {
     public TransferFailureEventResponse getTransferFailure(Long transferId) {
         return transferFailureEventRepository.findByTransferId(transferId)
                 .map(TransferFailureEventResponse::from)
+                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
+    }
+
+    @Transactional(readOnly = true)
+    public List<LedgerEntryResponse> getLedgerEntries() {
+        return ledgerEntryRepository.findTop100ByOrderByCreatedAtDesc()
+                .stream()
+                .map(LedgerEntryResponse::from)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public LedgerEntryResponse getLedgerEntry(Long entryId) {
+        return ledgerEntryRepository.findById(entryId)
+                .map(LedgerEntryResponse::from)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
     }
 }

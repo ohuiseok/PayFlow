@@ -56,6 +56,21 @@ public class BankAccount {
     @Column(length = 5)
     private String transferAgreeYn;
 
+    @Column(length = 30)
+    private String providerCode;
+
+    private Long openBankingAuthorizationId;
+
+    @Column(length = 2000)
+    private String fintechUseNumEncrypted;
+
+    @Column(length = 100)
+    private String accountAlias;
+
+    private LocalDateTime linkedAt;
+
+    private LocalDateTime lastSyncedAt;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private BankAccountStatus status;
@@ -91,7 +106,19 @@ public class BankAccount {
         this.bankName = bankName;
         this.inquiryAgreeYn = inquiryAgreeYn;
         this.transferAgreeYn = transferAgreeYn;
+        this.providerCode = fintechUseNum == null ? "MANUAL" : "OPEN_BANKING";
+        this.linkedAt = fintechUseNum == null ? null : LocalDateTime.now();
+        this.lastSyncedAt = fintechUseNum == null ? null : LocalDateTime.now();
         this.status = BankAccountStatus.ACTIVE;
+    }
+
+    public void markOpenBankingAuthorization(Long openBankingAuthorizationId, String fintechUseNumEncrypted, String accountAlias) {
+        this.openBankingAuthorizationId = openBankingAuthorizationId;
+        this.fintechUseNumEncrypted = fintechUseNumEncrypted;
+        this.accountAlias = accountAlias;
+        this.providerCode = "OPEN_BANKING";
+        this.linkedAt = this.linkedAt == null ? LocalDateTime.now() : this.linkedAt;
+        this.lastSyncedAt = LocalDateTime.now();
     }
 
     @PrePersist
@@ -152,5 +179,25 @@ public class BankAccount {
 
     public String getTransferAgreeYn() {
         return transferAgreeYn;
+    }
+
+    public String getProviderCode() {
+        return providerCode;
+    }
+
+    public Long getOpenBankingAuthorizationId() {
+        return openBankingAuthorizationId;
+    }
+
+    public String getAccountAlias() {
+        return accountAlias;
+    }
+
+    public LocalDateTime getLinkedAt() {
+        return linkedAt;
+    }
+
+    public LocalDateTime getLastSyncedAt() {
+        return lastSyncedAt;
     }
 }

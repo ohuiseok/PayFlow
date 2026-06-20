@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 
 import { creditApi, CreditBankAccount } from '../api/creditApi';
+import { requestTossWidgetPayment } from '../api/tossWidget';
 import { appConfig } from '../config/appConfig';
 import { ProcessingStatus } from '../types';
 import { getErrorMessage } from '../utils/apiError';
@@ -10,11 +11,13 @@ import { useProcessingPolling } from './useProcessingPolling';
 export function useCreditChargeFlow({
   amount,
   selectedBankAccount,
+  method = 'bank',
   valid,
   onCompleted,
 }: {
   amount: number;
   selectedBankAccount?: CreditBankAccount;
+  method?: 'bank' | 'toss';
   valid: boolean;
   onCompleted: () => void;
 }) {
@@ -24,6 +27,30 @@ export function useCreditChargeFlow({
   const { pollProcessing, polling } = useProcessingPolling();
   const requestChargeMutation = useMutation({
     mutationFn: () => {
+      if (method === 'toss') {
+        return creditApi.requestTossCharge({ amount }).then((started) => {
+          if (appConfig.tossClientKey) {
+            return requestTossWidgetPayment({
+              clientKey: appConfig.tossClientKey,
+              amount: started.amount,
+              orderId: started.orderId,
+              orderName: 'PayFlow 크레딧 충전',
+              customerName: started.customerKey,
+            }).then(() => ({
+              chargeId: started.chargeId,
+              amount: started.amount,
+              status: 'processing' as ProcessingStatus,
+            }));
+          }
+          const paymentKey = `mock-${started.orderId}`;
+          return creditApi.confirmTossCharge({
+            paymentKey,
+            orderId: started.orderId,
+            amount: started.amount,
+          });
+        });
+      }
+
       if (!selectedBankAccount) {
         throw new Error('충전에 사용할 연결 계좌가 없습니다.');
       }
@@ -43,7 +70,7 @@ export function useCreditChargeFlow({
       }
 
       pollProcessing({
-        poll: () => creditApi.getCharge(requested.chargeId),
+        poll: () => method === 'toss' ? creditApi.getTossCharge(requested.chargeId) : creditApi.getCharge(requested.chargeId),
         onResult: (result) => {
           setStatus(result.status);
           if (result.status === 'completed') {

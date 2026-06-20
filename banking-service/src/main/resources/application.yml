@@ -23,6 +23,8 @@ spring:
 clients:
   wallet-service:
     url: ${WALLET_SERVICE_URL:http://localhost:8082}
+  ledger-service:
+    url: ${LEDGER_SERVICE_URL:http://localhost:8084}
 
 openbanking:
   mode: ${OPENBANKING_MODE:mock}
@@ -45,6 +47,13 @@ openbanking:
   result-check-fixed-delay-ms: ${OPENBANKING_RESULT_CHECK_FIXED_DELAY_MS:60000}
   connect-timeout-ms: ${OPENBANKING_CONNECT_TIMEOUT_MS:3000}
   read-timeout-ms: ${OPENBANKING_READ_TIMEOUT_MS:5000}
+
+toss-payments:
+  mode: ${TOSS_PAYMENTS_MODE:mock}
+  api-base-url: ${TOSS_PAYMENTS_API_BASE_URL:https://api.tosspayments.com}
+  client-key: ${TOSS_PAYMENTS_CLIENT_KEY:}
+  secret-key: ${TOSS_PAYMENTS_SECRET_KEY:}
+  webhook-secret: ${TOSS_PAYMENTS_WEBHOOK_SECRET:}
 
 internal:
   secret: ${INTERNAL_SERVICE_SECRET:}

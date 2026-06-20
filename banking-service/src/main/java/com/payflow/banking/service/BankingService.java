@@ -18,6 +18,7 @@ import com.payflow.banking.entity.BankingTransfer;
 import com.payflow.banking.entity.BankingTransferStatus;
 import com.payflow.banking.entity.OpenBankingToken;
 import com.payflow.banking.entity.OpenBankingTokenType;
+import com.payflow.banking.entity.OpenBankingAuthorization;
 import com.payflow.banking.entity.BankingTransferType;
 import com.payflow.banking.openbanking.OpenBankingTokenResponse;
 import com.payflow.banking.openbanking.OpenBankingClient;
@@ -35,6 +36,7 @@ import com.payflow.banking.repository.BankAccountRepository;
 import com.payflow.banking.repository.BankingApiLogRepository;
 import com.payflow.banking.repository.BankingTransferRepository;
 import com.payflow.banking.repository.OpenBankingTokenRepository;
+import com.payflow.banking.repository.OpenBankingAuthorizationRepository;
 import com.payflow.banking.support.error.BusinessException;
 import com.payflow.banking.support.error.ErrorCode;
 import java.math.BigDecimal;
@@ -68,6 +70,7 @@ public class BankingService {
     private final BankingTransferRepository bankingTransferRepository;
     private final BankingApiLogRepository bankingApiLogRepository;
     private final OpenBankingTokenRepository openBankingTokenRepository;
+    private final OpenBankingAuthorizationRepository openBankingAuthorizationRepository;
     private final WalletClient walletClient;
     private final OpenBankingClient openBankingClient;
     private final OpenBankingProperties openBankingProperties;
@@ -143,8 +146,10 @@ public class BankingService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.BANKING_TRANSFER_NOT_FOUND));
     }
 
+    @Transactional
     public OpenBankingAuthorizeUrlResponse createAuthorizeUrl(Long requestUserId) {
         String state = createState(requestUserId);
+        openBankingAuthorizationRepository.save(new OpenBankingAuthorization(requestUserId, state));
         String url = openBankingProperties.baseUrl()
                 + "/oauth/2.0/authorize"
                 + "?response_type=code"
@@ -159,14 +164,25 @@ public class BankingService {
     @Transactional
     public OpenBankingCallbackResponse handleOpenBankingCallback(OpenBankingCallbackRequest request, Long requestUserId) {
         validateState(request.state(), requestUserId);
+        OpenBankingAuthorization authorization = openBankingAuthorizationRepository.findByState(request.state())
+                .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_REQUEST, "OpenBanking authorization state was not requested."));
         OpenBankingTokenResponse token = openBankingClient.exchangeAuthorizationCode(request.code());
         if (token == null || !StringUtils.hasText(token.accessToken()) || !StringUtils.hasText(token.userSeqNo())) {
             throw new BusinessException(ErrorCode.INVALID_REQUEST, "OpenBanking token response is invalid.");
         }
         saveUserToken(requestUserId, token);
+        String encryptedAccessToken = tokenCryptoService.encrypt(token.accessToken());
+        String encryptedRefreshToken = tokenCryptoService.encrypt(token.refreshToken());
+        authorization.connect(
+                token.userSeqNo(),
+                encryptedAccessToken,
+                encryptedRefreshToken,
+                token.expiresIn() == null ? null : LocalDateTime.now().plusSeconds(token.expiresIn())
+        );
         List<BankAccountResponse> accounts = syncAccountsFromUserMe(
                 requestUserId,
-                openBankingClient.getUserMe(token.userSeqNo(), token.accessToken())
+                openBankingClient.getUserMe(token.userSeqNo(), token.accessToken()),
+                authorization.getId()
         );
         return new OpenBankingCallbackResponse(token.userSeqNo(), token.scope(), accounts);
     }
@@ -177,7 +193,8 @@ public class BankingService {
         String accessToken = tokenCryptoService.decrypt(token.getAccessTokenEncrypted());
         return syncAccountsFromUserMe(
                 requestUserId,
-                openBankingClient.getUserMe(token.getUserSeqNo(), accessToken)
+                openBankingClient.getUserMe(token.getUserSeqNo(), accessToken),
+                null
         );
     }
 
@@ -474,6 +491,10 @@ public class BankingService {
     }
 
     private List<BankAccountResponse> syncAccountsFromUserMe(Long userId, OpenBankingUserMeResponse userMe) {
+        return syncAccountsFromUserMe(userId, userMe, null);
+    }
+
+    private List<BankAccountResponse> syncAccountsFromUserMe(Long userId, OpenBankingUserMeResponse userMe, Long authorizationId) {
         if (userMe == null || !"A0000".equals(userMe.rspCode()) || userMe.resList() == null) {
             throw new BusinessException(ErrorCode.INVALID_REQUEST, "OpenBanking user info response is invalid.");
         }
@@ -485,7 +506,7 @@ public class BankingService {
             String bankCode = defaultText(account.bankCodeStd(), "UNKNOWN");
             String maskedAccountNumber = defaultText(account.accountNumMasked(), "****");
             String accountKeyHash = sha256("openbanking:" + account.fintechUseNum());
-            bankAccountRepository.save(new BankAccount(
+            BankAccount saved = bankAccountRepository.save(new BankAccount(
                     userId,
                     bankCode,
                     accountKeyHash,
@@ -497,6 +518,11 @@ public class BankingService {
                     trimToNull(account.inquiryAgreeYn()),
                     trimToNull(account.transferAgreeYn())
             ));
+            saved.markOpenBankingAuthorization(
+                    authorizationId,
+                    tokenCryptoService.encrypt(account.fintechUseNum()),
+                    trimToNull(account.accountAlias())
+            );
         }
         return getBankAccounts(userId);
     }

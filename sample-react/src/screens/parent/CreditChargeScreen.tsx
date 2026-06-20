@@ -1,6 +1,7 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { Platform } from 'react-native';
 
 import { creditApi } from '../../api/creditApi';
 import {
@@ -35,9 +36,10 @@ type Props = NativeStackScreenProps<RootStackParamList, 'CreditCharge'>;
 export function CreditChargeScreen({ navigation }: Props) {
   const { chargeCredit, parentChargeAccount, parentCreditBalance } = useAppState();
   const [amountText, setAmountText] = useState('30000');
+  const [chargeMethod, setChargeMethod] = useState<'toss' | 'bank'>('toss');
   const queryClient = useQueryClient();
   const amount = parseAmount(amountText);
-  const valid = isAmountInRange(amount, 10000, 1000000);
+  const validAmount = isAmountInRange(amount, 10000, 1000000);
   const bankAccountsQuery = useQuery({
     queryKey: ['credit', 'bankAccounts'],
     queryFn: creditApi.getBankAccounts,
@@ -46,10 +48,12 @@ export function CreditChargeScreen({ navigation }: Props) {
   const bankAccounts = bankAccountsQuery.data ?? [];
   const selectedBankAccount = bankAccounts.find((account) => account.primary) ?? bankAccounts[0];
   const displayBankAccount = toBankAccountViewModel(appConfig.useDummyData ? parentChargeAccount : selectedBankAccount);
+  const canCharge = validAmount && (chargeMethod === 'toss' || Boolean(displayBankAccount));
   const { apiError, charge, processing, status } = useCreditChargeFlow({
     amount,
     selectedBankAccount,
-    valid,
+    method: chargeMethod,
+    valid: canCharge,
     onCompleted: () => {
       if (appConfig.useDummyData) {
         chargeCredit(amount);
@@ -60,12 +64,48 @@ export function CreditChargeScreen({ navigation }: Props) {
   });
   const statusCopy = processingLabel(status);
 
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof window === 'undefined') {
+      return;
+    }
+    const params = new URLSearchParams(window.location.search);
+    const paymentKey = params.get('paymentKey');
+    const orderId = params.get('orderId');
+    const amountParam = params.get('amount');
+    if (!paymentKey || !orderId || !amountParam) {
+      return;
+    }
+    creditApi.confirmTossCharge({
+      paymentKey,
+      orderId,
+      amount: Number(amountParam),
+    }).then(() => {
+      queryClient.invalidateQueries({ queryKey: ['credit', 'parentSummary'] });
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }).catch(() => {
+      window.history.replaceState({}, document.title, window.location.pathname);
+    });
+  }, [queryClient]);
+
   return (
-    <ScreenFrame eyebrow="크레딧 충전" title="보상 지갑 채우기" description="부모 계좌에서 보상 크레딧을 충전합니다.">
+    <ScreenFrame eyebrow="크레딧 충전" title="보상 지갑 채우기" description="Toss 결제 또는 연결 계좌로 크레딧을 충전합니다.">
       <BalanceCard label="현재 보상 크레딧" amount={parentCreditBalance} description="충전 후 미션 승인에 사용할 수 있습니다." />
       <Card>
-        <Label>충전 계좌</Label>
-        {appConfig.useDummyData ? (
+        <Label>충전 방식</Label>
+        <PrimaryButton
+          title="Toss 충전"
+          onPress={() => setChargeMethod('toss')}
+          variant={chargeMethod === 'toss' ? 'primary' : 'dark'}
+          disabled={processing}
+          testID="charge-method-toss-button"
+        />
+        <SecondaryButton title="연결 계좌" onPress={() => setChargeMethod('bank')} testID="charge-method-bank-button" />
+      </Card>
+      <Card>
+        <Label>{chargeMethod === 'toss' ? 'Toss 결제' : '충전 계좌'}</Label>
+        {chargeMethod === 'toss' ? (
+          <Body>Toss 결제 승인 후 지갑에 바로 충전됩니다. 로컬 개발에서는 mock 승인으로 처리합니다.</Body>
+        ) : appConfig.useDummyData ? (
           <>
             <Body>{formatBankAccountLabel(displayBankAccount)}</Body>
             <Body>{formatBankAccountHolder(displayBankAccount)}</Body>
@@ -78,7 +118,10 @@ export function CreditChargeScreen({ navigation }: Props) {
             <Body>{formatBankAccountHolder(displayBankAccount)}</Body>
           </>
         ) : (
-          <EmptyState body="연결 계좌를 불러오지 못했습니다." />
+          <>
+            <EmptyState body="연결된 계좌가 없습니다." />
+            <SecondaryButton title="Open Banking 계좌 연결" onPress={() => navigation.navigate('BankAccountRegister')} />
+          </>
         )}
       </Card>
       <ApiErrorBox error={bankAccountsQuery.error} fallback="연결 계좌 조회에 실패했습니다." />
@@ -90,7 +133,7 @@ export function CreditChargeScreen({ navigation }: Props) {
         onChangeText={(value) => setAmountText(formatAmountInput(value))}
         keyboardType="number-pad"
         disabled={processing}
-        error={amountText && !valid ? '10,000원부터 1,000,000원까지 충전할 수 있습니다.' : undefined}
+        error={amountText && !validAmount ? '10,000원부터 1,000,000원까지 충전할 수 있습니다.' : undefined}
       />
       <AmountQuickSelect amounts={[10000, 30000, 50000]} onSelect={(value) => setAmountText(String(value))} />
       <InfoBox
@@ -98,20 +141,20 @@ export function CreditChargeScreen({ navigation }: Props) {
         title={status === 'idle' ? '예상 잔액' : statusCopy.title}
         body={
           status === 'idle'
-            ? `${formatWon(parentCreditBalance + (valid ? amount : 0))}`
+            ? `${formatWon(parentCreditBalance + (validAmount ? amount : 0))}`
             : `${statusCopy.body} · 현재 잔액 ${formatWon(parentCreditBalance)}`
         }
       />
       {status === 'completed' ? <Toast message="충전 완료 · 보상 크레딧이 증가했습니다." /> : null}
       {status === 'failed' ? <Toast tone="danger" message="충전에 실패했습니다. 다시 시도해 주세요." /> : null}
       <PrimaryButton
-        title={processing ? '처리 중' : '충전하기'}
+        title={processing ? '처리 중' : chargeMethod === 'toss' ? 'Toss로 충전하기' : '계좌로 충전하기'}
         onPress={() => charge()}
-        disabled={!valid || processing}
+        disabled={!canCharge || processing}
         loading={processing}
       />
       {appConfig.useDummyData ? (
-        <ProcessingTestActions disabled={processing || !valid} onSelect={(nextStatus) => charge(nextStatus)} />
+        <ProcessingTestActions disabled={processing || !canCharge} onSelect={(nextStatus) => charge(nextStatus)} />
       ) : null}
       {status === 'completed' ? <SecondaryButton title="부모 홈으로" onPress={() => navigation.navigate('ParentHome')} /> : null}
     </ScreenFrame>

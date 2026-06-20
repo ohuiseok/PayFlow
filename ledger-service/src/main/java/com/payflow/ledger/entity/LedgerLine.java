@@ -25,8 +25,11 @@ public class LedgerLine {
     @JoinColumn(name = "ledger_entry_id", nullable = false)
     private LedgerEntry ledgerEntry;
 
-    @Column(nullable = false)
+    @Column
     private Long userId;
+
+    @Column(nullable = false, length = 50)
+    private String accountCode;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -40,12 +43,17 @@ public class LedgerLine {
     }
 
     public LedgerLine(LedgerEntry ledgerEntry, Long userId, LedgerLineType type, BigDecimal amount) {
+        this(ledgerEntry, userId, type, amount, type == LedgerLineType.DEBIT ? "USER_WALLET_OUT" : "USER_WALLET_IN");
+    }
+
+    public LedgerLine(LedgerEntry ledgerEntry, Long userId, LedgerLineType type, BigDecimal amount, String accountCode) {
         // 한 줄은 특정 사용자에게 발생한 회계 방향과 금액을 나타낸다.
         // 여러 라인이 하나의 LedgerEntry에 묶여야 "한 송금 사건" 전체를 추적할 수 있다.
         this.ledgerEntry = ledgerEntry;
         this.userId = userId;
         this.type = type;
         this.amount = amount;
+        this.accountCode = accountCode;
     }
 
     public Long getId() {
@@ -66,5 +74,9 @@ public class LedgerLine {
 
     public BigDecimal getAmount() {
         return amount;
+    }
+
+    public String getAccountCode() {
+        return accountCode;
     }
 }

@@ -40,6 +40,37 @@ type WithdrawalResponse = {
   compensatedAt?: string | null;
 };
 
+type TossChargeCreateResponse = {
+  chargeId: number | string;
+  providerCode: string;
+  orderId: string;
+  orderName: string;
+  amount: number;
+  currency: string;
+  status: string;
+  customerKey: string;
+};
+
+type TossChargeResponse = {
+  chargeId: number | string;
+  providerCode: string;
+  orderId: string;
+  paymentKey?: string;
+  amount: number;
+  status: string;
+  tossStatus: string;
+  walletId?: number | string;
+  walletTransactionId?: number | string;
+  failureCode?: string | null;
+  failureReason?: string | null;
+  receiptUrl?: string | null;
+};
+
+type OpenBankingAuthorizeUrlResponse = {
+  authorizeUrl: string;
+  state: string;
+};
+
 export type CreditBankAccount = {
   bankAccountId: string;
   bankName: string;
@@ -62,6 +93,14 @@ export type ChargeResult = {
   balanceAfter?: number;
 };
 
+export type TossChargeStart = {
+  chargeId: string;
+  orderId: string;
+  amount: number;
+  status: ProcessingStatus;
+  customerKey: string;
+};
+
 export type WithdrawalResult = {
   withdrawalId: string;
   walletId: string;
@@ -77,6 +116,14 @@ function makeIdempotencyKey(kind: 'charge' | 'withdrawal') {
 function normalizeCharge(response: ChargeResponse): ChargeResult {
   return {
     chargeId: String(response.bankingTransferId),
+    amount: response.amount,
+    status: toProcessingStatus(response.status),
+  };
+}
+
+function normalizeTossCharge(response: TossChargeResponse): ChargeResult {
+  return {
+    chargeId: String(response.chargeId),
     amount: response.amount,
     status: toProcessingStatus(response.status),
   };
@@ -147,6 +194,45 @@ export const creditApi = {
     );
 
     return normalizeCharge(response);
+  },
+
+  async requestTossCharge(input: { amount: number }): Promise<TossChargeStart> {
+    const response = await apiClient.post<TossChargeCreateResponse>(
+      '/api/payments/toss/charges',
+      {
+        amount: input.amount,
+        orderName: 'PayFlow 크레딧 충전',
+      },
+      {
+        headers: {
+          'Idempotency-Key': makeIdempotencyKey('charge'),
+        },
+      },
+    );
+
+    return {
+      chargeId: String(response.chargeId),
+      orderId: response.orderId,
+      amount: response.amount,
+      status: toProcessingStatus(response.status),
+      customerKey: response.customerKey,
+    };
+  },
+
+  async confirmTossCharge(input: { paymentKey: string; orderId: string; amount: number }) {
+    const response = await apiClient.post<TossChargeResponse>('/api/payments/toss/confirm', input);
+    return normalizeTossCharge(response);
+  },
+
+  async getTossCharge(chargeId: string) {
+    const response = await apiClient.get<TossChargeResponse>(
+      `/api/payments/toss/charges/${encodeURIComponent(chargeId)}`,
+    );
+    return normalizeTossCharge(response);
+  },
+
+  async getOpenBankingAuthorizeUrl() {
+    return apiClient.get<OpenBankingAuthorizeUrlResponse>('/api/bank/openbanking/authorize-url');
   },
 
   async getCharge(chargeId: string) {

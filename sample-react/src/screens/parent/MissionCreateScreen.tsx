@@ -21,6 +21,8 @@ import { getErrorMessage } from '../../utils/apiError';
 import { validateMissionDueDate } from '../../utils/dateValidation';
 import { hasMinLength, isAmountInRange } from '../../utils/validators';
 
+type Props = NativeStackScreenProps<RootStackParamList, 'MissionCreate'>;
+
 export function MissionCreateScreen({ navigation }: Props) {
   const { createMission, linkedChildren, parentCreditBalance } = useAppState();
   const queryClient = useQueryClient();

@@ -7,6 +7,7 @@ export type RootStackParamList = {
   ChildInviteCode: undefined;
   ParentHome: undefined;
   CreditCharge: undefined;
+  PaymentOperations: undefined;
   MissionCreate: undefined;
   ParentApproval: undefined;
   ChildHome: undefined;
@@ -27,6 +28,7 @@ export const linking: LinkingOptions<RootStackParamList> = {
       ChildInviteCode: 'child/invite-code',
       ParentHome: 'parent/home',
       CreditCharge: 'parent/credit-charge',
+      PaymentOperations: 'parent/payment-operations',
       MissionCreate: 'parent/missions/new',
       ParentApproval: 'parent/approvals',
       ChildHome: 'child/home',

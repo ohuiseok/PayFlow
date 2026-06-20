@@ -189,3 +189,94 @@ Flyway를 사용한다.
 초기 스키마는 `V1__init.sql`로 시작한다.
 
 테스트 데이터는 운영 마이그레이션에 넣지 않는다.
+## PG/Open Banking 확장 테이블
+
+Toss Payments PG 충전과 Open Banking 계좌 연결은 기존 `payflow_banking` DB 안에서 확장한다. 충전 요청은 제공자와 무관한 내부 표준 테이블에 저장하고, Toss/Open Banking 전용 값은 별도 테이블에 분리한다.
+
+### payment_providers
+
+외부 결제 제공자 정보를 저장한다.
+
+필드:
+
+`id`, `provider_code`, `display_name`, `status`, `created_at`, `updated_at`
+
+제약:
+
+`provider_code` unique
+
+`provider_code` in `TOSS_PAYMENTS`, `OPEN_BANKING`
+
+`status` in `ACTIVE`, `DISABLED`
+
+### payment_charges
+
+PG/Open Banking 충전 요청의 내부 표준 상태를 저장한다.
+
+필드:
+
+`id`, `user_id`, `provider_code`, `charge_method`, `amount`, `currency`, `status`, `idempotency_key`, `request_hash`, `wallet_transaction_id`, `failure_code`, `failure_reason`, `created_at`, `updated_at`
+
+제약:
+
+`idempotency_key` unique
+
+`wallet_transaction_id` unique nullable
+
+`amount > 0`
+
+`currency = KRW`
+
+`charge_method` in `TOSS_WIDGET`, `OPEN_BANKING_ACCOUNT`
+
+`status` in `READY`, `PAYMENT_PENDING`, `PAYMENT_APPROVED`, `WALLET_REFLECTING`, `COMPLETED`, `FAILED`, `CANCELED`, `PARTIAL_CANCELED`, `EXPIRED`, `UNKNOWN`, `COMPENSATION_REQUIRED`
+
+### toss_payment_orders
+
+Toss Payments의 주문, 결제키, 승인 결과를 저장한다.
+
+필드:
+
+`id`, `payment_charge_id`, `toss_order_id`, `payment_key`, `order_name`, `method`, `toss_status`, `total_amount`, `balance_amount`, `approved_at`, `receipt_url`, `checkout_url`, `raw_response_json`, `created_at`, `updated_at`
+
+제약:
+
+`payment_charge_id` unique
+
+`toss_order_id` unique
+
+`payment_key` unique nullable
+
+### toss_payment_events
+
+Toss 승인/취소/조회/웹훅 payload를 append-only로 저장한다.
+
+필드:
+
+`id`, `toss_payment_order_id`, `event_type`, `payment_key`, `transaction_key`, `toss_status`, `event_idempotency_key`, `payload_json`, `received_at`
+
+제약:
+
+`event_idempotency_key` unique nullable
+
+`event_type` in `APPROVE_RESPONSE`, `WEBHOOK`, `CANCEL_RESPONSE`, `QUERY_RESPONSE`
+
+### open_banking_authorizations
+
+Open Banking OAuth 연결과 토큰 상태를 저장한다.
+
+필드:
+
+`id`, `user_id`, `state`, `status`, `user_seq_no`, `access_token_encrypted`, `refresh_token_encrypted`, `token_expires_at`, `failure_reason`, `created_at`, `updated_at`
+
+제약:
+
+`state` unique
+
+`status` in `REQUESTED`, `CONNECTED`, `FAILED`, `EXPIRED`, `REVOKED`
+
+### bank_accounts 확장
+
+기존 `bank_accounts`에 다음 필드를 추가한다.
+
+`provider_code`, `open_banking_authorization_id`, `fintech_use_num_encrypted`, `account_alias`, `linked_at`, `last_synced_at`

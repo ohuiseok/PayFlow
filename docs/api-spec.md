@@ -27,6 +27,7 @@ PayFlow MVP API는 회원, 지갑, 은행 충전, 송금, 가족 미션 보상, 
 /api/users/**     -> user-service
 /api/wallets/**   -> wallet-service
 /api/bank/**      -> banking-service
+/api/payments/**  -> banking-service
 /api/transfers/** -> transfer-service
 /api/ledgers/**   -> ledger-service
 /api/families/**  -> reward-service
@@ -468,7 +469,74 @@ Response:
 }
 ```
 
-Planned ledger entry lookup APIs:
+Implemented ledger entry lookup APIs:
+
+### GET /api/ledgers/entries
+
+최근 원장 엔트리 100건을 조회한다. 송금, Toss PG 충전, Toss PG 취소가 같은 응답 모델로 내려온다.
+
+Response:
+
+```json
+[
+  {
+    "id": 501,
+    "transferId": null,
+    "sourceType": "TOSS_CHARGE",
+    "sourceId": 3001,
+    "entryType": "USER_WALLET_TOPUP",
+    "senderUserId": null,
+    "receiverUserId": 1,
+    "amount": 50000,
+    "createdAt": "2026-06-20T16:30:00",
+    "lines": [
+      {
+        "id": 1001,
+        "userId": null,
+        "accountCode": "PG_CASH",
+        "type": "DEBIT",
+        "amount": 50000
+      },
+      {
+        "id": 1002,
+        "userId": 1,
+        "accountCode": "USER_WALLET",
+        "type": "CREDIT",
+        "amount": 50000
+      }
+    ]
+  }
+]
+```
+
+### GET /api/ledgers/entries/{entryId}
+
+원장 엔트리 상세를 조회한다.
+
+### POST /ledgers/internal/payment-charge
+
+서비스 간 내부 호출 전용 API다. banking-service가 Toss 승인/취소 후 지갑 반영에 성공하면 원장에 이중분개를 남긴다.
+
+Request:
+
+```json
+{
+  "sourceType": "TOSS_CHARGE",
+  "sourceId": 3001,
+  "entryType": "USER_WALLET_TOPUP",
+  "userId": 1,
+  "amount": 50000
+}
+```
+
+Allowed combinations:
+
+```text
+TOSS_CHARGE + USER_WALLET_TOPUP
+TOSS_CANCEL + PG_CANCEL
+```
+
+Legacy planned names kept for old notes:
 
 ### GET /api/ledger/entries
 
@@ -487,5 +555,125 @@ POST /internal/wallets
 POST /internal/wallets/{userId}/credit
 POST /internal/wallets/{userId}/debit
 GET  /internal/users/{userId}
-POST /internal/ledger/entries
+POST /ledgers/internal/payment-charge
+```
+## Toss Payment API
+
+### POST /api/payments/toss/charges
+
+Toss 결제 위젯을 열기 전에 내부 충전 요청과 Toss `orderId`를 생성한다.
+
+Header:
+
+`Idempotency-Key: 20260620-user1-toss-charge-001`
+
+```json
+{
+  "amount": 50000,
+  "orderName": "PayFlow 크레딧 충전"
+}
+```
+
+Response:
+
+```json
+{
+  "chargeId": 3001,
+  "providerCode": "TOSS_PAYMENTS",
+  "orderId": "payflow-charge-3001-20260620",
+  "orderName": "PayFlow 크레딧 충전",
+  "amount": 50000,
+  "currency": "KRW",
+  "status": "READY",
+  "customerKey": "user-1"
+}
+```
+
+### POST /api/payments/toss/confirm
+
+Toss 승인 성공 시 wallet-service 입금 이후 ledger-service에 `TOSS_CHARGE + USER_WALLET_TOPUP` 원장을 멱등 기록한다.
+
+Toss 결제 승인 callback 이후 서버에서 Toss 승인 API를 호출하고, 성공하면 wallet-service에 입금을 요청한다.
+
+```json
+{
+  "paymentKey": "tgen_20260620_xxx",
+  "orderId": "payflow-charge-3001-20260620",
+  "amount": 50000
+}
+```
+
+Response:
+
+```json
+{
+  "chargeId": 3001,
+  "paymentKey": "tgen_20260620_xxx",
+  "amount": 50000,
+  "status": "COMPLETED",
+  "walletTransactionId": 9100,
+  "receiptUrl": "https://dashboard.tosspayments.com/receipt/..."
+}
+```
+
+### GET /api/payments/toss/charges/{chargeId}
+
+내부 충전 상태와 Toss 결제 상태를 함께 조회한다.
+
+### POST /api/payments/toss/webhook
+
+Toss 결제 상태 변경 웹훅을 수신한다. 동일 웹훅은 `event_idempotency_key`로 중복 처리하지 않는다.
+`TOSS_PAYMENTS_WEBHOOK_SECRET`이 설정된 환경에서는 `X-Toss-Signature` 헤더를 검증한다.
+
+### POST /api/payments/toss/payments/{paymentKey}/cancel
+
+Toss 취소와 wallet-service 차감이 성공하면 ledger-service에 `TOSS_CANCEL + PG_CANCEL` 원장을 멱등 기록한다.
+
+Toss 결제를 취소하고 내부 충전 상태와 지갑/원장 보상 필요 여부를 갱신한다.
+
+```json
+{
+  "cancelReason": "사용자 요청",
+  "cancelAmount": 50000
+}
+```
+
+### GET /api/payments/toss/payments/{paymentKey}
+
+Toss 결제 조회 API를 호출해서 내부 상태와 외부 상태 차이를 보정한다.
+
+### GET /api/payments/toss/operations/summary
+
+Toss 충전 운영 상태 카운트를 조회한다.
+
+### GET /api/payments/toss/operations/compensations
+
+`COMPENSATION_REQUIRED` 상태의 Toss 충전 목록을 조회한다.
+
+### POST /api/payments/toss/charges/{chargeId}/compensate
+
+Toss 결제는 성공했지만 wallet 입금이 실패한 충전 건을 재입금한다.
+성공하면 `COMPLETED`, 실패하면 `COMPENSATION_REQUIRED`를 유지하고 retry metadata를 기록한다.
+
+## Toss Ledger Compensation API
+
+### GET /api/payments/toss/operations/ledger-compensations
+
+지갑 반영은 완료됐지만 ledger-service 원장 기록이 실패한 Toss 충전 목록을 조회한다.
+
+### POST /api/payments/toss/charges/{chargeId}/ledger-compensate
+
+지갑 반영이 완료된 Toss 충전 건의 원장 기록만 재처리한다. 성공하면 `ledgerRecorded=true`, 실패하면 `ledgerFailureReason`과 `ledgerRetryCount`를 갱신한다.
+
+`GET /api/payments/toss/operations/summary` 응답에는 `ledgerCompensationRequiredCount`가 포함된다.
+
+Toss charge responses and summary responses include ledger fields:
+
+```json
+{
+  "ledgerRecorded": false,
+  "ledgerRecordType": "TOSS_CHARGE",
+  "ledgerFailureReason": "ledger-service timeout",
+  "ledgerRetryCount": 1
+}
 ```

@@ -3,7 +3,10 @@ package com.payflow.ledger.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.payflow.ledger.dto.PaymentLedgerRequest;
+import com.payflow.ledger.entity.LedgerEntryType;
 import com.payflow.ledger.entity.LedgerLineType;
+import com.payflow.ledger.entity.LedgerSourceType;
 import com.payflow.ledger.event.TransferCompletedEvent;
 import com.payflow.ledger.event.TransferFailedEvent;
 import com.payflow.ledger.repository.LedgerEntryRepository;
@@ -40,6 +43,53 @@ class LedgerServiceTest {
     void setUp() {
         transferFailureEventRepository.deleteAll();
         ledgerEntryRepository.deleteAll();
+    }
+
+    @Test
+    void recordPaymentChargeCreatesDoubleEntryLinesOnce() {
+        var request = new PaymentLedgerRequest(
+                LedgerSourceType.TOSS_CHARGE,
+                300L,
+                LedgerEntryType.USER_WALLET_TOPUP,
+                1L,
+                new BigDecimal("10000")
+        );
+
+        ledgerService.recordPaymentCharge(request);
+        var entry = ledgerService.recordPaymentCharge(request);
+
+        assertThat(ledgerEntryRepository.count()).isEqualTo(1);
+        assertThat(ledgerLineRepository.countByLedgerEntry_SourceTypeAndLedgerEntry_SourceId(
+                LedgerSourceType.TOSS_CHARGE,
+                300L
+        )).isEqualTo(2);
+        assertThat(entry.sourceType()).isEqualTo(LedgerSourceType.TOSS_CHARGE);
+        assertThat(entry.entryType()).isEqualTo(LedgerEntryType.USER_WALLET_TOPUP);
+        assertThat(entry.lines()).hasSize(2);
+        assertThat(entry.lines()).extracting("accountCode")
+                .containsExactlyInAnyOrder("PG_CASH", "USER_WALLET");
+        assertThat(entry.lines()).extracting("type")
+                .containsExactlyInAnyOrder(LedgerLineType.DEBIT, LedgerLineType.CREDIT);
+    }
+
+    @Test
+    void recordPaymentCancelCreatesDoubleEntryLinesOnce() {
+        var request = new PaymentLedgerRequest(
+                LedgerSourceType.TOSS_CANCEL,
+                301L,
+                LedgerEntryType.PG_CANCEL,
+                1L,
+                new BigDecimal("5000")
+        );
+
+        ledgerService.recordPaymentCharge(request);
+        var entry = ledgerService.recordPaymentCharge(request);
+
+        assertThat(ledgerEntryRepository.count()).isEqualTo(1);
+        assertThat(entry.sourceType()).isEqualTo(LedgerSourceType.TOSS_CANCEL);
+        assertThat(entry.entryType()).isEqualTo(LedgerEntryType.PG_CANCEL);
+        assertThat(entry.lines()).extracting("accountCode")
+                .containsExactlyInAnyOrder("USER_WALLET", "PG_CASH");
     }
 
     @Test

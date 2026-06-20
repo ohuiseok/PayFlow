@@ -13,6 +13,7 @@ public enum ErrorCode {
     BANK_ACCOUNT_NOT_FOUND(HttpStatus.NOT_FOUND, "Bank account was not found."),
     DUPLICATE_BANK_ACCOUNT(HttpStatus.CONFLICT, "Bank account is already registered."),
     BANKING_TRANSFER_NOT_FOUND(HttpStatus.NOT_FOUND, "Banking transfer was not found."),
+    PAYMENT_CHARGE_NOT_FOUND(HttpStatus.NOT_FOUND, "Payment charge was not found."),
     IDEMPOTENCY_KEY_REQUIRED(HttpStatus.BAD_REQUEST, "Idempotency-Key header is required."),
     IDEMPOTENCY_REQUEST_MISMATCH(HttpStatus.CONFLICT, "Same Idempotency-Key cannot be used with a different request."),
     WALLET_DEPOSIT_FAILED(HttpStatus.CONFLICT, "Wallet deposit failed."),

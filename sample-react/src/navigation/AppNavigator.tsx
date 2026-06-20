@@ -15,6 +15,7 @@ import { ChildInviteCodeScreen } from '../screens/family/ChildInviteCodeScreen';
 import { ParentFamilyLinkScreen } from '../screens/family/ParentFamilyLinkScreen';
 import { CreditChargeScreen } from '../screens/parent/CreditChargeScreen';
 import { MissionCreateScreen } from '../screens/parent/MissionCreateScreen';
+import { PaymentOperationsScreen } from '../screens/parent/PaymentOperationsScreen';
 import { ParentApprovalScreen } from '../screens/parent/ParentApprovalScreen';
 import { ParentHomeScreen } from '../screens/parent/ParentHomeScreen';
 import { useAppState } from '../state/AppState';
@@ -23,7 +24,7 @@ import { UserRole } from '../types';
 const Stack = createNativeStackNavigator<RootStackParamList>();
 type RouteName = keyof RootStackParamList;
 
-const screenTitles: Record<RouteName, string> = {
+const screenTitles: Partial<Record<RouteName, string>> = {
   Login: '로그인',
   SignupRole: '회원가입',
   ParentFamilyLink: '자녀 연결',
@@ -101,6 +102,7 @@ const parentOrChild = ['parent', 'child'] as UserRole[];
 const GuardedParentFamilyLinkScreen = withRoleGuard(ParentFamilyLinkScreen, parentOnly, 'ChildHome');
 const GuardedParentHomeScreen = withRoleGuard(ParentHomeScreen, parentOnly, 'ChildHome');
 const GuardedCreditChargeScreen = withRoleGuard(CreditChargeScreen, parentOnly, 'ChildHome');
+const GuardedPaymentOperationsScreen = withRoleGuard(PaymentOperationsScreen, parentOnly, 'ChildHome');
 const GuardedMissionCreateScreen = withRoleGuard(MissionCreateScreen, parentOnly, 'ChildHome');
 const GuardedParentApprovalScreen = withRoleGuard(ParentApprovalScreen, parentOnly, 'ChildHome');
 const GuardedChildInviteCodeScreen = withRoleGuard(ChildInviteCodeScreen, childOnly, 'ParentHome');
@@ -122,6 +124,7 @@ export function AppNavigator() {
       <Stack.Screen name="ChildInviteCode" component={GuardedChildInviteCodeScreen} options={{ title: screenTitles.ChildInviteCode }} />
       <Stack.Screen name="ParentHome" component={GuardedParentHomeScreen} options={{ title: screenTitles.ParentHome }} />
       <Stack.Screen name="CreditCharge" component={GuardedCreditChargeScreen} options={{ title: screenTitles.CreditCharge }} />
+      <Stack.Screen name="PaymentOperations" component={GuardedPaymentOperationsScreen} options={{ title: '결제 운영' }} />
       <Stack.Screen name="MissionCreate" component={GuardedMissionCreateScreen} options={{ title: screenTitles.MissionCreate }} />
       <Stack.Screen name="ParentApproval" component={GuardedParentApprovalScreen} options={{ title: screenTitles.ParentApproval }} />
       <Stack.Screen name="ChildHome" component={GuardedChildHomeScreen} options={{ title: screenTitles.ChildHome }} />

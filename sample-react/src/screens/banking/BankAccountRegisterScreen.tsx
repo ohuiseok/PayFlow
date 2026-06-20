@@ -1,6 +1,8 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useState } from 'react';
+import { Linking } from 'react-native';
 
+import { creditApi } from '../../api/creditApi';
 import { BankSelect } from '../../components/banking/BankSelect';
 import { ApiErrorBox } from '../../components/common/ApiErrorBox';
 import { FormField, InfoBox, PrimaryButton, ScreenFrame, SecondaryButton, Toast } from '../../components/common';
@@ -19,6 +21,7 @@ export function BankAccountRegisterScreen({ navigation }: Props) {
   const [holderName, setHolderName] = useState(linkedBankAccount?.holderName ?? '민지');
   const [done, setDone] = useState(false);
   const [apiError, setApiError] = useState('');
+  const [openBankingLoading, setOpenBankingLoading] = useState(false);
   const valid = isValidBankAccountNumber(accountNumber);
   const registerMutation = useRegisterBankAccountMutation({
     accountNumber,
@@ -30,6 +33,19 @@ export function BankAccountRegisterScreen({ navigation }: Props) {
   });
   const loading = registerMutation.isPending;
 
+  const connectOpenBanking = async () => {
+    try {
+      setApiError('');
+      setOpenBankingLoading(true);
+      const response = await creditApi.getOpenBankingAuthorizeUrl();
+      await Linking.openURL(response.authorizeUrl);
+    } catch (error) {
+      setApiError(error instanceof Error ? error.message : 'Open Banking 계좌 연결을 시작하지 못했습니다.');
+    } finally {
+      setOpenBankingLoading(false);
+    }
+  };
+
   const submit = () => {
     if (!valid || !holderName.trim()) {
       return;
@@ -40,8 +56,16 @@ export function BankAccountRegisterScreen({ navigation }: Props) {
   };
 
   return (
-    <ScreenFrame eyebrow="계좌 등록" title="받을 계좌 연결" description="출금 받을 계좌를 등록합니다.">
-      <InfoBox tone="blue" title="등록 가능" body="본인 명의 계좌만 등록할 수 있습니다." />
+    <ScreenFrame eyebrow="계좌 연결" title="충전 계좌 연결" description="Open Banking으로 계좌를 연결하거나 개발용 수기 등록을 사용할 수 있습니다.">
+      <InfoBox tone="blue" title="Open Banking 계좌 연결" body="인증을 완료하면 연결 계좌를 자동으로 동기화합니다." />
+      <PrimaryButton
+        title={openBankingLoading ? '연결 준비 중' : 'Open Banking으로 계좌 연결'}
+        onPress={connectOpenBanking}
+        disabled={openBankingLoading}
+        loading={openBankingLoading}
+        testID="open-banking-connect-button"
+      />
+      <InfoBox tone="yellow" title="개발용 수기 등록" body="실제 운영에서는 Open Banking 연결을 기본 동선으로 사용합니다." />
       <BankSelect selectedBankCode={selectedBank.bankCodeStd} onSelect={setSelectedBank} disabled={loading} />
       <FormField
         label="계좌번호"
@@ -53,16 +77,22 @@ export function BankAccountRegisterScreen({ navigation }: Props) {
         disabled={loading}
       />
       <FormField label="예금주" placeholder="예금주" value={holderName} onChangeText={setHolderName} disabled={loading} />
-      <ApiErrorBox error={apiError} fallback="계좌 등록에 실패했습니다." />
+      <ApiErrorBox error={apiError} fallback="계좌 연결에 실패했습니다." />
       {done ? <Toast message={`${selectedBank.bankName} ${accountNumber} 계좌가 연결되었습니다.`} /> : null}
       <PrimaryButton
-        title={loading ? '등록 중' : '계좌 등록'}
+        title={loading ? '등록 중' : '수기 계좌 등록'}
         onPress={submit}
         disabled={!valid || !holderName.trim() || loading}
         loading={loading}
         testID="bank-register-submit-button"
       />
-      {done ? <SecondaryButton title="출금 화면으로" onPress={() => navigation.navigate('ChildWithdrawal')} testID="bank-register-go-withdrawal-button" /> : null}
+      {done ? (
+        <SecondaryButton
+          title="충전 화면으로"
+          onPress={() => navigation.navigate('CreditCharge')}
+          testID="bank-register-go-charge-button"
+        />
+      ) : null}
     </ScreenFrame>
   );
 }

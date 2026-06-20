@@ -34,4 +34,6 @@ docker-data/
 mysql_data/
 kafka_data/
 
-reference-docs/
+reference-docs/*
+!reference-docs/참고문서/
+!reference-docs/참고문서/**

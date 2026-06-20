@@ -52,6 +52,12 @@ spring:
                 - Path=/api/bank/**
               filters:
                 - StripPrefix=1
+            - id: banking-payments-service
+              uri: ${BANKING_SERVICE_URI:http://localhost:8086}
+              predicates:
+                - Path=/api/payments/**
+              filters:
+                - StripPrefix=1
             - id: reward-service-families
               uri: ${REWARD_SERVICE_URI:http://localhost:8087}
               predicates:

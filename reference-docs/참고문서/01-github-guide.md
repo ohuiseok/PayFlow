@@ -1,0 +1,111 @@
+# GitHub Guide
+
+이 문서는 GitHub 저장소 README 또는 포트폴리오의 GitHub 링크 설명에 사용할 수 있는 정리본입니다.
+
+## Repository Summary
+
+PayFlow는 부모-자녀 미션 보상 지갑 서비스입니다. 단순 CRUD가 아니라 지갑 잔액, 송금, 멱등성, 보상 처리, 이벤트 기반 원장 기록처럼 결제 시스템에서 중요한 주제를 포트폴리오 범위로 구현했습니다.
+
+핵심 사용자 흐름:
+
+```text
+회원가입
+-> 사용자별 지갑 생성
+-> 부모 지갑 충전
+-> 부모-자녀 연결
+-> 미션 생성
+-> 자녀 제출
+-> 부모 승인
+-> 부모 지갑에서 자녀 지갑으로 보상 송금
+-> 지갑 거래 이력과 원장 기록 생성
+```
+
+## Tech Stack
+
+| 영역 | 기술 |
+| --- | --- |
+| Backend | Java, Spring Boot, Spring Web, Spring Data JPA |
+| Gateway | Spring Cloud Gateway |
+| Database | MySQL |
+| Cache/Lock | Redis |
+| Messaging | Kafka |
+| Frontend | React Native/Expo sample app |
+| Infra | Docker Compose, Nginx |
+| Test | JUnit, Spring Boot Test, Playwright, API smoke script |
+
+## Services
+
+| 서비스 | 책임 |
+| --- | --- |
+| api-gateway | 외부 API 진입점, JWT 검증, 사용자 헤더 주입 |
+| user-service | 회원가입, 로그인, 사용자 조회 |
+| wallet-service | 지갑 생성, 잔액 조회, 입금/출금, 거래 이력 |
+| banking-service | 계좌 등록, 충전/출금 요청, Open Banking 연동 모델 |
+| transfer-service | 사용자 간 송금, 멱등성, Redis 락, outbox 이벤트 |
+| reward-service | 부모-자녀 연결, 미션 생성/제출/승인/보상 지급 |
+| ledger-service | 송금 이벤트 소비, 원장/실패 기록 |
+| settlement-service | 정산 확장 영역 |
+
+## Local Run
+
+```powershell
+docker compose up --build
+```
+
+기본 진입점:
+
+```text
+Frontend: http://localhost:19006
+API Gateway: http://localhost:8080
+Nginx: http://localhost
+```
+
+환경 변수 예시는 `.env.example`을 기준으로 확인합니다.
+
+## Verification Commands
+
+백엔드 서비스 테스트:
+
+```powershell
+.\gradlew.bat test
+```
+
+프론트엔드 검증:
+
+```powershell
+cd sample-react
+npm run check
+```
+
+Docker Compose 설정 검증:
+
+```powershell
+docker compose config --quiet
+```
+
+API smoke test:
+
+```powershell
+.\scripts\api-smoke.ps1
+```
+
+## Reviewer Reading Path
+
+처음 보는 리뷰어라면 아래 순서로 보면 프로젝트 의도가 가장 빨리 잡힙니다.
+
+1. `docs/payflow-service-planning.md`
+2. `docs/service-flow.md`
+3. `docs/api-spec.md`
+4. `docs/erd.md`
+5. `docs/portfolio-open-banking.md`
+6. `reference-docs/참고문서/04-architecture.md`
+
+## Portfolio Highlights
+
+- 지갑 잔액 변경은 wallet-service에서만 수행합니다.
+- 송금 요청은 `Idempotency-Key`와 요청 본문 해시로 중복 처리를 방어합니다.
+- wallet transaction은 `referenceType` + `referenceId`로 중복 반영을 막습니다.
+- 송금 중 동일 지갑에 대한 경쟁 상태를 줄이기 위해 Redis 락을 사용합니다.
+- 송금 완료/실패 이벤트는 transfer-service DB에 outbox로 저장한 뒤 Kafka로 발행합니다.
+- ledger-service는 Kafka 이벤트를 소비하고 같은 transferId를 중복 기록하지 않습니다.
+- Open Banking 응답은 HTTP 성공과 금융 성공을 분리해 상태로 모델링합니다.

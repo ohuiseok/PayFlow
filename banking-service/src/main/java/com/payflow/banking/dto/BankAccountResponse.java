@@ -11,6 +11,8 @@ public record BankAccountResponse(
         String bankName,
         String inquiryAgreeYn,
         String transferAgreeYn,
+        String providerCode,
+        String accountAlias,
         BankAccountStatus status
 ) {
 
@@ -23,6 +25,8 @@ public record BankAccountResponse(
                 account.getBankName(),
                 account.getInquiryAgreeYn(),
                 account.getTransferAgreeYn(),
+                account.getProviderCode(),
+                account.getAccountAlias(),
                 account.getStatus()
         );
     }
