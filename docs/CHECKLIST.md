@@ -251,6 +251,41 @@ docs/implementation-plan/02-database-and-migration.md
 - [ ] 관련 서비스 `bootJar` 성공
 - [ ] 관련 테스트 성공
 - [ ] 체크리스트 갱신
+
+## 10. 보안 및 코드 품질 개선 (2026-06-20 코드 리뷰)
+
+상세 내용: [`docs/security-review.md`](security-review.md)  
+개발 계획: [`docs/implementation-plan/17-security-and-improvements.md`](implementation-plan/17-security-and-improvements.md)
+
+### Phase 1 — Critical (즉시 수정)
+
+- [x] **[C-1]** GatewayRequestFilter: 시크릿 미설정 시 `return false` 처리 (전체 7개 서비스)
+- [x] **[C-2]** 내부 시크릿 비교: `String.equals()` → `MessageDigest.isEqual()` 교체 (전체 서비스)
+- [x] **[C-3]** `.env` MySQL 패스워드 강화 및 시크릿 점검
+- [x] **[C-4]** LedgerController: `getLedgerEntries`, `getTransferFailures`에 `X-User-Id` 필터 추가
+- [x] **[C-5]** TossPaymentController: 운영 API(`/operations/*`)에 역할 검증 추가
+- [x] **[C-6]** RewardService.payMission: `findByIdForUpdate` (PESSIMISTIC_WRITE) 적용
+
+### Phase 2 — High (다음 스프린트)
+
+- [x] **[H-1]** user, wallet, transfer, reward, settlement 서비스: `ddl-auto=validate` + Flyway 전환
+- [x] **[H-2]** UserService.createUser: 지갑 생성 `@Retryable` + `WalletProvisioningService` 재시도 보상 로직 추가
+- [x] **[H-3]** TokenCryptoService: 암호화 키 미설정 시 `@PostConstruct`에서 기동 실패 처리
+- [ ] **[H-4]** CreateUserRequest: PARENT 역할 자가 선택 제한 (초대 코드 또는 관리자 승인 흐름)
+- [x] **[H-5]** Kafka DLT 설정: `DefaultErrorHandler` + `DeadLetterPublishingRecoverer` 추가 (ledger-service)
+- [x] **[H-6]** TossPaymentService.cancel: `SELECT FOR UPDATE` 비관적 락 추가
+
+### Phase 3 — Medium (코드 품질)
+
+- [x] **[M-1]** 전체 서비스 `GlobalExceptionHandler`에 `@Slf4j` + 예외 로깅 추가
+- [x] **[M-2]** 로그인 브루트포스 방어: nginx `limit_req_zone` (5r/m, burst=3) rate limiting 추가
+- [x] **[M-3]** Transfer 조회: `senderUserId` / `receiverUserId` 인덱스 추가 + `Pageable` 페이지네이션 도입
+- [x] **[M-4]** RewardService.getParentCreditSummary: 전체 목록 로드 → `COUNT` / `SUM` 쿼리 교체
+- [x] **[M-5]** JwtAuthenticationFilter: 수동 JSON 직렬화 → `ObjectMapper` 주입으로 교체
+- [x] **[M-6]** PROCESSING 상태 고착 Transfer 감지: `StuckTransferMonitor` 스케줄러 추가 (5분 주기)
+- [x] **[M-7]** TokenCryptoService: SHA-256 단순 해시 → PBKDF2WithHmacSHA256 키 유도 함수로 교체 + 레거시 SHA-256 fallback 복호화
+- [x] **[M-8]** OutboxEventRelay: ShedLock + MySQL JDBC 분산 스케줄러 락 도입 (`V2__add_shedlock.sql`)
+
 # Recent implementation status
 
 - [x] transfer-service Redis sender wallet lock

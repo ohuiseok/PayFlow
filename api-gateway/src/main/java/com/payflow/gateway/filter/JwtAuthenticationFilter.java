@@ -1,5 +1,7 @@
 package com.payflow.gateway.filter;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.payflow.gateway.auth.AuthenticatedUser;
 import com.payflow.gateway.auth.JwtTokenProvider;
 import com.payflow.gateway.support.error.BusinessException;
@@ -35,6 +37,9 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     private static final String X_GATEWAY_SECRET = "X-Gateway-Secret";
 
     private final JwtTokenProvider jwtTokenProvider;
+    // [M-5] ObjectMapper를 주입받아 JSON 직렬화를 위임한다.
+    // 직접 문자열 포맷으로 JSON을 만들면 따옴표/역슬래시 이스케이프를 놓치기 쉬워 XSS 또는 파싱 오류가 발생할 수 있다.
+    private final ObjectMapper objectMapper;
 
     @Value("${gateway.internal-secret:}")
     private String gatewayInternalSecret;
@@ -119,20 +124,16 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         response.setStatusCode(errorCode.getStatus());
         response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
 
-        String body = """
-                {"code":"%s","message":"%s","timestamp":"%s"}
-                """.formatted(
-                errorResponse.code(),
-                escapeJson(errorResponse.message()),
-                errorResponse.timestamp().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
-        );
-        DataBuffer buffer = response.bufferFactory().wrap(body.getBytes(StandardCharsets.UTF_8));
-        return response.writeWith(Mono.just(buffer));
-    }
-
-    private String escapeJson(String value) {
-        // 직접 JSON 문자열을 만들고 있으므로 따옴표와 역슬래시는 반드시 escape해야 한다.
-        // ObjectMapper를 사용하면 더 안전하지만, 현재 구조에서는 최소한의 JSON 깨짐을 방지한다.
-        return value.replace("\\", "\\\\").replace("\"", "\\\"");
+        // [M-5] ObjectMapper를 사용해 JSON 직렬화한다. 수동 문자열 포맷은 특수문자 이스케이프를 놓칠 수 있다.
+        try {
+            String body = objectMapper.writeValueAsString(errorResponse);
+            DataBuffer buffer = response.bufferFactory().wrap(body.getBytes(StandardCharsets.UTF_8));
+            return response.writeWith(Mono.just(buffer));
+        } catch (JsonProcessingException e) {
+            // ObjectMapper 직렬화 실패는 거의 발생하지 않지만, 발생하면 최소 JSON으로 응답한다.
+            String fallback = "{\"code\":\"INTERNAL_SERVER_ERROR\",\"message\":\"error serialization failed\"}";
+            DataBuffer buffer = response.bufferFactory().wrap(fallback.getBytes(StandardCharsets.UTF_8));
+            return response.writeWith(Mono.just(buffer));
+        }
     }
 }

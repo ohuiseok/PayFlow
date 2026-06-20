@@ -9,6 +9,10 @@ import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -51,11 +55,15 @@ public class TransferController {
         return transferService.getTransfer(transferId, requestUserId);
     }
 
+    // [M-3] page, size 쿼리 파라미터로 페이지네이션을 지원한다.
+    // 예: GET /transfers?page=0&size=20 (기본값: page=0, size=20)
+    // Page<TransferResponse>를 직렬화하면 content, totalElements, totalPages, number 등이 함께 반환된다.
     @GetMapping
-    public List<TransferResponse> getTransfers(@RequestHeader("X-User-Id") Long requestUserId) {
-        // 목록 조회도 인증된 사용자 기준으로 제한한다.
-        // 컨트롤러는 헤더를 전달하고, 실제 필터링 조건은 서비스/리포지토리에 둔다.
-        return transferService.getTransfers(requestUserId);
+    public Page<TransferResponse> getTransfers(
+            @RequestHeader("X-User-Id") Long requestUserId,
+            @PageableDefault(size = 20) Pageable pageable
+    ) {
+        return transferService.getTransfers(requestUserId, pageable);
     }
 
     @GetMapping("/compensations")

@@ -131,7 +131,9 @@ public class TossPaymentService {
     public TossChargeResponse cancel(String paymentKey, TossCancelRequest request, Long requestUserId) {
         TossPaymentOrder order = tossPaymentOrderRepository.findByPaymentKey(paymentKey)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_CHARGE_NOT_FOUND));
-        PaymentCharge charge = paymentChargeRepository.findByIdAndUserId(order.getPaymentChargeId(), requestUserId)
+        // [H-5] 동시 취소 요청에 의한 중복 취소를 방지하기 위해 비관적 락을 사용한다.
+        // 같은 chargeId에 두 요청이 동시에 들어오면 하나만 Toss API를 호출하고, 나머지는 이미 취소된 상태를 반환하게 된다.
+        PaymentCharge charge = paymentChargeRepository.findByIdAndUserIdForUpdate(order.getPaymentChargeId(), requestUserId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_CHARGE_NOT_FOUND));
         TossPaymentCancelResult result = tossPaymentsClient.cancel(paymentKey, request.cancelReason(), request.cancelAmount());
         applyResult(order, result.payment());

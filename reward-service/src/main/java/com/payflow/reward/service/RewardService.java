@@ -22,6 +22,7 @@ import com.payflow.reward.support.error.BusinessException;
 import com.payflow.reward.support.error.ErrorCode;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -161,7 +162,10 @@ public class RewardService {
     @Transactional
     public MissionResponse payMission(Long missionId, Long requestUserId, String role) {
         requireRole(role, ROLE_PARENT);
-        RewardTask task = findMission(missionId);
+        // [C-6] 비관적 락을 획득해 동시 지급 요청에 의한 중복 보상을 방지한다.
+        // 같은 missionId로 두 요청이 동시에 들어오면 하나만 락을 잡고, 나머지는 대기 후 PAID 상태를 보게 된다.
+        RewardTask task = rewardTaskRepository.findByIdForUpdate(missionId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.MISSION_NOT_FOUND));
         requireParent(task, requestUserId);
         if (task.getStatus() == RewardTaskStatus.PAID) {
             return MissionResponse.from(task);
@@ -211,19 +215,23 @@ public class RewardService {
     public ParentCreditSummaryResponse getParentCreditSummary(Long requestUserId, String role) {
         requireRole(role, ROLE_PARENT);
         var wallet = walletClient.getWalletByUserId(requestUserId, true, internalSecret);
-        List<RewardTask> paidTasks = rewardTaskRepository.findByParentUserIdAndStatusInOrderByCreatedAtDesc(
-                requestUserId,
-                List.of(RewardTaskStatus.PAID)
-        );
+
+        // [M-4] 전체 목록을 메모리에 로드해 스트림 필터링하는 대신 DB에서 COUNT/SUM으로 집계한다.
+        // 미션 수가 늘어도 DB가 인덱스를 활용해 빠르게 처리한다.
         YearMonth currentMonth = YearMonth.now();
-        BigDecimal monthlyRewardPaid = paidTasks.stream()
-                .filter(task -> YearMonth.from(task.getUpdatedAt()).equals(currentMonth))
-                .map(RewardTask::getRewardAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        long pendingApprovalCount = rewardTaskRepository.findByParentUserIdAndStatusInOrderByCreatedAtDesc(
+        LocalDateTime monthStart = currentMonth.atDay(1).atStartOfDay();
+        LocalDateTime monthEnd = currentMonth.plusMonths(1).atDay(1).atStartOfDay();
+
+        BigDecimal monthlyRewardPaid = rewardTaskRepository.sumRewardAmountByParentAndStatusAndPeriod(
                 requestUserId,
-                List.of(RewardTaskStatus.SUBMITTED)
-        ).size();
+                RewardTaskStatus.PAID,
+                monthStart,
+                monthEnd
+        );
+        long pendingApprovalCount = rewardTaskRepository.countByParentUserIdAndStatus(
+                requestUserId,
+                RewardTaskStatus.SUBMITTED
+        );
         return new ParentCreditSummaryResponse(wallet.walletId(), wallet.balance(), monthlyRewardPaid, pendingApprovalCount);
     }
 

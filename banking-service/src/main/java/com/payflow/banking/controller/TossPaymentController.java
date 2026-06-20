@@ -10,6 +10,8 @@ import com.payflow.banking.dto.TossOperationalSummaryResponse;
 import com.payflow.banking.dto.TossPaymentWebhookRequest;
 import com.payflow.banking.dto.TossWebhookResponse;
 import com.payflow.banking.service.TossPaymentService;
+import com.payflow.banking.support.error.BusinessException;
+import com.payflow.banking.support.error.ErrorCode;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -82,17 +84,27 @@ public class TossPaymentController {
     }
 
     @GetMapping("/operations/summary")
-    public TossOperationalSummaryResponse getOperationalSummary() {
+    public TossOperationalSummaryResponse getOperationalSummary(
+            // [C-5] 운영 API는 ROLE_ADMIN만 접근할 수 있다. 일반 사용자가 전체 운영 데이터에 접근하는 것을 방지한다.
+            @RequestHeader("X-User-Role") String role
+    ) {
+        requireAdminRole(role);
         return tossPaymentService.getOperationalSummary();
     }
 
     @GetMapping("/operations/compensations")
-    public List<TossChargeSummaryResponse> getCompensationRequiredCharges() {
+    public List<TossChargeSummaryResponse> getCompensationRequiredCharges(
+            @RequestHeader("X-User-Role") String role
+    ) {
+        requireAdminRole(role);
         return tossPaymentService.getCompensationRequiredCharges();
     }
 
     @GetMapping("/operations/ledger-compensations")
-    public List<TossChargeSummaryResponse> getLedgerCompensationRequiredCharges() {
+    public List<TossChargeSummaryResponse> getLedgerCompensationRequiredCharges(
+            @RequestHeader("X-User-Role") String role
+    ) {
+        requireAdminRole(role);
         return tossPaymentService.getLedgerCompensationRequiredCharges();
     }
 
@@ -110,5 +122,12 @@ public class TossPaymentController {
             @RequestHeader("X-User-Id") Long requestUserId
     ) {
         return tossPaymentService.retryLedgerCompensation(chargeId, requestUserId);
+    }
+
+    // [C-5] 운영 API 접근 권한을 검증한다. ROLE_ADMIN이 아니면 FORBIDDEN을 던진다.
+    private void requireAdminRole(String role) {
+        if (!"ROLE_ADMIN".equals(role)) {
+            throw new BusinessException(ErrorCode.FORBIDDEN);
+        }
     }
 }

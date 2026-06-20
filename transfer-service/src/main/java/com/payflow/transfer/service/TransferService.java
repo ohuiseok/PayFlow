@@ -23,6 +23,8 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
@@ -78,12 +80,12 @@ public class TransferService {
         return TransferResponse.from(transfer);
     }
 
+    // [M-3] Pageable을 받아 cursor 없이 offset 페이지네이션을 제공한다.
+    // 기본값은 컨트롤러에서 PageRequest.of(0, 20)으로 설정한다.
     @Transactional(readOnly = true)
-    public List<TransferResponse> getTransfers(Long requestUserId) {
-        return transferRepository.findBySenderUserIdOrReceiverUserIdOrderByCreatedAtDesc(requestUserId, requestUserId)
-                .stream()
-                .map(TransferResponse::from)
-                .toList();
+    public Page<TransferResponse> getTransfers(Long requestUserId, Pageable pageable) {
+        return transferRepository.findBySenderUserIdOrReceiverUserIdOrderByCreatedAtDesc(requestUserId, requestUserId, pageable)
+                .map(TransferResponse::from);
     }
 
     @Transactional(readOnly = true)

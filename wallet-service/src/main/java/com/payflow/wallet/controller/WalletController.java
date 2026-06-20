@@ -7,6 +7,8 @@ import com.payflow.wallet.service.WalletService;
 import com.payflow.wallet.support.error.BusinessException;
 import com.payflow.wallet.support.error.ErrorCode;
 import jakarta.validation.Valid;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -100,8 +102,17 @@ public class WalletController {
         }
         // X-Internal-Request 헤더만으로는 내부 호출을 신뢰할 수 없다.
         // 공유 secret까지 일치해야 서비스 간 호출로 인정한다.
-        if (!StringUtils.hasText(internalSecret) || !internalSecret.equals(requestInternalSecret)) {
+        // [C-2] 타이밍 공격 방지를 위해 상수 시간 비교를 사용한다.
+        if (!StringUtils.hasText(internalSecret) || !constantTimeEquals(internalSecret, requestInternalSecret)) {
             throw new BusinessException(ErrorCode.FORBIDDEN);
         }
+    }
+
+    private static boolean constantTimeEquals(String a, String b) {
+        if (a == null || b == null) return false;
+        return MessageDigest.isEqual(
+                a.getBytes(StandardCharsets.UTF_8),
+                b.getBytes(StandardCharsets.UTF_8)
+        );
     }
 }

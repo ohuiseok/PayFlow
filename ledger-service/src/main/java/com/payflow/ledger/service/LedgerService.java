@@ -83,32 +83,42 @@ public class LedgerService {
     }
 
     @Transactional(readOnly = true)
-    public List<TransferFailureEventResponse> getTransferFailures() {
-        return transferFailureEventRepository.findAllByOrderByCreatedAtDesc()
+    public List<TransferFailureEventResponse> getTransferFailures(Long requestUserId) {
+        // [C-4] 인증된 사용자가 관여한 송금 실패 이벤트만 반환한다. 타인 데이터 노출을 방지한다.
+        return transferFailureEventRepository.findByUserId(requestUserId)
                 .stream()
                 .map(TransferFailureEventResponse::from)
                 .toList();
     }
 
     @Transactional(readOnly = true)
-    public TransferFailureEventResponse getTransferFailure(Long transferId) {
-        return transferFailureEventRepository.findByTransferId(transferId)
-                .map(TransferFailureEventResponse::from)
+    public TransferFailureEventResponse getTransferFailure(Long transferId, Long requestUserId) {
+        TransferFailureEvent event = transferFailureEventRepository.findByTransferId(transferId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
+        // [C-4] 해당 송금의 발신자 또는 수신자가 아니면 접근을 거부한다.
+        if (!requestUserId.equals(event.getSenderUserId()) && !requestUserId.equals(event.getReceiverUserId())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN);
+        }
+        return TransferFailureEventResponse.from(event);
     }
 
     @Transactional(readOnly = true)
-    public List<LedgerEntryResponse> getLedgerEntries() {
-        return ledgerEntryRepository.findTop100ByOrderByCreatedAtDesc()
+    public List<LedgerEntryResponse> getLedgerEntries(Long requestUserId) {
+        // [C-4] 인증된 사용자가 관여한 원장 엔트리만 반환한다. 타인 데이터 노출을 방지한다.
+        return ledgerEntryRepository.findTop100ByUserId(requestUserId)
                 .stream()
                 .map(LedgerEntryResponse::from)
                 .toList();
     }
 
     @Transactional(readOnly = true)
-    public LedgerEntryResponse getLedgerEntry(Long entryId) {
-        return ledgerEntryRepository.findById(entryId)
-                .map(LedgerEntryResponse::from)
+    public LedgerEntryResponse getLedgerEntry(Long entryId, Long requestUserId) {
+        LedgerEntry entry = ledgerEntryRepository.findById(entryId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
+        // [C-4] 해당 원장의 발신자 또는 수신자가 아니면 접근을 거부한다.
+        if (!requestUserId.equals(entry.getSenderUserId()) && !requestUserId.equals(entry.getReceiverUserId())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN);
+        }
+        return LedgerEntryResponse.from(entry);
     }
 }

@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -36,7 +37,11 @@ public class OutboxEventRelay {
     @Value("${outbox.publisher.processing-timeout:30s}")
     private Duration processingTimeout;
 
+    // [M-8] @SchedulerLock으로 다중 인스턴스 중 하나만 실행되도록 보장한다.
+    // lockAtMostFor: 인스턴스가 죽어도 이 시간이 지나면 잠금이 자동 해제된다.
+    // lockAtLeastFor: 짧은 실행 후 다른 인스턴스가 즉시 낚아채는 경합을 막는다.
     @Scheduled(fixedDelayString = "${outbox.publisher.fixed-delay:2000}")
+    @SchedulerLock(name = "outbox-event-relay", lockAtMostFor = "PT10S", lockAtLeastFor = "PT1S")
     public void publishPendingEvents() {
         TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
         List<OutboxEvent> events = transactionTemplate.execute(status -> {

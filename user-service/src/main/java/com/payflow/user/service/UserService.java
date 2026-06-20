@@ -1,7 +1,6 @@
 package com.payflow.user.service;
 
 import com.payflow.user.auth.JwtTokenProvider;
-import com.payflow.user.client.WalletClient;
 import com.payflow.user.dto.AuthTokenResponse;
 import com.payflow.user.dto.CreateUserRequest;
 import com.payflow.user.dto.LoginRequest;
@@ -24,7 +23,9 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
-    private final WalletClient walletClient;
+    // [H-2] 지갑 생성 재시도는 WalletProvisioningService에 위임한다.
+    // @Retryable은 AOP 프록시로 동작하므로 별도 빈에서만 올바르게 작동한다.
+    private final WalletProvisioningService walletProvisioningService;
 
     @Transactional
     public UserResponse createUser(CreateUserRequest request) {
@@ -51,7 +52,9 @@ public class UserService {
             // saveAndFlush를 사용하면 트랜잭션 종료 시점까지 미루지 않고 즉시 INSERT를 실행한다.
             // 그래서 unique 제약 위반을 이 메서드 안에서 잡아 도메인 에러로 바꿔 줄 수 있다.
             User savedUser = userRepository.saveAndFlush(user);
-            walletClient.createWallet(savedUser.getId());
+            // [H-2] wallet-service 장애 시 재시도한다. 최종 실패해도 사용자 생성은 롤백하지 않는다.
+            // 지갑 미생성 사용자는 @Recover 로그로 확인 후 운영자가 수동 보정한다.
+            walletProvisioningService.createWalletWithRetry(savedUser.getId());
             return UserResponse.from(savedUser);
         } catch (DataIntegrityViolationException exception) {
             throw new BusinessException(ErrorCode.USER_ALREADY_EXISTS);

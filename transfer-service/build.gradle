@@ -35,6 +35,12 @@ dependencies {
     implementation 'org.springframework.cloud:spring-cloud-starter-circuitbreaker-resilience4j'
     implementation 'org.springframework.kafka:spring-kafka'
     runtimeOnly 'com.mysql:mysql-connector-j:9.1.0'
+    implementation 'org.flywaydb:flyway-core'
+    implementation 'org.flywaydb:flyway-mysql'
+    // [M-8] ShedLock: 다중 인스턴스 환경에서 스케줄러 중복 실행을 방지한다.
+    // spring 어댑터와 JDBC(MySQL) 저장소를 사용한다.
+    implementation 'net.javacrumbs.shedlock:shedlock-spring:6.0.2'
+    implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:6.0.2'
 
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
