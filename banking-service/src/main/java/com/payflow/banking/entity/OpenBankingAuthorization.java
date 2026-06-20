@@ -87,4 +87,8 @@ public class OpenBankingAuthorization {
     public String getState() {
         return state;
     }
+
+    public Long getUserId() {
+        return userId;
+    }
 }

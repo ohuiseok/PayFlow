@@ -20,6 +20,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -58,6 +59,14 @@ public class BankingController {
             @RequestHeader("X-User-Id") Long requestUserId
     ) {
         return bankingService.handleOpenBankingCallback(request, requestUserId);
+    }
+
+    @GetMapping("/openbanking/callback")
+    public OpenBankingCallbackResponse handleOpenBankingRedirect(
+            @RequestParam(required = false) String code,
+            @RequestParam(required = false) String state
+    ) {
+        return bankingService.handleOpenBankingRedirect(code, state);
     }
 
     @PostMapping("/openbanking/accounts/sync")

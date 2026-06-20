@@ -148,6 +148,7 @@ public class BankingService {
 
     @Transactional
     public OpenBankingAuthorizeUrlResponse createAuthorizeUrl(Long requestUserId) {
+        requireOpenBankingAuthorizeConfig();
         String state = createState(requestUserId);
         openBankingAuthorizationRepository.save(new OpenBankingAuthorization(requestUserId, state));
         String url = openBankingProperties.baseUrl()
@@ -159,6 +160,12 @@ public class BankingService {
                 + "&state=" + encode(state)
                 + "&auth_type=0";
         return new OpenBankingAuthorizeUrlResponse(url, state);
+    }
+
+    private void requireOpenBankingAuthorizeConfig() {
+        requiredOpenBankingConfig(openBankingProperties.baseUrl(), "baseUrl");
+        requiredOpenBankingConfig(openBankingProperties.clientId(), "clientId");
+        requiredOpenBankingConfig(openBankingProperties.callbackUrl(), "callbackUrl");
     }
 
     @Transactional
@@ -185,6 +192,16 @@ public class BankingService {
                 authorization.getId()
         );
         return new OpenBankingCallbackResponse(token.userSeqNo(), token.scope(), accounts);
+    }
+
+    @Transactional
+    public OpenBankingCallbackResponse handleOpenBankingRedirect(String code, String state) {
+        if (!StringUtils.hasText(code) || !StringUtils.hasText(state)) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "OpenBanking callback code and state are required.");
+        }
+        OpenBankingAuthorization authorization = openBankingAuthorizationRepository.findByState(state)
+                .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_REQUEST, "OpenBanking authorization state was not requested."));
+        return handleOpenBankingCallback(new OpenBankingCallbackRequest(code, state), authorization.getUserId());
     }
 
     @Transactional
@@ -790,6 +807,13 @@ public class BankingService {
         }
         if (!StringUtils.hasText(value)) {
             throw new IllegalStateException("OpenBanking " + name + " is required for real mode");
+        }
+        return value.trim();
+    }
+
+    private String requiredOpenBankingConfig(String value, String name) {
+        if (!StringUtils.hasText(value)) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "OpenBanking " + name + " is required.");
         }
         return value.trim();
     }

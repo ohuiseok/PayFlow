@@ -62,6 +62,12 @@ spring:
                 - Path=/api/payments/**
               filters:
                 - StripPrefix=1
+            - id: openbanking-test-callback
+              uri: ${BANKING_SERVICE_URI:http://localhost:8086}
+              predicates:
+                - Path=/test
+              filters:
+                - SetPath=/bank/openbanking/callback
             - id: reward-service-families
               uri: ${REWARD_SERVICE_URI:http://localhost:8087}
               predicates:
