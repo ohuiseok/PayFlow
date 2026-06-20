@@ -104,12 +104,15 @@ PayFlow는 모든 일을 하나의 분산 트랜잭션으로 묶지 않습니다
 | 문제 | 전략 |
 | --- | --- |
 | 같은 요청 반복 | `Idempotency-Key` + `requestHash` |
-| 지갑 중복 반영 | `referenceType` + `referenceId` |
+| 지갑 중복 반영 | `wallet_transactions.idempotency_key` UNIQUE |
 | 송금 중 동시 출금 | Redis lock + DB transaction |
 | 이벤트 발행 유실 | transactional outbox |
-| 이벤트 중복 소비 | ledger-service deduplication |
-| 외부 은행 응답 모호함 | `BANK_PROCESSING`, `UNKNOWN`, result-check |
-| 출금 후 실패 | `COMPENSATION_REQUIRED`, refund API |
+| 이벤트 중복 소비 | ledger-service `UNIQUE(source_type, source_id)` |
+| 외부 은행 응답 모호함 | `BANK_PROCESSING`, 지수 백오프 result-check |
+| 송금 출금 후 입금 실패 | `COMPENSATION_REQUIRED`, `/compensations/{id}/refund` |
+| Toss 승인 후 지갑 입금 실패 | `COMPENSATION_REQUIRED`, `/charges/{id}/compensate` |
+| 지갑 입금 후 원장 기록 실패 | `ledger_recorded=false`, `/charges/{id}/ledger-compensate` |
+| Toss 웹훅 중복 수신 | `toss_payment_events.event_idempotency_key` UNIQUE |
 
 ## Transactional Outbox
 
@@ -146,9 +149,45 @@ PayFlow는 외부 은행 응답을 아래처럼 분리합니다.
 | --- | --- |
 | 명시적 성공 | 지갑 반영 단계로 이동 |
 | 명시적 실패 | 실패 상태와 사유 저장 |
-| 처리 중 | result-check 대상으로 유지 |
-| timeout/ambiguous | `UNKNOWN` 또는 retryable 상태로 저장 |
+| 처리 중 | `BANK_PROCESSING` 상태로 유지, 스케줄러가 결과 재조회 |
+| timeout/ambiguous | `BANK_PROCESSING`으로 저장, 지수 백오프 재조회 |
 | 권한 없는 API | business state를 성공으로 바꾸지 않음 |
+
+오픈뱅킹 계좌 연결 흐름:
+
+```text
+GET  /api/bank/openbanking/authorize-url   -> OAuth 인가 URL 발급, open_banking_authorizations 생성
+POST /api/bank/openbanking/callback        -> 토큰 교환, open_banking_tokens 저장 (암호화)
+POST /api/bank/openbanking/accounts/sync   -> 계좌 목록 조회, bank_accounts 저장
+POST /api/bank/deposits                    -> 오픈뱅킹 출금이체 → 지갑 입금
+POST /api/bank/withdrawals                 -> 오픈뱅킹 입금이체 → 지갑 출금
+```
+
+## Toss PG Design
+
+Toss 결제 위젯을 이용한 크레딧 충전 흐름입니다.
+
+```text
+POST /api/payments/toss/charges    -> payment_charges + toss_payment_orders 생성 (READY)
+POST /api/payments/toss/confirm    -> Toss 승인 API 호출 → wallet credit → ledger 기록
+POST /api/payments/toss/webhook    -> Toss 웹훅 수신, toss_payment_events 저장
+POST /api/payments/toss/payments/{paymentKey}/cancel -> Toss 취소 → wallet debit → ledger 기록
+```
+
+장애 보상 흐름:
+
+| 장애 | 상태 | 복구 API |
+| --- | --- | --- |
+| Toss 승인 후 지갑 입금 실패 | `payment_charges.status = COMPENSATION_REQUIRED` | `POST /charges/{id}/compensate` |
+| 지갑 입금 후 원장 기록 실패 | `payment_charges.ledger_recorded = false` | `POST /charges/{id}/ledger-compensate` |
+
+운영 모니터링:
+
+```text
+GET /api/payments/toss/operations/summary              -> 상태별 건수, 보상 필요 건수
+GET /api/payments/toss/operations/compensations        -> COMPENSATION_REQUIRED 목록
+GET /api/payments/toss/operations/ledger-compensations -> 원장 미기록 목록
+```
 
 ## Failure Recovery
 
