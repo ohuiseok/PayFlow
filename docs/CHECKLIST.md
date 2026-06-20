@@ -102,24 +102,24 @@ docs/implementation-plan/02-database-and-migration.md
 
 ## 4. Transfer Service
 
-- [ ] Transfer 엔티티 구현
-- [ ] TransferStatus enum 구현
-- [ ] `idempotencyKey` unique 제약 구현
-- [ ] `requestHash` 저장 구현
-- [ ] TransferRepository 구현
-- [ ] request hash 생성 로직 구현
-- [ ] Wallet Feign Client 구현
-- [ ] Ledger Feign Client 구현
-- [ ] wallet-service 내부 지갑 조회 API 계약 적용
-- [ ] 송금 wallet referenceId 규칙 적용
-- [ ] 송금 요청 API 구현
-- [ ] 송금 조회 API 구현
-- [ ] sender wallet 소유권 검증 구현
-- [ ] 송금 상태 전이 구현
-- [ ] COMPENSATION_REQUIRED 상태 구현
-- [ ] 실패 상태 기록 구현
-- [ ] 송금 완료 후 ledger-service 원장 기록 호출
-- [ ] transfer-service 테스트 작성
+- [x] Transfer 엔티티 구현
+- [x] TransferStatus enum 구현
+- [x] `idempotencyKey` unique 제약 구현
+- [x] `requestHash` 저장 구현
+- [x] TransferRepository 구현
+- [x] request hash 생성 로직 구현
+- [x] Wallet Feign Client 구현
+- [x] Ledger 원장 기록: Kafka Outbox 패턴으로 비동기 발행 (Feign 대신 이벤트 발행)
+- [x] wallet-service 내부 지갑 조회 API 계약 적용
+- [x] 송금 wallet referenceId 규칙 적용
+- [x] 송금 요청 API 구현
+- [x] 송금 조회 API 구현
+- [x] sender wallet 소유권 검증 구현
+- [x] 송금 상태 전이 구현
+- [x] COMPENSATION_REQUIRED 상태 구현
+- [x] 실패 상태 기록 구현
+- [x] 송금 완료 후 ledger-service 원장 기록 호출 (Kafka Outbox)
+- [x] transfer-service 테스트 작성
 - [x] transfer-service `bootJar` 확인
 
 완료 기준:
@@ -130,14 +130,14 @@ docs/implementation-plan/02-database-and-migration.md
 
 ## 5. Ledger Service
 
-- [ ] LedgerEntry 엔티티 구현
-- [ ] LedgerLine 엔티티 구현
-- [ ] Repository 구현
-- [ ] 내부 원장 기록 API 구현
-- [ ] transferId unique 기반 중복 원장 방지
-- [ ] 원장 라인 2건 생성 구현
-- [ ] 송금별 원장 조회 API 구현
-- [ ] ledger-service 테스트 작성
+- [x] LedgerEntry 엔티티 구현
+- [x] LedgerLine 엔티티 구현
+- [x] Repository 구현
+- [x] 내부 원장 기록 API 구현 (Kafka consumer 기반)
+- [x] transferId unique 기반 중복 원장 방지
+- [x] 원장 라인 2건 생성 구현 (차변/대변)
+- [x] 송금별 원장 조회 API 구현
+- [x] ledger-service 테스트 작성
 - [x] ledger-service `bootJar` 확인
 
 완료 기준:
@@ -150,64 +150,64 @@ docs/implementation-plan/02-database-and-migration.md
 
 - [x] banking-service 프로젝트 생성
 - [x] payflow_banking DB 설정 확인
-- [ ] BankAccount 엔티티 구현
-- [ ] BankingTransfer 엔티티 구현
-- [ ] BankAccountStatus enum 구현
-- [ ] BankingTransferStatus enum 구현
-- [ ] Repository 구현
-- [ ] BankingClient 구현
-- [ ] Wallet Feign Client 구현
-- [ ] 연결 계좌 목록 API 구현
-- [ ] 연결 계좌 등록 API 구현
-- [ ] 연결 계좌 삭제 API 구현
-- [ ] 충전 요청 API 구현
-- [ ] 충전 결과 조회 API 구현
-- [ ] 충전 성공 후 wallet-service deposit 연동
-- [ ] 출금 요청 API 구현
-- [ ] 출금 결과 조회 API 구현
-- [ ] 출금 시 wallet-service withdraw 연동
-- [ ] bank_tran_id unique 제약 구현
-- [ ] wallet referenceId 기반 중복 반영 방어 확인
-- [ ] Idempotency-Key + requestHash 구현
-- [ ] 같은 Idempotency-Key + 같은 body 기존 결과 반환
-- [ ] 같은 Idempotency-Key + 다른 body 409 반환
-- [ ] 실패/UNKNOWN 상태 저장
-- [ ] banking-service 테스트 작성
+- [x] BankAccount 엔티티 구현
+- [x] BankingTransfer 엔티티 구현
+- [x] BankAccountStatus enum 구현
+- [x] BankingTransferStatus enum 구현
+- [x] Repository 구현
+- [x] OpenBankingClient 구현 (Mock/Real 구현체 분리)
+- [x] Wallet Feign Client 구현
+- [x] 연결 계좌 목록 API 구현
+- [x] 연결 계좌 등록 API 구현
+- [-] 연결 계좌 삭제 API 구현 (OpenBanking 연동 해제는 별도)
+- [x] 충전 요청 API 구현 (OpenBanking + Toss PG)
+- [x] 충전 결과 조회 API 구현
+- [x] 충전 성공 후 wallet-service deposit 연동
+- [x] 출금 요청 API 구현
+- [x] 출금 결과 조회 API 구현
+- [x] 출금 시 wallet-service withdraw 연동
+- [x] bank_tran_id unique 제약 구현 (BankingTransfer.idempotencyKey)
+- [x] wallet referenceId 기반 중복 반영 방어 확인
+- [x] Idempotency-Key + requestHash 구현
+- [x] 같은 Idempotency-Key + 같은 body 기존 결과 반환
+- [x] 같은 Idempotency-Key + 다른 body 409 반환
+- [x] 실패/UNKNOWN 상태 저장
+- [x] banking-service 테스트 작성
 - [x] banking-service `bootJar` 확인
 
 ## 7. Reward Service
 
-- [ ] reward-service 프로젝트 생성
-- [ ] payflow_reward DB 설정 확인
-- [ ] ParentChildLink 엔티티 구현
-- [ ] RewardTask 엔티티 구현
-- [ ] ParentChildLinkStatus enum 구현
-- [ ] RewardTaskStatus enum 구현
-- [ ] Repository 구현
-- [ ] WalletClient 구현
-- [ ] TransferClient 구현
-- [ ] 부모-자녀 연결 생성 API 구현
-- [ ] 가족 목록 조회 API 구현
-- [ ] 가족 연결 해제 API 구현
-- [ ] 부모 미션 등록 API 구현
-- [ ] 미션 수정 API 구현
-- [ ] 미션 취소 API 구현
-- [ ] 미션 목록/상세 조회 API 구현
-- [ ] 월별 미션 캘린더 API 구현
-- [ ] 자녀 완료 제출 API 구현
-- [ ] 자녀 재제출 API 구현
-- [ ] 부모 승인 API 구현
-- [ ] 부모 반려 API 구현
-- [ ] 승인 시 transfer-service 송금 연동
-- [ ] `reward-payment-{missionId}` Idempotency-Key 적용
-- [ ] 이미 PAID인 미션 재승인 시 기존 결과 반환
-- [ ] 송금 실패 시 failureReason 저장
-- [ ] 캐시북 요약 API 구현
-- [ ] 캐시북 내역 API 구현
-- [ ] Gateway reward-service route 추가
-- [ ] docker-compose reward-service 추가
-- [ ] reward-service 테스트 작성
-- [ ] reward-service `bootJar` 확인
+- [x] reward-service 프로젝트 생성
+- [x] payflow_reward DB 설정 확인
+- [x] ParentChildLink 엔티티 구현
+- [x] RewardTask 엔티티 구현
+- [x] ParentChildLinkStatus enum 구현
+- [x] RewardTaskStatus enum 구현
+- [x] Repository 구현
+- [x] WalletClient 구현
+- [x] TransferClient 구현
+- [x] 부모-자녀 연결 생성 API 구현
+- [x] 가족 목록 조회 API 구현 (children/parents 분리)
+- [-] 가족 연결 해제 API 구현 (FamilyController에 미포함, 추후 추가)
+- [x] 부모 미션 등록 API 구현
+- [-] 미션 수정 API 구현 (미포함, 상태 전이로 대체)
+- [x] 미션 취소 API 구현 (approve/reject/pay 상태 전이)
+- [x] 미션 목록/상세 조회 API 구현
+- [-] 월별 미션 캘린더 API 구현 (미포함, 목록 API로 대체)
+- [x] 자녀 완료 제출 API 구현
+- [-] 자녀 재제출 API 구현 (미포함, 추후 추가)
+- [x] 부모 승인 API 구현
+- [x] 부모 반려 API 구현
+- [x] 승인 시 transfer-service 송금 연동
+- [x] `reward-payment-{missionId}` Idempotency-Key 적용
+- [x] 이미 PAID인 미션 재승인 시 기존 결과 반환
+- [x] 송금 실패 시 failureReason 저장
+- [x] 캐시북 요약 API 구현
+- [x] 캐시북 내역 API 구현
+- [x] Gateway reward-service route 추가 (/api/families/**, /api/missions/**, /api/cashbook/**)
+- [x] docker-compose reward-service 추가
+- [x] reward-service 테스트 작성
+- [x] reward-service `bootJar` 확인
 
 완료 기준:
 
@@ -227,19 +227,19 @@ docs/implementation-plan/02-database-and-migration.md
 - [x] 내부 서비스로 `X-User-Phone-Number` 전달
 - [x] api-gateway 테스트 작성
 - [x] api-gateway `bootJar` 확인
-- [ ] `/api/bank/**` route 추가 또는 확인
-- [ ] `/api/families/**` route 추가
-- [ ] `/api/missions/**` route 추가
-- [ ] `/api/cashbook/**` route 추가
+- [x] `/api/bank/**` route 추가 또는 확인
+- [x] `/api/families/**` route 추가
+- [x] `/api/missions/**` route 추가
+- [x] `/api/cashbook/**` route 추가
 
 ## 9. 테스트와 실행
 
 - [x] user-service 단위/통합 테스트
 - [x] wallet-service 단위/통합 테스트
-- [ ] transfer-service 단위/통합 테스트
-- [ ] banking-service 단위/통합 테스트
-- [ ] reward-service 단위/통합 테스트
-- [ ] ledger-service 단위/통합 테스트
+- [x] transfer-service 단위/통합 테스트 (TransferServiceTest, OutboxEventRelayTest, TransferCompensationControllerTest 등)
+- [x] banking-service 단위/통합 테스트 (BankingServiceTest, TossPaymentServiceTest, BankingControllerTest)
+- [x] reward-service 단위/통합 테스트 (RewardServiceTest, MissionControllerTest, FamilyControllerTest)
+- [x] ledger-service 단위/통합 테스트 (LedgerServiceTest, LedgerControllerTest, TransferEventConsumerTest)
 - [ ] 전체 smoke test
 - [ ] `docker compose config --quiet`
 - [ ] 전체 Docker Compose 실행 확인
@@ -247,7 +247,7 @@ docs/implementation-plan/02-database-and-migration.md
 
 ## 마지막 작업 완료 전 체크
 
-- [ ] 문서와 실제 구현 범위 불일치 확인
+- [x] 문서와 실제 구현 범위 불일치 확인 (2026-06-20)
 - [ ] 관련 서비스 `bootJar` 성공
 - [ ] 관련 테스트 성공
 - [ ] 체크리스트 갱신
