@@ -25,6 +25,8 @@ clients:
     url: ${TRANSFER_SERVICE_URL:http://localhost:8083}
   wallet-service:
     url: ${WALLET_SERVICE_URL:http://localhost:8082}
+  user-service:
+    url: ${USER_SERVICE_URL:http://localhost:8081}
 
 internal:
   secret: ${INTERNAL_SERVICE_SECRET:}

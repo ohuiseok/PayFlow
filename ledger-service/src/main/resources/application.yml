@@ -38,3 +38,9 @@ management:
 topics:
   transfer-completed: ${TRANSFER_COMPLETED_TOPIC:transfer.completed}
   transfer-failed: ${TRANSFER_FAILED_TOPIC:transfer.failed}
+
+gateway:
+  internal-secret: ${GATEWAY_INTERNAL_SECRET:${INTERNAL_SERVICE_SECRET:}}
+
+internal:
+  secret: ${INTERNAL_SERVICE_SECRET:${INTERNAL_SECRET:}}

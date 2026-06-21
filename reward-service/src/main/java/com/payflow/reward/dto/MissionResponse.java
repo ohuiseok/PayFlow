@@ -8,6 +8,7 @@ public record MissionResponse(
         Long missionId,
         Long parentUserId,
         Long childUserId,
+        String childName,
         String title,
         String description,
         BigDecimal rewardAmount,
@@ -16,13 +17,18 @@ public record MissionResponse(
         String rejectReason,
         Long transferId,
         String failureReason
-) {
+    ) {
 
     public static MissionResponse from(RewardTask task) {
+        return from(task, null);
+    }
+
+    public static MissionResponse from(RewardTask task, String childName) {
         return new MissionResponse(
                 task.getId(),
                 task.getParentUserId(),
                 task.getChildUserId(),
+                childName,
                 task.getTitle(),
                 task.getDescription(),
                 task.getRewardAmount(),

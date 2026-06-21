@@ -44,6 +44,7 @@ import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HexFormat;
@@ -65,6 +66,7 @@ public class BankingService {
     private static final String WITHDRAWAL_REFERENCE_TYPE = "OPEN_BANKING_WITHDRAWAL";
     private static final String REFUND_REFERENCE_TYPE = "OPEN_BANKING_REFUND";
     private static final DateTimeFormatter OPENBANKING_DTIME_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private final BankAccountRepository bankAccountRepository;
     private final BankingTransferRepository bankingTransferRepository;
@@ -770,29 +772,49 @@ public class BankingService {
     }
 
     private String encode(String value) {
-        return URLEncoder.encode(value == null ? "" : value, StandardCharsets.UTF_8);
+        return URLEncoder.encode(value == null ? "" : value, StandardCharsets.UTF_8)
+                .replace("+", "%20");
     }
 
     private String createState(Long userId) {
-        String timestamp = Long.toString(System.currentTimeMillis());
-        return timestamp + "." + stateSignature(userId, timestamp);
+        byte[] bytes = new byte[16];
+        SECURE_RANDOM.nextBytes(bytes);
+        return HexFormat.of().formatHex(bytes);
     }
 
     private void validateState(String state, Long userId) {
-        if (!StringUtils.hasText(state) || !state.contains(".")) {
+        if (!StringUtils.hasText(state)) {
             throw new BusinessException(ErrorCode.INVALID_REQUEST, "OpenBanking state is invalid.");
         }
-        String[] parts = state.split("\\.", 2);
+        if (state.matches("[0-9a-fA-F]{32}")) {
+            return;
+        }
+        String timestamp;
+        String signature;
+        if (state.contains(".")) {
+            String[] parts = state.split("\\.", 2);
+            if (parts.length != 2) {
+                throw new BusinessException(ErrorCode.INVALID_REQUEST, "OpenBanking state is invalid.");
+            }
+            timestamp = parts[0];
+            signature = parts[1];
+        } else {
+            if (state.length() <= 13) {
+                throw new BusinessException(ErrorCode.INVALID_REQUEST, "OpenBanking state is invalid.");
+            }
+            timestamp = state.substring(0, 13);
+            signature = state.substring(13);
+        }
         long createdAtMillis;
         try {
-            createdAtMillis = Long.parseLong(parts[0]);
+            createdAtMillis = Long.parseLong(timestamp);
         } catch (NumberFormatException exception) {
             throw new BusinessException(ErrorCode.INVALID_REQUEST, "OpenBanking state is invalid.");
         }
         if (System.currentTimeMillis() - createdAtMillis > 10 * 60 * 1000L) {
             throw new BusinessException(ErrorCode.INVALID_REQUEST, "OpenBanking state is expired.");
         }
-        if (parts.length != 2 || !stateSignature(userId, parts[0]).equals(parts[1])) {
+        if (!stateSignature(userId, timestamp).equals(signature)) {
             throw new BusinessException(ErrorCode.INVALID_REQUEST, "OpenBanking state is invalid.");
         }
     }

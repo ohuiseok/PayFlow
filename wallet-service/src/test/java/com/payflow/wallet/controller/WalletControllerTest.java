@@ -6,7 +6,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.payflow.wallet.dto.CreateWalletRequest;
+import com.payflow.wallet.dto.WalletBalanceChangeRequest;
+import com.payflow.wallet.entity.WalletReferenceType;
 import com.payflow.wallet.service.WalletService;
+import java.math.BigDecimal;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -52,6 +55,24 @@ class WalletControllerTest {
                         .header("X-User-Id", 2))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("RESOURCE_OWNER_MISMATCH"));
+    }
+
+    @Test
+    void getMyTransactionsReturnsCurrentUsersTransactions() throws Exception {
+        var wallet = walletService.createWallet(new CreateWalletRequest(1L), 1L);
+        walletService.deposit(
+                wallet.walletId(),
+                new WalletBalanceChangeRequest(new BigDecimal("10000"), WalletReferenceType.MANUAL_CHARGE, "1"),
+                1L,
+                false
+        );
+
+        mockMvc.perform(get("/wallets/me/transactions")
+                        .header("X-User-Id", 1))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].walletId").value(wallet.walletId()))
+                .andExpect(jsonPath("$[0].transactionType").value("DEPOSIT"));
     }
 
     @Test

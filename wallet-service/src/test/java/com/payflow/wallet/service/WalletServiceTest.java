@@ -89,6 +89,27 @@ class WalletServiceTest {
     }
 
     @Test
+    void getMyTransactionsReturnsRecentWalletTransactions() {
+        var wallet = walletService.createWallet(new CreateWalletRequest(1L), 1L);
+        walletService.deposit(
+                wallet.walletId(),
+                new WalletBalanceChangeRequest(new BigDecimal("10000"), WalletReferenceType.MANUAL_CHARGE, "1"),
+                1L,
+                false
+        );
+        walletService.withdraw(
+                wallet.walletId(),
+                new WalletBalanceChangeRequest(new BigDecimal("3000"), WalletReferenceType.TRANSFER, "2")
+        );
+
+        var transactions = walletService.getMyTransactions(1L, 10);
+
+        assertThat(transactions).hasSize(2);
+        assertThat(transactions.getFirst().transactionType()).isEqualTo(WalletTransactionType.WITHDRAW);
+        assertThat(transactions.getFirst().balanceAfter()).isEqualByComparingTo("7000");
+    }
+
+    @Test
     void duplicateDepositReferenceDoesNotIncreaseAgain() {
         var wallet = walletService.createWallet(new CreateWalletRequest(1L), 1L);
         var request = new WalletBalanceChangeRequest(new BigDecimal("10000"), WalletReferenceType.MANUAL_CHARGE, "1");

@@ -6,7 +6,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.payflow.user.dto.CreateUserRequest;
-import com.payflow.user.entity.UserRole;
 import com.payflow.user.service.UserService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,7 +37,7 @@ class UserControllerTest {
                                   "phoneNumber": "01012345678",
                                   "password": "password1234",
                                   "name": "User",
-                                  "role": "PARENT"
+                                  "inviteCode": "TEST-PARENT-CODE"
                                 }
                                 """))
                 .andExpect(status().isCreated())
@@ -66,7 +65,7 @@ class UserControllerTest {
     @Test
     void loginReturnsTokenWithUser() throws Exception {
         userService.createUser(
-                new CreateUserRequest("01012345678", "password1234", "User", UserRole.CHILD)
+                new CreateUserRequest("01012345678", "password1234", "User", null)
         );
 
         mockMvc.perform(post("/users/login")
@@ -86,7 +85,7 @@ class UserControllerTest {
     @Test
     void getMeReturnsAuthenticatedUser() throws Exception {
         var user = userService.createUser(
-                new CreateUserRequest("01012345678", "password1234", "User", UserRole.PARENT)
+                new CreateUserRequest("01012345678", "password1234", "User", "TEST-PARENT-CODE")
         );
 
         mockMvc.perform(get("/users/me")
@@ -99,12 +98,31 @@ class UserControllerTest {
     @Test
     void getUserReturnsForbiddenWhenOwnerMismatch() throws Exception {
         var user = userService.createUser(
-                new CreateUserRequest("01012345678", "password1234", "User", UserRole.PARENT)
+                new CreateUserRequest("01012345678", "password1234", "User", "TEST-PARENT-CODE")
         );
 
         mockMvc.perform(get("/users/{userId}", user.userId())
                         .header("X-User-Id", user.userId() + 1))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("RESOURCE_OWNER_MISMATCH"));
+    }
+
+    @Test
+    void getInternalUserRequiresInternalSecret() throws Exception {
+        var user = userService.createUser(
+                new CreateUserRequest("01012345678", "password1234", "User", null)
+        );
+
+        mockMvc.perform(get("/users/internal/{userId}", user.userId())
+                        .header("X-Internal-Request", true)
+                        .header("X-Internal-Secret", "test-internal-secret"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.userId").value(user.userId()))
+                .andExpect(jsonPath("$.phoneNumber").value("01012345678"));
+
+        mockMvc.perform(get("/users/internal/{userId}", user.userId())
+                        .header("X-Internal-Request", true)
+                        .header("X-Internal-Secret", "wrong"))
+                .andExpect(status().isForbidden());
     }
 }

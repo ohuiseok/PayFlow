@@ -117,6 +117,13 @@ public class UserService {
         return UserResponse.from(user);
     }
 
+    @Transactional(readOnly = true)
+    public UserResponse getInternalUser(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
+        return UserResponse.from(user);
+    }
+
     // [H-4] 초대 코드 검증으로 역할을 결정한다.
     // 초대 코드 미설정(빈 문자열) 또는 코드 불일치 시 CHILD를 반환한다.
     // 상수 시간 비교(MessageDigest.isEqual)를 사용해 타이밍 공격을 방지한다.

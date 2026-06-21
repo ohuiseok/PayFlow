@@ -3,10 +3,12 @@ package com.payflow.wallet.controller;
 import com.payflow.wallet.dto.CreateWalletRequest;
 import com.payflow.wallet.dto.WalletBalanceChangeRequest;
 import com.payflow.wallet.dto.WalletResponse;
+import com.payflow.wallet.dto.WalletTransactionResponse;
 import com.payflow.wallet.service.WalletService;
 import com.payflow.wallet.support.error.BusinessException;
 import com.payflow.wallet.support.error.ErrorCode;
 import jakarta.validation.Valid;
+import java.util.List;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import lombok.RequiredArgsConstructor;
@@ -64,6 +66,13 @@ public class WalletController {
         }
         validateInternalRequest(true, requestInternalSecret);
         return walletService.getWalletByUserId(userId);
+    }
+
+    @GetMapping("/me/transactions")
+    public List<WalletTransactionResponse> getMyTransactions(
+            @RequestHeader("X-User-Id") Long requestUserId
+    ) {
+        return walletService.getMyTransactions(requestUserId, 10);
     }
 
     @PostMapping("/{walletId}/deposit")

@@ -10,6 +10,8 @@ import static org.mockito.Mockito.when;
 import com.payflow.reward.client.CreateTransferRequest;
 import com.payflow.reward.client.TransferClient;
 import com.payflow.reward.client.TransferResponse;
+import com.payflow.reward.client.UserClient;
+import com.payflow.reward.client.UserResponse;
 import com.payflow.reward.client.WalletClient;
 import com.payflow.reward.client.WalletResponse;
 import com.payflow.reward.dto.CreateFamilyLinkRequest;
@@ -48,6 +50,9 @@ class RewardServiceTest {
     @MockitoBean
     WalletClient walletClient;
 
+    @MockitoBean
+    UserClient userClient;
+
     @BeforeEach
     void setUp() {
         rewardTaskRepository.deleteAll();
@@ -58,6 +63,10 @@ class RewardServiceTest {
                 .thenReturn(new WalletResponse(10L, 1L, new BigDecimal("50000"), "ACTIVE"));
         when(walletClient.getWalletByUserId(eq(2L), eq(true), any()))
                 .thenReturn(new WalletResponse(20L, 2L, new BigDecimal("3000"), "ACTIVE"));
+        when(userClient.getInternalUser(eq(1L), eq(true), any()))
+                .thenReturn(new UserResponse(1L, "01011112222", "Parent", "PARENT", "ACTIVE"));
+        when(userClient.getInternalUser(eq(2L), eq(true), any()))
+                .thenReturn(new UserResponse(2L, "01033334444", "Child", "CHILD", "ACTIVE"));
     }
 
     @Test

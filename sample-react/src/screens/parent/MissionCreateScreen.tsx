@@ -1,5 +1,5 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { familyApi } from '../../api/familyApi';
@@ -57,6 +57,13 @@ export function MissionCreateScreen({ navigation }: Props) {
   const [selectedChildId, setSelectedChildId] = useState<string | number | null>(
     () => childOptions[0]?.childUserId ?? null,
   );
+
+  useEffect(() => {
+    if (selectedChildId !== null || childOptions.length === 0) {
+      return;
+    }
+    setSelectedChildId(childOptions[0].childUserId);
+  }, [childOptions, selectedChildId]);
 
   const selectedChild = childOptions.find((c) => String(c.childUserId) === String(selectedChildId)) ?? null;
 

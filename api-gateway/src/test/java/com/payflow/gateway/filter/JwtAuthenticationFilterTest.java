@@ -43,6 +43,37 @@ class JwtAuthenticationFilterTest {
     }
 
     @Test
+    void tossCallbackDoesNotRequireToken() {
+        MockServerHttpRequest request = MockServerHttpRequest.get("/api/payments/toss/success")
+                .queryParam("orderId", "payflow-charge-1-1")
+                .queryParam("paymentKey", "payment-key")
+                .queryParam("amount", "30000")
+                .build();
+        MockServerWebExchange exchange = MockServerWebExchange.from(request);
+        AtomicReference<ServerWebExchange> captured = new AtomicReference<>();
+
+        filter.filter(exchange, captureExchange(captured)).block();
+
+        assertThat(captured.get()).isNotNull();
+        assertThat(exchange.getResponse().getStatusCode()).isNull();
+    }
+
+    @Test
+    void openBankingCallbackDoesNotRequireToken() {
+        MockServerHttpRequest request = MockServerHttpRequest.get("/api/bank/openbanking/callback")
+                .queryParam("code", "auth-code")
+                .queryParam("state", "1234567890abcdef1234567890abcdef")
+                .build();
+        MockServerWebExchange exchange = MockServerWebExchange.from(request);
+        AtomicReference<ServerWebExchange> captured = new AtomicReference<>();
+
+        filter.filter(exchange, captureExchange(captured)).block();
+
+        assertThat(captured.get()).isNotNull();
+        assertThat(exchange.getResponse().getStatusCode()).isNull();
+    }
+
+    @Test
     void protectedRequestAddsAuthenticatedUserHeaders() {
         String token = createToken(1L, "01012345678", "PARENT");
         MockServerHttpRequest request = MockServerHttpRequest.get("/api/users/1")

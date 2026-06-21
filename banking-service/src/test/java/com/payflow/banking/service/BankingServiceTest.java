@@ -151,6 +151,20 @@ class BankingServiceTest {
     }
 
     @Test
+    void createAuthorizeUrlUsesOpenBankingSafeQueryParameters() {
+        var response = bankingService.createAuthorizeUrl(1L);
+
+        assertThat(response.authorizeUrl())
+                .contains("response_type=code")
+                .contains("client_id=test-client-id")
+                .contains("redirect_uri=http%3A%2F%2Flocalhost%3A8080%2Fapi%2Fbank%2Fopenbanking%2Fcallback")
+                .contains("scope=login%20inquiry%20transfer")
+                .contains("auth_type=0");
+        assertThat(response.state()).matches("[0-9a-f]{32}");
+        assertThat(response.authorizeUrl()).contains("state=" + response.state());
+    }
+
+    @Test
     void createDepositDepositsToWalletAndRecordsSucceededStatus() {
         linkOpenBankingToken();
         var account = bankingService.createBankAccount(new CreateBankAccountRequest("004", "1234567890", "Parent"), 1L);

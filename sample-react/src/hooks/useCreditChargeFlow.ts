@@ -32,6 +32,7 @@ export function useCreditChargeFlow({
           if (appConfig.tossClientKey) {
             return requestTossWidgetPayment({
               clientKey: appConfig.tossClientKey,
+              callbackBaseUrl: appConfig.apiBaseUrl,
               amount: started.amount,
               orderId: started.orderId,
               orderName: 'PayFlow 크레딧 충전',

@@ -3,6 +3,7 @@ package com.payflow.wallet.service;
 import com.payflow.wallet.dto.CreateWalletRequest;
 import com.payflow.wallet.dto.WalletBalanceChangeRequest;
 import com.payflow.wallet.dto.WalletResponse;
+import com.payflow.wallet.dto.WalletTransactionResponse;
 import com.payflow.wallet.entity.Wallet;
 import com.payflow.wallet.entity.WalletTransaction;
 import com.payflow.wallet.entity.WalletTransactionType;
@@ -12,7 +13,9 @@ import com.payflow.wallet.support.error.BusinessException;
 import com.payflow.wallet.support.error.ErrorCode;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -60,6 +63,20 @@ public class WalletService {
     public WalletResponse getWalletByUserId(Long userId) {
         return WalletResponse.from(walletRepository.findByUserId(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.WALLET_NOT_FOUND)));
+    }
+
+    @Transactional(readOnly = true)
+    public List<WalletTransactionResponse> getMyTransactions(Long requestUserId, int limit) {
+        Wallet wallet = walletRepository.findByUserId(requestUserId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.WALLET_NOT_FOUND));
+        int normalizedLimit = Math.min(Math.max(limit, 1), 50);
+        return walletTransactionRepository.findByWalletIdOrderByCreatedAtDescIdDesc(
+                        wallet.getId(),
+                        PageRequest.of(0, normalizedLimit)
+                )
+                .stream()
+                .map(WalletTransactionResponse::from)
+                .toList();
     }
 
     @Transactional

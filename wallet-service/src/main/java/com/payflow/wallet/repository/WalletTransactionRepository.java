@@ -2,7 +2,9 @@ package com.payflow.wallet.repository;
 
 import com.payflow.wallet.entity.WalletTransaction;
 import com.payflow.wallet.entity.WalletTransactionType;
+import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface WalletTransactionRepository extends JpaRepository<WalletTransaction, Long> {
@@ -13,4 +15,6 @@ public interface WalletTransactionRepository extends JpaRepository<WalletTransac
             String referenceType,
             String referenceId
     );
+
+    List<WalletTransaction> findByWalletIdOrderByCreatedAtDescIdDesc(Long walletId, Pageable pageable);
 }

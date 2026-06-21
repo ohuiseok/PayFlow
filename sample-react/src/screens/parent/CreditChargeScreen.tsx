@@ -69,22 +69,20 @@ export function CreditChargeScreen({ navigation }: Props) {
       return;
     }
     const params = new URLSearchParams(window.location.search);
-    const paymentKey = params.get('paymentKey');
-    const orderId = params.get('orderId');
-    const amountParam = params.get('amount');
-    if (!paymentKey || !orderId || !amountParam) {
+    const tossStatus = params.get('tossStatus');
+    const openBankingStatus = params.get('openbankingStatus');
+    if (!tossStatus && !openBankingStatus) {
       return;
     }
-    creditApi.confirmTossCharge({
-      paymentKey,
-      orderId,
-      amount: Number(amountParam),
-    }).then(() => {
+    if (tossStatus === 'completed') {
       queryClient.invalidateQueries({ queryKey: ['credit', 'parentSummary'] });
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }).catch(() => {
-      window.history.replaceState({}, document.title, window.location.pathname);
-    });
+      queryClient.invalidateQueries({ queryKey: ['credit', 'recentEntries'] });
+    }
+    if (openBankingStatus === 'completed') {
+      queryClient.invalidateQueries({ queryKey: ['credit', 'bankAccounts'] });
+      setChargeMethod('bank');
+    }
+    window.history.replaceState({}, document.title, window.location.pathname);
   }, [queryClient]);
 
   return (

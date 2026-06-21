@@ -14,6 +14,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.payflow.reward.client.CreateTransferRequest;
 import com.payflow.reward.client.TransferClient;
 import com.payflow.reward.client.TransferResponse;
+import com.payflow.reward.client.UserClient;
+import com.payflow.reward.client.UserResponse;
 import com.payflow.reward.client.WalletClient;
 import com.payflow.reward.client.WalletResponse;
 import com.payflow.reward.dto.CreateFamilyLinkRequest;
@@ -40,13 +42,14 @@ import org.springframework.test.web.servlet.MockMvc;
 class MissionControllerTest {
 
     @Autowired MockMvc mockMvc;
-    @Autowired ObjectMapper objectMapper;
+    ObjectMapper objectMapper = new ObjectMapper();
     @Autowired RewardService rewardService;
     @Autowired RewardTaskRepository rewardTaskRepository;
     @Autowired ParentChildLinkRepository parentChildLinkRepository;
 
     @MockitoBean TransferClient transferClient;
     @MockitoBean WalletClient walletClient;
+    @MockitoBean UserClient userClient;
 
     private static final Long PARENT_ID = 1L;
     private static final Long CHILD_ID  = 2L;
@@ -65,6 +68,8 @@ class MissionControllerTest {
                 .thenReturn(new WalletResponse(10L, PARENT_ID, new BigDecimal("50000"), "ACTIVE"));
         when(walletClient.getWalletByUserId(eq(CHILD_ID), eq(true), any()))
                 .thenReturn(new WalletResponse(20L, CHILD_ID, new BigDecimal("3000"), "ACTIVE"));
+        when(userClient.getInternalUser(eq(CHILD_ID), eq(true), any()))
+                .thenReturn(new UserResponse(CHILD_ID, "01022223333", "Child One", "CHILD", "ACTIVE"));
     }
 
     // ── 미션 등록 ─────────────────────────────────────────────────────────────
@@ -83,7 +88,8 @@ class MissionControllerTest {
                 .andExpect(jsonPath("$.title").value("방 청소하기"))
                 .andExpect(jsonPath("$.status").value("CREATED"))
                 .andExpect(jsonPath("$.parentUserId").value(PARENT_ID))
-                .andExpect(jsonPath("$.childUserId").value(CHILD_ID));
+                .andExpect(jsonPath("$.childUserId").value(CHILD_ID))
+                .andExpect(jsonPath("$.childName").value("Child One"));
     }
 
     @Test

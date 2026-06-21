@@ -23,5 +23,8 @@ gateway:
   request-filter:
     enabled: false
 
+internal:
+  secret: test-internal-secret
+
 registration:
   parent-invite-code: TEST-PARENT-CODE

@@ -13,6 +13,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.payflow.reward.client.CreateTransferRequest;
 import com.payflow.reward.client.TransferClient;
 import com.payflow.reward.client.TransferResponse;
+import com.payflow.reward.client.UserClient;
+import com.payflow.reward.client.UserResponse;
 import com.payflow.reward.client.WalletClient;
 import com.payflow.reward.client.WalletResponse;
 import com.payflow.reward.dto.CreateFamilyLinkRequest;
@@ -35,12 +37,13 @@ import org.springframework.test.web.servlet.MockMvc;
 class FamilyControllerTest {
 
     @Autowired MockMvc mockMvc;
-    @Autowired ObjectMapper objectMapper;
+    ObjectMapper objectMapper = new ObjectMapper();
     @Autowired ParentChildLinkRepository parentChildLinkRepository;
     @Autowired RewardTaskRepository rewardTaskRepository;
 
     @MockitoBean TransferClient transferClient;
     @MockitoBean WalletClient walletClient;
+    @MockitoBean UserClient userClient;
 
     private static final Long PARENT_ID  = 1L;
     private static final Long CHILD_ID   = 2L;
@@ -55,6 +58,10 @@ class FamilyControllerTest {
                 .thenReturn(new TransferResponse(100L, PARENT_ID, CHILD_ID, BigDecimal.ZERO, "SUCCEEDED", null));
         when(walletClient.getWalletByUserId(any(), eq(true), any()))
                 .thenReturn(new WalletResponse(10L, PARENT_ID, new BigDecimal("50000"), "ACTIVE"));
+        when(userClient.getInternalUser(eq(CHILD_ID), eq(true), any()))
+                .thenReturn(new UserResponse(CHILD_ID, "01022223333", "Child One", "CHILD", "ACTIVE"));
+        when(userClient.getInternalUser(eq(CHILD_ID_2), eq(true), any()))
+                .thenReturn(new UserResponse(CHILD_ID_2, "01033334444", "Child Two", "CHILD", "ACTIVE"));
     }
 
     // ── 가족 연결 생성 ────────────────────────────────────────────────────────
@@ -70,6 +77,8 @@ class FamilyControllerTest {
                 .andExpect(jsonPath("$.familyLinkId").isNumber())
                 .andExpect(jsonPath("$.parentUserId").value(PARENT_ID))
                 .andExpect(jsonPath("$.childUserId").value(CHILD_ID))
+                .andExpect(jsonPath("$.childName").value("Child One"))
+                .andExpect(jsonPath("$.childPhoneNumber").value("01022223333"))
                 .andExpect(jsonPath("$.status").value("ACTIVE"));
     }
 
@@ -125,7 +134,9 @@ class FamilyControllerTest {
                         .header("X-User-Role", "ROLE_PARENT"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[0].parentUserId").value(PARENT_ID));
+                .andExpect(jsonPath("$[0].parentUserId").value(PARENT_ID))
+                .andExpect(jsonPath("$[0].childName").isString())
+                .andExpect(jsonPath("$[0].childPhoneNumber").isString());
     }
 
     @Test

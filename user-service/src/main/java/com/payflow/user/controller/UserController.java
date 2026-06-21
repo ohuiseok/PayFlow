@@ -5,9 +5,15 @@ import com.payflow.user.dto.CreateUserRequest;
 import com.payflow.user.dto.LoginRequest;
 import com.payflow.user.dto.UserResponse;
 import com.payflow.user.service.UserService;
+import com.payflow.user.support.error.BusinessException;
+import com.payflow.user.support.error.ErrorCode;
 import jakarta.validation.Valid;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -23,6 +29,9 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserController {
 
     private final UserService userService;
+
+    @Value("${internal.secret:}")
+    private String internalSecret;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -51,5 +60,24 @@ public class UserController {
     ) {
         // URL path의 userId와 인증된 사용자 ID를 함께 넘겨 서비스 계층에서 소유권을 검증한다.
         return userService.getUser(userId, requestUserId);
+    }
+    @GetMapping("/internal/{userId}")
+    public UserResponse getInternalUser(
+            @PathVariable Long userId,
+            @RequestHeader(value = "X-Internal-Request", defaultValue = "false") boolean internalRequest,
+            @RequestHeader(value = "X-Internal-Secret", required = false) String requestInternalSecret
+    ) {
+        validateInternalRequest(internalRequest, requestInternalSecret);
+        return userService.getInternalUser(userId);
+    }
+
+    private void validateInternalRequest(boolean internalRequest, String requestInternalSecret) {
+        if (!internalRequest
+                || !StringUtils.hasText(internalSecret)
+                || !MessageDigest.isEqual(
+                        internalSecret.getBytes(StandardCharsets.UTF_8),
+                        (requestInternalSecret == null ? "" : requestInternalSecret).getBytes(StandardCharsets.UTF_8))) {
+            throw new BusinessException(ErrorCode.FORBIDDEN);
+        }
     }
 }

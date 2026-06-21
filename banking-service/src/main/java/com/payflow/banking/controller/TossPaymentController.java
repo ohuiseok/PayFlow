@@ -13,17 +13,23 @@ import com.payflow.banking.service.TossPaymentService;
 import com.payflow.banking.support.error.BusinessException;
 import com.payflow.banking.support.error.ErrorCode;
 import jakarta.validation.Valid;
+import java.math.BigDecimal;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.view.RedirectView;
+import org.springframework.web.util.UriComponentsBuilder;
 
 @RestController
 @RequestMapping("/payments/toss")
@@ -31,6 +37,9 @@ import org.springframework.web.bind.annotation.RestController;
 public class TossPaymentController {
 
     private final TossPaymentService tossPaymentService;
+
+    @Value("${frontend.origin:http://localhost:19006}")
+    private String frontendOrigin;
 
     @PostMapping("/charges")
     @ResponseStatus(HttpStatus.CREATED)
@@ -56,6 +65,29 @@ public class TossPaymentController {
             @RequestHeader("X-User-Id") Long requestUserId
     ) {
         return tossPaymentService.confirm(request, requestUserId);
+    }
+
+    @GetMapping("/success")
+    public RedirectView successCallback(
+            @RequestParam String paymentKey,
+            @RequestParam String orderId,
+            @RequestParam BigDecimal amount
+    ) {
+        TossChargeResponse response = tossPaymentService.confirmCallback(new TossConfirmRequest(paymentKey, orderId, amount));
+        return redirectToCreditCharge("completed", response.chargeId(), null, null);
+    }
+
+    @GetMapping("/fail")
+    public RedirectView failCallback(
+            @RequestParam(required = false) String orderId,
+            @RequestParam(required = false) String code,
+            @RequestParam(required = false) String message
+    ) {
+        Long chargeId = null;
+        if (StringUtils.hasText(orderId)) {
+            chargeId = tossPaymentService.failCallback(orderId, code, message).chargeId();
+        }
+        return redirectToCreditCharge("failed", chargeId, code, message);
     }
 
     @PostMapping("/webhook")
@@ -129,5 +161,21 @@ public class TossPaymentController {
         if (!"ROLE_ADMIN".equals(role)) {
             throw new BusinessException(ErrorCode.FORBIDDEN);
         }
+    }
+
+    private RedirectView redirectToCreditCharge(String status, Long chargeId, String code, String message) {
+        UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(frontendOrigin)
+                .path("/parent/credit-charge")
+                .queryParam("tossStatus", status);
+        if (chargeId != null) {
+            builder.queryParam("chargeId", chargeId);
+        }
+        if (StringUtils.hasText(code)) {
+            builder.queryParam("code", code);
+        }
+        if (StringUtils.hasText(message)) {
+            builder.queryParam("message", message);
+        }
+        return new RedirectView(builder.build().encode().toUriString());
     }
 }

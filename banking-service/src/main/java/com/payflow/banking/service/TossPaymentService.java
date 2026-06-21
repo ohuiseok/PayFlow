@@ -106,6 +106,28 @@ public class TossPaymentService {
         return TossChargeResponse.from(charge, order);
     }
 
+    @Transactional
+    public TossChargeResponse confirmCallback(TossConfirmRequest request) {
+        TossPaymentOrder order = tossPaymentOrderRepository.findByTossOrderId(request.orderId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_CHARGE_NOT_FOUND));
+        PaymentCharge charge = paymentChargeRepository.findById(order.getPaymentChargeId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_CHARGE_NOT_FOUND));
+        return confirm(request, charge.getUserId());
+    }
+
+    @Transactional
+    public TossChargeResponse failCallback(String orderId, String code, String message) {
+        TossPaymentOrder order = tossPaymentOrderRepository.findByTossOrderId(orderId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_CHARGE_NOT_FOUND));
+        PaymentCharge charge = paymentChargeRepository.findById(order.getPaymentChargeId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_CHARGE_NOT_FOUND));
+        charge.fail(
+                StringUtils.hasText(code) ? code : "TOSS_PAYMENT_FAILED",
+                StringUtils.hasText(message) ? message : "Toss payment failed."
+        );
+        return TossChargeResponse.from(charge, order);
+    }
+
     @Transactional(readOnly = true)
     public TossChargeResponse getCharge(Long chargeId, Long requestUserId) {
         PaymentCharge charge = paymentChargeRepository.findByIdAndUserId(chargeId, requestUserId)

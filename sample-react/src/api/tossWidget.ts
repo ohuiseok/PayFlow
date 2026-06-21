@@ -37,6 +37,7 @@ function loadTossScript() {
 
 export async function requestTossWidgetPayment(input: {
   clientKey: string;
+  callbackBaseUrl: string;
   amount: number;
   orderId: string;
   orderName: string;
@@ -48,13 +49,13 @@ export async function requestTossWidgetPayment(input: {
     throw new Error('Toss Payments SDK is not ready.');
   }
 
-  const origin = window.location.origin;
+  const callbackBaseUrl = input.callbackBaseUrl.replace(/\/$/, '');
   await tossPayments.requestPayment('카드', {
     amount: input.amount,
     orderId: input.orderId,
     orderName: input.orderName,
     customerName: input.customerName,
-    successUrl: `${origin}/parent/credit-charge`,
-    failUrl: `${origin}/parent/credit-charge`,
+    successUrl: `${callbackBaseUrl}/api/payments/toss/success`,
+    failUrl: `${callbackBaseUrl}/api/payments/toss/fail`,
   });
 }

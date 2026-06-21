@@ -27,9 +27,16 @@ export function ParentHomeScreen({ navigation }: Props) {
     queryFn: () => missionApi.getMissions({ role: 'parent' }),
     enabled: !appConfig.useDummyData,
   });
+  const recentEntriesQuery = useQuery({
+    queryKey: ['credit', 'recentEntries'],
+    queryFn: creditApi.getRecentCreditEntries,
+    enabled: !appConfig.useDummyData,
+  });
   const summary = summaryQuery.data ?? null;
   const apiMissions = missionsQuery.data ?? null;
+  const apiRecentEntries = recentEntriesQuery.data ?? null;
   const displayMissions = apiMissions ?? missions;
+  const displayCreditEntries = appConfig.useDummyData ? parentCreditEntries : (apiRecentEntries ?? []);
   const pending = displayMissions.filter((mission) => mission.status === 'submitted');
   const active = displayMissions.filter((mission) => mission.status !== 'paid');
   const displayBalance = summary?.creditBalance ?? parentCreditBalance;
@@ -66,7 +73,11 @@ export function ParentHomeScreen({ navigation }: Props) {
       <Text style={styles.sectionTitle}>진행 중 미션</Text>
       {active.length ? active.map((mission) => <MissionCard key={mission.id} mission={mission} />) : <EmptyState body="진행 중인 미션이 없습니다." />}
       <Text style={styles.sectionTitle}>최근 크레딧 기록</Text>
-      {parentCreditEntries.slice(0, 3).map((entry) => <CashbookEntryItem key={entry.id} entry={entry} />)}
+      {displayCreditEntries.length ? (
+        displayCreditEntries.slice(0, 3).map((entry) => <CashbookEntryItem key={entry.id} entry={entry} />)
+      ) : (
+        <EmptyState body="최근 크레딧 기록이 없습니다." />
+      )}
     </ScreenFrame>
   );
 }

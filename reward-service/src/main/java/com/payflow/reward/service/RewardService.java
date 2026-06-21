@@ -3,6 +3,8 @@ package com.payflow.reward.service;
 import com.payflow.reward.client.CreateTransferRequest;
 import com.payflow.reward.client.TransferClient;
 import com.payflow.reward.client.TransferResponse;
+import com.payflow.reward.client.UserClient;
+import com.payflow.reward.client.UserResponse;
 import com.payflow.reward.client.WalletClient;
 import com.payflow.reward.dto.CashbookSummaryResponse;
 import com.payflow.reward.dto.CreateFamilyLinkRequest;
@@ -43,6 +45,7 @@ public class RewardService {
     private final RewardTaskRepository rewardTaskRepository;
     private final TransferClient transferClient;
     private final WalletClient walletClient;
+    private final UserClient userClient;
 
     @Value("${internal.secret:}")
     private String internalSecret;
@@ -63,7 +66,7 @@ public class RewardService {
                     return existing;
                 })
                 .orElseGet(() -> parentChildLinkRepository.save(new ParentChildLink(requestUserId, request.childUserId())));
-        return FamilyLinkResponse.from(link);
+        return toFamilyLinkResponse(link);
     }
 
     @Transactional(readOnly = true)
@@ -71,7 +74,7 @@ public class RewardService {
         requireRole(role, ROLE_PARENT);
         return parentChildLinkRepository.findByParentUserIdAndStatusOrderByIdDesc(requestUserId, ParentChildLinkStatus.ACTIVE)
                 .stream()
-                .map(FamilyLinkResponse::from)
+                .map(this::toFamilyLinkResponse)
                 .toList();
     }
 
@@ -80,7 +83,7 @@ public class RewardService {
         requireRole(role, ROLE_CHILD);
         return parentChildLinkRepository.findByChildUserIdAndStatusOrderByIdDesc(requestUserId, ParentChildLinkStatus.ACTIVE)
                 .stream()
-                .map(FamilyLinkResponse::from)
+                .map(this::toFamilyLinkResponse)
                 .toList();
     }
 
@@ -96,11 +99,12 @@ public class RewardService {
                 request.description().trim(),
                 normalizeAmount(request.rewardAmount())
         ));
-        return MissionResponse.from(task);
+        return toMissionResponse(task);
     }
 
     @Transactional(readOnly = true)
     public List<MissionResponse> getMissions(Long requestUserId, String role, RewardTaskStatus status) {
+        role = normalizeRole(role);
         List<RewardTask> tasks;
         if (ROLE_PARENT.equals(role)) {
             tasks = rewardTaskRepository.findByParentUserIdOrderByCreatedAtDesc(requestUserId);
@@ -112,7 +116,7 @@ public class RewardService {
 
         return tasks.stream()
                 .filter(task -> status == null || task.getStatus() == status)
-                .map(MissionResponse::from)
+                .map(this::toMissionResponse)
                 .toList();
     }
 
@@ -120,7 +124,7 @@ public class RewardService {
     public MissionResponse getMission(Long missionId, Long requestUserId, String role) {
         RewardTask task = findMission(missionId);
         validateMissionAccess(task, requestUserId, role);
-        return MissionResponse.from(task);
+        return toMissionResponse(task);
     }
 
     @Transactional
@@ -132,7 +136,7 @@ public class RewardService {
             throw new BusinessException(ErrorCode.INVALID_MISSION_STATUS);
         }
         task.submit(StringUtils.hasText(request.submissionNote()) ? request.submissionNote().trim() : null);
-        return MissionResponse.from(task);
+        return toMissionResponse(task);
     }
 
     @Transactional
@@ -144,7 +148,7 @@ public class RewardService {
             throw new BusinessException(ErrorCode.INVALID_MISSION_STATUS);
         }
         task.approve();
-        return MissionResponse.from(task);
+        return toMissionResponse(task);
     }
 
     @Transactional
@@ -156,7 +160,7 @@ public class RewardService {
             throw new BusinessException(ErrorCode.INVALID_MISSION_STATUS);
         }
         task.reject(request.reason().trim());
-        return MissionResponse.from(task);
+        return toMissionResponse(task);
     }
 
     @Transactional
@@ -168,7 +172,7 @@ public class RewardService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.MISSION_NOT_FOUND));
         requireParent(task, requestUserId);
         if (task.getStatus() == RewardTaskStatus.PAID) {
-            return MissionResponse.from(task);
+            return toMissionResponse(task);
         }
         if (task.getStatus() != RewardTaskStatus.APPROVED) {
             throw new BusinessException(ErrorCode.INVALID_MISSION_STATUS);
@@ -187,7 +191,7 @@ public class RewardService {
                 throw new BusinessException(ErrorCode.REWARD_PAYMENT_FAILED, reason);
             }
             task.markPaid(response.transferId());
-            return MissionResponse.from(task);
+            return toMissionResponse(task);
         } catch (BusinessException exception) {
             throw exception;
         } catch (RuntimeException exception) {
@@ -240,7 +244,7 @@ public class RewardService {
         validateCashbookAccess(childUserId, requestUserId, role);
         return rewardTaskRepository.findByChildUserIdAndStatusInOrderByCreatedAtDesc(childUserId, List.of(RewardTaskStatus.PAID))
                 .stream()
-                .map(MissionResponse::from)
+                .map(this::toMissionResponse)
                 .toList();
     }
 
@@ -256,6 +260,7 @@ public class RewardService {
     }
 
     private void validateMissionAccess(RewardTask task, Long requestUserId, String role) {
+        role = normalizeRole(role);
         if (ROLE_PARENT.equals(role)) {
             requireParent(task, requestUserId);
             return;
@@ -268,6 +273,7 @@ public class RewardService {
     }
 
     private void validateCashbookAccess(Long childUserId, Long requestUserId, String role) {
+        role = normalizeRole(role);
         if (ROLE_CHILD.equals(role) && childUserId.equals(requestUserId)) {
             return;
         }
@@ -291,8 +297,38 @@ public class RewardService {
     }
 
     private void requireRole(String actualRole, String requiredRole) {
-        if (!requiredRole.equals(actualRole)) {
+        if (!requiredRole.equals(normalizeRole(actualRole))) {
             throw new BusinessException(ErrorCode.FORBIDDEN);
+        }
+    }
+
+    private String normalizeRole(String role) {
+        if (!StringUtils.hasText(role)) {
+            return "";
+        }
+        String normalized = role.trim().toUpperCase();
+        return normalized.startsWith("ROLE_") ? normalized.substring("ROLE_".length()) : normalized;
+    }
+
+    private FamilyLinkResponse toFamilyLinkResponse(ParentChildLink link) {
+        UserResponse child = getUserProfile(link.getChildUserId());
+        return FamilyLinkResponse.from(
+                link,
+                child == null ? null : child.name(),
+                child == null ? null : child.phoneNumber()
+        );
+    }
+
+    private MissionResponse toMissionResponse(RewardTask task) {
+        UserResponse child = getUserProfile(task.getChildUserId());
+        return MissionResponse.from(task, child == null ? null : child.name());
+    }
+
+    private UserResponse getUserProfile(Long userId) {
+        try {
+            return userClient.getInternalUser(userId, true, internalSecret);
+        } catch (RuntimeException exception) {
+            return null;
         }
     }
 

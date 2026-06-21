@@ -1,6 +1,6 @@
 import { apiClient } from './client';
 import { toProcessingStatus } from './statusMapper';
-import { ProcessingStatus } from '../types';
+import { CashbookEntry, ProcessingStatus } from '../types';
 
 type ParentSummaryResponse = {
   walletId?: number | string;
@@ -69,6 +69,16 @@ type TossChargeResponse = {
 type OpenBankingAuthorizeUrlResponse = {
   authorizeUrl: string;
   state: string;
+};
+
+type WalletTransactionResponse = {
+  walletTransactionId: number | string;
+  transactionType: 'DEPOSIT' | 'WITHDRAW' | string;
+  amount: number;
+  balanceAfter: number;
+  referenceType: string;
+  referenceId: string;
+  createdAt?: string;
 };
 
 export type CreditBankAccount = {
@@ -149,6 +159,39 @@ function normalizeWithdrawal(response: WithdrawalResponse): WithdrawalResult {
   };
 }
 
+function walletTransactionTitle(referenceType: string, transactionType: string) {
+  switch (referenceType) {
+    case 'TOSS_PAYMENT_CHARGE':
+      return 'Toss 크레딧 충전';
+    case 'OPEN_BANKING_CHARGE':
+    case 'MANUAL_CHARGE':
+      return '크레딧 충전';
+    case 'OPEN_BANKING_WITHDRAWAL':
+      return '계좌 출금';
+    case 'OPEN_BANKING_REFUND':
+      return '출금 보정 환급';
+    case 'TRANSFER':
+      return transactionType === 'WITHDRAW' ? '미션 보상 지급' : '미션 보상 수령';
+    case 'TOSS_PAYMENT_CANCEL':
+      return 'Toss 충전 취소';
+    default:
+      return transactionType === 'WITHDRAW' ? '크레딧 사용' : '크레딧 입금';
+  }
+}
+
+function normalizeWalletTransaction(transaction: WalletTransactionResponse): CashbookEntry {
+  const signedAmount = transaction.transactionType === 'WITHDRAW' ? -transaction.amount : transaction.amount;
+  return {
+    id: String(transaction.walletTransactionId),
+    title: walletTransactionTitle(transaction.referenceType, transaction.transactionType),
+    description: transaction.createdAt
+      ? `${transaction.createdAt.slice(0, 10)} · 잔액 ${transaction.balanceAfter.toLocaleString()}원`
+      : `잔액 ${transaction.balanceAfter.toLocaleString()}원`,
+    amount: signedAmount,
+    type: signedAmount < 0 ? 'withdrawal' : 'charge',
+  };
+}
+
 export const creditApi = {
   async getParentSummary(): Promise<ParentCreditSummary> {
     const response = await apiClient.get<ParentSummaryResponse>('/api/cashbook/parent/summary');
@@ -158,6 +201,11 @@ export const creditApi = {
       monthlyRewardPaid: response.monthlyRewardPaid ?? 0,
       pendingApprovalCount: response.pendingApprovalCount ?? 0,
     };
+  },
+
+  async getRecentCreditEntries(): Promise<CashbookEntry[]> {
+    const response = await apiClient.get<WalletTransactionResponse[]>('/api/wallets/me/transactions');
+    return response.map(normalizeWalletTransaction);
   },
 
   async getBankAccounts(): Promise<CreditBankAccount[]> {

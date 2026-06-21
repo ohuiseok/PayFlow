@@ -14,9 +14,12 @@ import com.payflow.banking.openbanking.OpenBankingRealNameInquiryRequest;
 import com.payflow.banking.openbanking.OpenBankingReceiveInquiryRequest;
 import com.payflow.banking.service.BankingService;
 import jakarta.validation.Valid;
+import java.net.URI;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -33,6 +36,9 @@ import org.springframework.web.bind.annotation.RestController;
 public class BankingController {
 
     private final BankingService bankingService;
+
+    @Value("${frontend.origin:http://localhost:19006}")
+    private String frontendOrigin;
 
     @PostMapping("/accounts")
     @ResponseStatus(HttpStatus.CREATED)
@@ -62,11 +68,25 @@ public class BankingController {
     }
 
     @GetMapping("/openbanking/callback")
-    public OpenBankingCallbackResponse handleOpenBankingRedirect(
+    public ResponseEntity<Void> handleOpenBankingRedirect(
             @RequestParam(required = false) String code,
             @RequestParam(required = false) String state
     ) {
-        return bankingService.handleOpenBankingRedirect(code, state);
+        try {
+            bankingService.handleOpenBankingRedirect(code, state);
+            return redirectToFrontend("completed");
+        } catch (RuntimeException exception) {
+            return redirectToFrontend("failed");
+        }
+    }
+
+    private ResponseEntity<Void> redirectToFrontend(String status) {
+        String origin = frontendOrigin.endsWith("/")
+                ? frontendOrigin.substring(0, frontendOrigin.length() - 1)
+                : frontendOrigin;
+        return ResponseEntity.status(HttpStatus.FOUND)
+                .location(URI.create(origin + "/parent/credit-charge?openbankingStatus=" + status))
+                .build();
     }
 
     @PostMapping("/openbanking/accounts/sync")

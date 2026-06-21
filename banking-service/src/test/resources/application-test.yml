@@ -17,3 +17,7 @@ internal:
 gateway:
   request-filter:
     enabled: false
+
+openbanking:
+  client-id: test-client-id
+  callback-url: http://localhost:8080/api/bank/openbanking/callback

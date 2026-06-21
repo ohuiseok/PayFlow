@@ -55,6 +55,9 @@ toss-payments:
   secret-key: ${TOSS_PAYMENTS_SECRET_KEY:}
   webhook-secret: ${TOSS_PAYMENTS_WEBHOOK_SECRET:}
 
+frontend:
+  origin: ${FRONTEND_ORIGIN:http://localhost:19006}
+
 internal:
   secret: ${INTERNAL_SERVICE_SECRET:}
 
