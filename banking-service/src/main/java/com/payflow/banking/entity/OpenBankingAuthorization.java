@@ -41,6 +41,9 @@ public class OpenBankingAuthorization {
 
     private LocalDateTime tokenExpiresAt;
 
+    @Column(length = 30)
+    private String userRole;
+
     @Column(length = 500)
     private String failureReason;
 
@@ -56,6 +59,13 @@ public class OpenBankingAuthorization {
     public OpenBankingAuthorization(Long userId, String state) {
         this.userId = userId;
         this.state = state;
+        this.status = OpenBankingAuthorizationStatus.REQUESTED;
+    }
+
+    public OpenBankingAuthorization(Long userId, String state, String userRole) {
+        this.userId = userId;
+        this.state = state;
+        this.userRole = userRole;
         this.status = OpenBankingAuthorizationStatus.REQUESTED;
     }
 
@@ -90,5 +100,9 @@ public class OpenBankingAuthorization {
 
     public Long getUserId() {
         return userId;
+    }
+
+    public String getUserRole() {
+        return userRole;
     }
 }

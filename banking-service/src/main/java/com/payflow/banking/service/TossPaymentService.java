@@ -35,6 +35,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -450,7 +451,7 @@ public class TossPaymentService {
     }
 
     private String createTossOrderId(Long chargeId, Long userId) {
-        return "payflow-charge-" + chargeId + "-" + userId;
+        return UUID.randomUUID().toString();
     }
 
     private String normalizeIdempotencyKey(String idempotencyKey) {

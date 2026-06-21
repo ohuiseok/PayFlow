@@ -152,7 +152,7 @@ class BankingServiceTest {
 
     @Test
     void createAuthorizeUrlUsesOpenBankingSafeQueryParameters() {
-        var response = bankingService.createAuthorizeUrl(1L);
+        var response = bankingService.createAuthorizeUrl(1L, "parent");
 
         assertThat(response.authorizeUrl())
                 .contains("response_type=code")
@@ -382,7 +382,7 @@ class BankingServiceTest {
     }
 
     private void linkOpenBankingToken() {
-        var authorize = bankingService.createAuthorizeUrl(1L);
+        var authorize = bankingService.createAuthorizeUrl(1L, "parent");
         bankingService.handleOpenBankingCallback(new OpenBankingCallbackRequest("auth-code-1", authorize.state()), 1L);
     }
 }

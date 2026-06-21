@@ -16,7 +16,7 @@ import { Mission } from '../../types';
 type Props = NativeStackScreenProps<RootStackParamList, 'ChildHome'>;
 
 export function ChildHomeScreen({ navigation }: Props) {
-  const { cashbookEntries, childCashBalance, currentUserId, loginAs, missions } = useAppState();
+  const { cashbookEntries, childCashBalance, currentUserId, loginAs, logout, missions } = useAppState();
   const childUserId = appConfig.useDummyData ? defaultChildUserId : currentUserId;
   const missionsQuery = useQuery({
     queryKey: ['missions', 'child', 'active', childUserId],
@@ -73,6 +73,14 @@ export function ChildHomeScreen({ navigation }: Props) {
             testID="child-home-switch-parent-button"
           />
         ) : null}
+        <SecondaryButton
+          title="로그아웃"
+          onPress={async () => {
+            await logout();
+            navigation.replace('Login');
+          }}
+          testID="child-home-logout-button"
+        />
       </View>
       <ApiErrorBox error={missionsQuery.error} fallback="미션 목록 조회에 실패했습니다." />
       <ApiErrorBox error={summaryQuery.error} fallback="캐시북 요약 조회에 실패했습니다." />

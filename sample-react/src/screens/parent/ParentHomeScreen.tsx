@@ -16,7 +16,7 @@ import { useAppState } from '../../state/AppState';
 type Props = NativeStackScreenProps<RootStackParamList, 'ParentHome'>;
 
 export function ParentHomeScreen({ navigation }: Props) {
-  const { loginAs, missions, parentCreditBalance, parentCreditEntries } = useAppState();
+  const { loginAs, logout, missions, parentCreditBalance, parentCreditEntries } = useAppState();
   const summaryQuery = useQuery({
     queryKey: ['credit', 'parentSummary'],
     queryFn: creditApi.getParentSummary,
@@ -69,6 +69,14 @@ export function ParentHomeScreen({ navigation }: Props) {
             testID="parent-home-switch-child-button"
           />
         ) : null}
+        <SecondaryButton
+          title="로그아웃"
+          onPress={async () => {
+            await logout();
+            navigation.replace('Login');
+          }}
+          testID="parent-home-logout-button"
+        />
       </View>
       <Text style={styles.sectionTitle}>진행 중 미션</Text>
       {active.length ? active.map((mission) => <MissionCard key={mission.id} mission={mission} />) : <EmptyState body="진행 중인 미션이 없습니다." />}

@@ -40,6 +40,12 @@ export function CreditChargeScreen({ navigation }: Props) {
   const queryClient = useQueryClient();
   const amount = parseAmount(amountText);
   const validAmount = isAmountInRange(amount, 10000, 1000000);
+  const summaryQuery = useQuery({
+    queryKey: ['credit', 'parentSummary'],
+    queryFn: creditApi.getParentSummary,
+    enabled: !appConfig.useDummyData,
+  });
+  const displayBalance = summaryQuery.data?.creditBalance ?? parentCreditBalance;
   const bankAccountsQuery = useQuery({
     queryKey: ['credit', 'bankAccounts'],
     queryFn: creditApi.getBankAccounts,
@@ -59,6 +65,7 @@ export function CreditChargeScreen({ navigation }: Props) {
         chargeCredit(amount);
       } else {
         queryClient.invalidateQueries({ queryKey: ['credit', 'parentSummary'] });
+        queryClient.invalidateQueries({ queryKey: ['credit', 'recentEntries'] });
       }
     },
   });
@@ -87,7 +94,7 @@ export function CreditChargeScreen({ navigation }: Props) {
 
   return (
     <ScreenFrame eyebrow="크레딧 충전" title="보상 지갑 채우기" description="Toss 결제 또는 연결 계좌로 크레딧을 충전합니다.">
-      <BalanceCard label="현재 보상 크레딧" amount={parentCreditBalance} description="충전 후 미션 승인에 사용할 수 있습니다." />
+      <BalanceCard label="현재 보상 크레딧" amount={displayBalance} description="충전 후 미션 승인에 사용할 수 있습니다." />
       <Card>
         <Label>충전 방식</Label>
         <PrimaryButton
@@ -139,8 +146,8 @@ export function CreditChargeScreen({ navigation }: Props) {
         title={status === 'idle' ? '예상 잔액' : statusCopy.title}
         body={
           status === 'idle'
-            ? `${formatWon(parentCreditBalance + (validAmount ? amount : 0))}`
-            : `${statusCopy.body} · 현재 잔액 ${formatWon(parentCreditBalance)}`
+            ? `${formatWon(displayBalance + (validAmount ? amount : 0))}`
+            : `${statusCopy.body} · 현재 잔액 ${formatWon(displayBalance)}`
         }
       />
       {status === 'completed' ? <Toast message="충전 완료 · 보상 크레딧이 증가했습니다." /> : null}

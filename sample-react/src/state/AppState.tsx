@@ -1,5 +1,7 @@
-import { createContext, PropsWithChildren, useContext, useMemo, useState } from 'react';
+import { createContext, PropsWithChildren, useContext, useEffect, useMemo, useState } from 'react';
 
+import { authApi } from '../api/authApi';
+import { tokenStorage } from '../storage/tokenStorage';
 import { BankAccount, CashbookEntry, LinkedChild, Mission, UserRole } from '../types';
 
 const defaultParentName = '지수';
@@ -87,6 +89,7 @@ const parentChargeAccount: BankAccount = {
 };
 
 type AppStateValue = {
+  isRestoringSession: boolean;
   role: UserRole | null;
   currentUserId: string;
   currentUserName: string;
@@ -101,6 +104,7 @@ type AppStateValue = {
   missions: Mission[];
   cashbookEntries: CashbookEntry[];
   loginAs: (role: UserRole, name?: string, userId?: string) => void;
+  logout: () => Promise<void>;
   signupAs: (role: UserRole, name: string, userId?: string) => void;
   completeFamilyLink: () => void;
   chargeCredit: (amount: number) => void;
@@ -116,11 +120,40 @@ type AppStateValue = {
 const AppStateContext = createContext<AppStateValue | null>(null);
 
 export function AppStateProvider({ children }: PropsWithChildren) {
+  const [isRestoringSession, setIsRestoringSession] = useState(true);
   const [role, setRole] = useState<UserRole | null>(null);
   const [currentUserId, setCurrentUserId] = useState('1');
   const [currentUserName, setCurrentUserName] = useState(defaultParentName);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function restoreSession() {
+      try {
+        const token = await tokenStorage.getAccessToken();
+        if (token) {
+          const user = await authApi.me();
+          if (!cancelled) {
+            setRole(user.role);
+            setCurrentUserId(user.userId);
+            setCurrentUserName(user.name);
+          }
+        }
+      } catch {
+        // 토큰이 만료되었거나 유효하지 않으면 그냥 로그인 화면으로
+        await tokenStorage.clearAccessToken();
+      } finally {
+        if (!cancelled) {
+          setIsRestoringSession(false);
+        }
+      }
+    }
+
+    restoreSession();
+    return () => { cancelled = true; };
+  }, []);
   const [familyLinked, setFamilyLinked] = useState(false);
-  const [parentCreditBalance, setParentCreditBalance] = useState(85000);
+  const [parentCreditBalance, setParentCreditBalance] = useState(0);
   const [parentCreditEntries, setParentCreditEntries] = useState<CashbookEntry[]>(initialParentCreditEntries);
   const [childCashBalance, setChildCashBalance] = useState(17000);
   const [linkedBankAccount, setLinkedBankAccount] = useState<BankAccount | null>(null);
@@ -129,6 +162,7 @@ export function AppStateProvider({ children }: PropsWithChildren) {
 
   const value = useMemo<AppStateValue>(
     () => ({
+      isRestoringSession,
       role,
       currentUserId,
       currentUserName,
@@ -146,6 +180,17 @@ export function AppStateProvider({ children }: PropsWithChildren) {
         setRole(nextRole);
         setCurrentUserId(userId ?? (nextRole === 'parent' ? '1' : '2'));
         setCurrentUserName(name?.trim() || (nextRole === 'parent' ? defaultParentName : defaultChildName));
+      },
+      async logout() {
+        try {
+          await authApi.logout();
+        } catch {
+          // 서버 로그아웃 실패해도 로컬 상태는 초기화한다
+          await tokenStorage.clearAccessToken();
+        }
+        setRole(null);
+        setCurrentUserId('1');
+        setCurrentUserName(defaultParentName);
       },
       signupAs(nextRole, name, userId) {
         setRole(nextRole);
@@ -262,12 +307,15 @@ export function AppStateProvider({ children }: PropsWithChildren) {
         return true;
       },
     }),
+    // logout은 setter만 닫으므로 deps 불필요 — eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       cashbookEntries,
       childCashBalance,
       currentUserId,
       currentUserName,
       familyLinked,
+      isRestoringSession,
       linkedBankAccount,
       missions,
       parentCreditBalance,

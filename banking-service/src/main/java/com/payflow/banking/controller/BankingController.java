@@ -55,8 +55,11 @@ public class BankingController {
     }
 
     @GetMapping("/openbanking/authorize-url")
-    public OpenBankingAuthorizeUrlResponse createAuthorizeUrl(@RequestHeader("X-User-Id") Long requestUserId) {
-        return bankingService.createAuthorizeUrl(requestUserId);
+    public OpenBankingAuthorizeUrlResponse createAuthorizeUrl(
+            @RequestHeader("X-User-Id") Long requestUserId,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole
+    ) {
+        return bankingService.createAuthorizeUrl(requestUserId, userRole);
     }
 
     @PostMapping("/openbanking/callback")
@@ -73,19 +76,22 @@ public class BankingController {
             @RequestParam(required = false) String state
     ) {
         try {
-            bankingService.handleOpenBankingRedirect(code, state);
-            return redirectToFrontend("completed");
+            String userRole = bankingService.handleOpenBankingRedirect(code, state);
+            return redirectToFrontend(userRole, "completed");
         } catch (RuntimeException exception) {
-            return redirectToFrontend("failed");
+            return redirectToFrontend(null, "failed");
         }
     }
 
-    private ResponseEntity<Void> redirectToFrontend(String status) {
+    private ResponseEntity<Void> redirectToFrontend(String userRole, String status) {
         String origin = frontendOrigin.endsWith("/")
                 ? frontendOrigin.substring(0, frontendOrigin.length() - 1)
                 : frontendOrigin;
+        String path = "child".equalsIgnoreCase(userRole)
+                ? "/child/bank-account"
+                : "/parent/credit-charge";
         return ResponseEntity.status(HttpStatus.FOUND)
-                .location(URI.create(origin + "/parent/credit-charge?openbankingStatus=" + status))
+                .location(URI.create(origin + path + "?openbankingStatus=" + status))
                 .build();
     }
 

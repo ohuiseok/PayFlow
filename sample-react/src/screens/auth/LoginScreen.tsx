@@ -1,5 +1,5 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { authApi } from '../../api/authApi';
@@ -15,11 +15,21 @@ import { isValidPassword, isValidPhoneNumber, onlyDigits } from '../../utils/val
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
 export function LoginScreen({ navigation }: Props) {
-  const { loginAs, familyLinked } = useAppState();
+  const { isRestoringSession, loginAs, familyLinked, role } = useAppState();
   const [phone, setPhone] = useState('01012345678');
   const [password, setPassword] = useState('password12');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // 이미 로그인 상태면 홈으로 자동 이동
+  useEffect(() => {
+    if (isRestoringSession || !role) return;
+    if (role === 'parent') {
+      navigation.replace('ParentHome');
+    } else {
+      navigation.replace(familyLinked ? 'ChildHome' : 'ChildInviteCode');
+    }
+  }, [isRestoringSession, role, familyLinked, navigation]);
 
   const moveAfterAuth = (role: UserRole) => {
     if (role === 'parent') {

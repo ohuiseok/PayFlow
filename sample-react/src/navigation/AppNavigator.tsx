@@ -1,6 +1,7 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { StackActions, useNavigation } from '@react-navigation/native';
+import { ActivityIndicator, View } from 'react-native';
 import { ComponentType, PropsWithChildren, useEffect } from 'react';
 
 import { RootStackParamList } from './routes';
@@ -113,6 +114,16 @@ const GuardedBankAccountRegisterScreen = withRoleGuard(BankAccountRegisterScreen
 const GuardedChildWithdrawalScreen = withRoleGuard(ChildWithdrawalScreen, childOnly, 'ParentHome', true);
 
 export function AppNavigator() {
+  const { isRestoringSession } = useAppState();
+
+  if (isRestoringSession) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F5F7F8' }}>
+        <ActivityIndicator size="large" color="#20262D" />
+      </View>
+    );
+  }
+
   return (
     <Stack.Navigator
       initialRouteName="Login"
