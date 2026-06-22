@@ -11,6 +11,7 @@ type ApiUser = {
   phoneNumber?: string;
   role: ApiRole;
   status?: string;
+  hasBankAccount?: boolean;
 };
 
 type LoginResponse = {
@@ -31,6 +32,7 @@ export type AuthUser = {
   name: string;
   role: UserRole;
   status?: string;
+  hasBankAccount?: boolean;
 };
 
 function toUserRole(role: ApiRole): UserRole {
@@ -43,6 +45,7 @@ function normalizeUser(user: ApiUser): AuthUser {
     name: user.name,
     role: toUserRole(user.role),
     status: user.status,
+    hasBankAccount: user.hasBankAccount,
   };
 }
 

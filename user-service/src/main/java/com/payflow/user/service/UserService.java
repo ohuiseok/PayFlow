@@ -1,9 +1,11 @@
 package com.payflow.user.service;
 
 import com.payflow.user.auth.JwtTokenProvider;
+import com.payflow.user.client.BankingClient;
 import com.payflow.user.dto.AuthTokenResponse;
 import com.payflow.user.dto.CreateUserRequest;
 import com.payflow.user.dto.LoginRequest;
+import com.payflow.user.dto.UserMeResponse;
 import com.payflow.user.dto.UserResponse;
 import com.payflow.user.entity.User;
 import com.payflow.user.entity.UserRole;
@@ -29,6 +31,7 @@ public class UserService {
     // [H-2] 지갑 생성 재시도는 WalletProvisioningService에 위임한다.
     // @Retryable은 AOP 프록시로 동작하므로 별도 빈에서만 올바르게 작동한다.
     private final WalletProvisioningService walletProvisioningService;
+    private final BankingClient bankingClient;
 
     // [H-4] PARENT 초대 코드. 빈 문자열이면 PARENT 가입이 완전히 차단된다.
     @Value("${registration.parent-invite-code:}")
@@ -98,10 +101,11 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    public UserResponse getMe(Long requestUserId) {
+    public UserMeResponse getMe(Long requestUserId) {
         User user = userRepository.findById(requestUserId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
-        return UserResponse.from(user);
+        boolean hasBankAccount = bankingClient.hasActiveBankAccount(requestUserId);
+        return UserMeResponse.from(user, hasBankAccount);
     }
 
     @Transactional(readOnly = true)

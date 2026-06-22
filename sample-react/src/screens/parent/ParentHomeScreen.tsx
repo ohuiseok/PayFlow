@@ -58,7 +58,7 @@ export function ParentHomeScreen({ navigation }: Props) {
         <SecondaryButton title="미션 등록" onPress={() => navigation.navigate('MissionCreate')} testID="parent-home-create-mission-button" />
         <SecondaryButton title="미션 승인" onPress={() => navigation.navigate('ParentApproval')} testID="parent-home-approval-button" />
         <SecondaryButton title="자녀 연결" onPress={() => navigation.navigate('ParentFamilyLink')} testID="parent-home-family-link-button" />
-        <SecondaryButton title="계좌 등록" onPress={() => navigation.navigate('BankAccountRegister')} testID="parent-home-bank-register-button" />
+        {/* <SecondaryButton title="계좌 등록" onPress={() => navigation.navigate('BankAccountRegister')} testID="parent-home-bank-register-button" /> */}
         {appConfig.useDummyData ? (
           <SecondaryButton
             title="자녀 화면"

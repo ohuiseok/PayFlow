@@ -13,13 +13,19 @@ import com.payflow.banking.openbanking.OpenBankingDepositTransferRequest;
 import com.payflow.banking.openbanking.OpenBankingRealNameInquiryRequest;
 import com.payflow.banking.openbanking.OpenBankingReceiveInquiryRequest;
 import com.payflow.banking.service.BankingService;
+import com.payflow.banking.support.error.BusinessException;
+import com.payflow.banking.support.error.ErrorCode;
 import jakarta.validation.Valid;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -39,6 +45,33 @@ public class BankingController {
 
     @Value("${frontend.origin:http://localhost:19006}")
     private String frontendOrigin;
+
+    @Value("${internal.secret:}")
+    private String internalSecret;
+
+    @GetMapping("/internal/has-account")
+    public Map<String, Boolean> hasActiveBankAccount(
+            @RequestHeader("X-User-Id") Long userId,
+            @RequestHeader(value = "X-Internal-Request", defaultValue = "false") boolean internalRequest,
+            @RequestHeader(value = "X-Internal-Secret", required = false) String requestInternalSecret
+    ) {
+        validateInternalRequest(internalRequest, requestInternalSecret);
+        return Map.of("hasBankAccount", bankingService.hasActiveBankAccount(userId));
+    }
+
+    private void validateInternalRequest(boolean internalRequest, String requestInternalSecret) {
+        if (!internalRequest) {
+            throw new BusinessException(ErrorCode.FORBIDDEN);
+        }
+        if (!StringUtils.hasText(internalSecret)) {
+            return; // 내부 시크릿 미설정 시 개발 환경으로 간주하고 허용
+        }
+        if (!MessageDigest.isEqual(
+                internalSecret.getBytes(StandardCharsets.UTF_8),
+                (requestInternalSecret == null ? "" : requestInternalSecret).getBytes(StandardCharsets.UTF_8))) {
+            throw new BusinessException(ErrorCode.FORBIDDEN);
+        }
+    }
 
     @PostMapping("/accounts")
     @ResponseStatus(HttpStatus.CREATED)

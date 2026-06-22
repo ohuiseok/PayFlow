@@ -115,6 +115,11 @@ public class BankingService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public boolean hasActiveBankAccount(Long userId) {
+        return bankAccountRepository.existsByUserIdAndStatus(userId, BankAccountStatus.ACTIVE);
+    }
+
     @Transactional
     public BankingTransferResponse createDeposit(CreateDepositRequest request, String idempotencyKey, Long requestUserId) {
         String normalizedIdempotencyKey = normalizeIdempotencyKey(idempotencyKey);

@@ -42,7 +42,6 @@ export function ChildSelector({
             </View>
             <View style={styles.info}>
               <Text style={[styles.name, selected && styles.nameSelected]}>{child.childName}</Text>
-              <Text style={styles.phone}>{child.phoneNumber}</Text>
             </View>
           </TouchableOpacity>
         );

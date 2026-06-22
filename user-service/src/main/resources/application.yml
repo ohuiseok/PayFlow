@@ -28,6 +28,8 @@ clients:
   wallet-service:
     url: ${WALLET_SERVICE_URL:http://localhost:8082}
     provisioning-enabled: ${WALLET_PROVISIONING_ENABLED:true}
+  banking-service:
+    url: ${BANKING_SERVICE_URL:http://localhost:8086}
 
 internal:
   secret: ${INTERNAL_SERVICE_SECRET:}

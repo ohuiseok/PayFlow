@@ -16,7 +16,7 @@ import { Mission } from '../../types';
 type Props = NativeStackScreenProps<RootStackParamList, 'ChildHome'>;
 
 export function ChildHomeScreen({ navigation }: Props) {
-  const { cashbookEntries, childCashBalance, currentUserId, loginAs, logout, missions } = useAppState();
+  const { cashbookEntries, childCashBalance, currentUserId, hasBankAccount, loginAs, logout, missions } = useAppState();
   const childUserId = appConfig.useDummyData ? defaultChildUserId : currentUserId;
   const missionsQuery = useQuery({
     queryKey: ['missions', 'child', 'active', childUserId],
@@ -61,7 +61,9 @@ export function ChildHomeScreen({ navigation }: Props) {
         description={`진행 가능 ${todo.length}건 · 반려 ${rejected.length}건`}
       />
       <View style={styles.actionGrid}>
-        <PrimaryButton title="계좌 등록" onPress={() => navigation.navigate('BankAccountRegister')} testID="child-home-bank-register-button" />
+        {!hasBankAccount ? (
+          <SecondaryButton title="계좌 등록" onPress={() => navigation.navigate('BankAccountRegister')} testID="child-home-bank-register-button" />
+        ) : null}
         <SecondaryButton title="출금" onPress={() => navigation.navigate('ChildWithdrawal')} testID="child-home-withdrawal-button" />
         {appConfig.useDummyData ? (
           <SecondaryButton

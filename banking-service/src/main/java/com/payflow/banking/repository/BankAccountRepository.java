@@ -12,6 +12,8 @@ public interface BankAccountRepository extends JpaRepository<BankAccount, Long> 
 
     boolean existsByUserIdAndFintechUseNum(Long userId, String fintechUseNum);
 
+    boolean existsByUserIdAndStatus(Long userId, BankAccountStatus status);
+
     List<BankAccount> findByUserIdAndStatusOrderByIdDesc(Long userId, BankAccountStatus status);
 
     Optional<BankAccount> findByIdAndUserIdAndStatus(Long id, Long userId, BankAccountStatus status);

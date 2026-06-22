@@ -31,7 +31,7 @@ const screenTitles: Partial<Record<RouteName, string>> = {
   ParentFamilyLink: '자녀 연결',
   ChildInviteCode: '보호자 연결',
   ParentHome: '부모 홈',
-  CreditCharge: '크레딧 충전',
+  CreditCharge: '적립금 충전',
   MissionCreate: '미션 등록',
   ParentApproval: '승인 대기',
   ChildHome: '자녀 홈',

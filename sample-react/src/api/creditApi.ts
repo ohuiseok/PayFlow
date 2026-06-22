@@ -162,10 +162,10 @@ function normalizeWithdrawal(response: WithdrawalResponse): WithdrawalResult {
 function walletTransactionTitle(referenceType: string, transactionType: string) {
   switch (referenceType) {
     case 'TOSS_PAYMENT_CHARGE':
-      return 'Toss 크레딧 충전';
+      return 'Toss 적립금 충전';
     case 'OPEN_BANKING_CHARGE':
     case 'MANUAL_CHARGE':
-      return '크레딧 충전';
+      return '적립금 충전';
     case 'OPEN_BANKING_WITHDRAWAL':
       return '계좌 출금';
     case 'OPEN_BANKING_REFUND':

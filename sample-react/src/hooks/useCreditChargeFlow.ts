@@ -23,6 +23,7 @@ export function useCreditChargeFlow({
 }) {
   const [status, setStatus] = useState<ProcessingStatus>('idle');
   const [apiError, setApiError] = useState('');
+  const [userMessage, setUserMessage] = useState('');
   const processingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { pollProcessing, polling } = useProcessingPolling();
   const requestChargeMutation = useMutation({
@@ -84,7 +85,7 @@ export function useCreditChargeFlow({
         },
         onTimeout: () => {
           setStatus('processing');
-          setApiError('충전 처리가 계속 진행 중입니다. 잠시 후 다시 확인해 주세요.');
+          setUserMessage('충전 처리가 계속 진행 중입니다.\n\r잠시 후 다시 확인해 주세요.');
         },
       });
     },
@@ -109,6 +110,7 @@ export function useCreditChargeFlow({
 
     setStatus('processing');
     setApiError('');
+    setUserMessage('');
 
     if (appConfig.useDummyData) {
       processingTimer.current = setTimeout(() => {
@@ -126,7 +128,9 @@ export function useCreditChargeFlow({
   return {
     apiError,
     charge,
+    clearUserMessage: () => setUserMessage(''),
     processing: status === 'processing' || polling || requestChargeMutation.isPending,
     status,
+    userMessage,
   };
 }

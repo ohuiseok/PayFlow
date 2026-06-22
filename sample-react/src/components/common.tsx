@@ -92,7 +92,7 @@ export function PrimaryButton({
   loading?: boolean;
   testID?: string;
   accessibilityLabel?: string;
-  variant?: 'primary' | 'dark';
+  variant?: 'primary' | 'dark' | 'secondary';
 }) {
   return (
     <TouchableOpacity
@@ -100,10 +100,10 @@ export function PrimaryButton({
       accessibilityLabel={accessibilityLabel ?? title}
       disabled={disabled || loading}
       onPress={onPress}
-      style={[styles.button, variant === 'dark' && styles.darkButton, (disabled || loading) && styles.buttonDisabled]}
+      style={[styles.button, variant === 'dark' && styles.darkButton, variant === 'secondary' && styles.secondaryButton, (disabled || loading) && styles.buttonDisabled]}
       testID={testID}
     >
-      {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.buttonText}>{title}</Text>}
+      {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={variant === 'secondary' ? styles.secondaryButtonText : styles.buttonText}>{title}</Text>}
     </TouchableOpacity>
   );
 }
@@ -214,6 +214,36 @@ export function Toast({
     <View style={[styles.toast, styles[`${tone}Toast`]]}>
       <Text style={[styles.toastText, styles[`${tone}ToastText`]]}>{message}</Text>
     </View>
+  );
+}
+
+export function AlertModal({
+  visible,
+  title,
+  body,
+  confirmTitle = '확인',
+  onConfirm,
+}: {
+  visible: boolean;
+  title: string;
+  body: string;
+  confirmTitle?: string;
+  onConfirm: () => void;
+}) {
+  return (
+    <Modal animationType="fade" transparent visible={visible} onRequestClose={onConfirm}>
+      <View style={styles.modalBackdrop}>
+        <View style={styles.modalPanel}>
+          <Text style={styles.modalTitle}>{title}</Text>
+          <Text style={styles.modalBody}>{body}</Text>
+          <View style={styles.modalActions}>
+            <TouchableOpacity activeOpacity={0.8} onPress={onConfirm} style={styles.modalConfirmButton}>
+              <Text style={styles.modalConfirmText}>{confirmTitle}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
   );
 }
 

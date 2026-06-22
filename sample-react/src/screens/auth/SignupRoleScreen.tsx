@@ -68,7 +68,7 @@ export function SignupRoleScreen({ navigation }: Props) {
         <RoleSelectCard
           label="부모 계정"
           title="미션을 만들고 보상 지급"
-          description="크레딧 충전, 자녀 연결, 제출 승인"
+          description="적립금 충전, 자녀 연결, 제출 승인"
           selected={role === 'parent'}
           onPress={() => setRole('parent')}
         />

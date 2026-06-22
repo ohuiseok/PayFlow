@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { familyApi } from '../../api/familyApi';
 import { ApiErrorBox } from '../../components/common/ApiErrorBox';
-import { Body, Card, Heading, PrimaryButton, ScreenFrame } from '../../components/common';
+import { AlertModal, Body, Card, Heading, PrimaryButton, ScreenFrame } from '../../components/common';
 import { appConfig } from '../../config/appConfig';
 import { RootStackParamList } from '../../navigation/routes';
 import { useAppState } from '../../state/AppState';
@@ -14,6 +14,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ChildInviteCode'>;
 export function ChildInviteCodeScreen({ navigation }: Props) {
   const { completeFamilyLink, currentUserId } = useAppState();
   const [apiError, setApiError] = useState('');
+  const [userMessage, setUserMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
   const checkLink = useCallback(async () => {
@@ -29,7 +30,7 @@ export function ChildInviteCodeScreen({ navigation }: Props) {
     try {
       const family = await familyApi.getMyParents();
       if (!family.linked) {
-        setApiError('아직 보호자 연결이 완료되지 않았습니다. 먼저 보호자에게 내 사용자 번호를 알려주세요.');
+        setUserMessage('아직 보호자 연결이 완료되지 않았습니다. \n\r먼저 보호자에게 내 사용자 번호를 알려주세요.');
         return;
       }
 
@@ -55,7 +56,14 @@ export function ChildInviteCodeScreen({ navigation }: Props) {
       <Card tone="blue">
         <Heading>내 사용자 번호</Heading>
         <Body>{currentUserId}</Body>
-      </Card>      <ApiErrorBox error={apiError} fallback="가족 연결 확인에 실패했습니다." />
+      </Card>
+      <ApiErrorBox error={apiError} fallback="가족 연결 확인에 실패했습니다." />
+      <AlertModal
+        visible={Boolean(userMessage)}
+        title="알림"
+        body={userMessage}
+        onConfirm={() => setUserMessage('')}
+      />
       <PrimaryButton
         title={loading ? '확인 중' : '연결 상태 확인'}
         onPress={checkLink}

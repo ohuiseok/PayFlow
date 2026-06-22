@@ -5,6 +5,7 @@ import { Platform } from 'react-native';
 
 import { creditApi } from '../../api/creditApi';
 import {
+  AlertModal,
   AmountQuickSelect,
   BalanceCard,
   Body,
@@ -52,7 +53,7 @@ export function CreditChargeScreen({ navigation }: Props) {
   const selectedBankAccount = bankAccounts.find((account) => account.primary) ?? bankAccounts[0];
   const displayBankAccount = toBankAccountViewModel(appConfig.useDummyData ? parentChargeAccount : selectedBankAccount);
   const canCharge = validAmount && (chargeMethod === 'toss' || Boolean(displayBankAccount));
-  const { apiError, charge, processing, status } = useCreditChargeFlow({
+  const { apiError, charge, clearUserMessage, processing, status, userMessage } = useCreditChargeFlow({
     amount,
     selectedBankAccount,
     method: chargeMethod,
@@ -88,18 +89,24 @@ export function CreditChargeScreen({ navigation }: Props) {
   }, [queryClient]);
 
   return (
-    <ScreenFrame eyebrow="크레딧 충전" title="보상 지갑 채우기" description="Toss 결제 또는 연결 계좌로 크레딧을 충전합니다.">
+    <ScreenFrame eyebrow="적립금 충전" title="적립금 채우기" description="">
       <BalanceCard label="현재 적립금" amount={displayBalance} description="충전 후 미션 승인에 사용할 수 있습니다." />
       <Card>
         <Label>충전 방식</Label>
         <PrimaryButton
           title="Toss 충전"
           onPress={() => setChargeMethod('toss')}
-          variant={chargeMethod === 'toss' ? 'primary' : 'dark'}
+          variant={chargeMethod === 'toss' ? 'primary' : 'secondary'}
           disabled={processing}
           testID="charge-method-toss-button"
         />
-        <SecondaryButton title="연결 계좌" onPress={() => setChargeMethod('bank')} testID="charge-method-bank-button" />
+        <PrimaryButton
+          title="연결 계좌"
+          onPress={() => setChargeMethod('bank')}
+          variant={chargeMethod === 'bank' ? 'primary' : 'secondary'}
+          disabled={processing}
+          testID="charge-method-bank-button"
+        />
       </Card>
       <Card>
         <Label>{chargeMethod === 'toss' ? 'Toss 결제' : '충전 계좌'}</Label>
@@ -148,6 +155,12 @@ export function CreditChargeScreen({ navigation }: Props) {
         <ProcessingTestActions disabled={processing || !canCharge} onSelect={(nextStatus) => charge(nextStatus)} />
       ) : null}
       {status === 'completed' ? <SecondaryButton title="부모 홈으로" onPress={() => navigation.navigate('ParentHome')} /> : null}
+      <AlertModal
+        visible={Boolean(userMessage)}
+        title="알림"
+        body={userMessage}
+        onConfirm={clearUserMessage}
+      />
     </ScreenFrame>
   );
 }

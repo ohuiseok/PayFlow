@@ -6,6 +6,7 @@ import { cashbookApi } from '../../api/cashbookApi';
 import { creditApi } from '../../api/creditApi';
 import { defaultChildUserId } from '../../api/missionApi';
 import {
+  AlertModal,
   AmountQuickSelect,
   BalanceCard,
   Body,
@@ -54,7 +55,7 @@ export function ChildWithdrawalScreen({ navigation }: Props) {
   const selectedBankAccount = bankAccounts.find((account) => account.primary) ?? bankAccounts[0];
   const displayBankAccount = toBankAccountViewModel(appConfig.useDummyData ? linkedBankAccount : selectedBankAccount);
   const valid = isAmountInRange(amount, 1000, displayBalance);
-  const { apiError, message, processing, status, withdraw } = useWithdrawalFlow({
+  const { apiError, clearUserMessage, message, processing, status, userMessage, withdraw } = useWithdrawalFlow({
     amount,
     selectedBankAccount,
     valid,
@@ -110,6 +111,12 @@ export function ChildWithdrawalScreen({ navigation }: Props) {
       {appConfig.useDummyData && linkedBankAccount ? (
         <ProcessingTestActions disabled={processing || !valid} onSelect={(nextStatus) => withdraw(nextStatus)} />
       ) : null}
+      <AlertModal
+        visible={Boolean(userMessage)}
+        title="알림"
+        body={userMessage}
+        onConfirm={clearUserMessage}
+      />
     </ScreenFrame>
   );
 }

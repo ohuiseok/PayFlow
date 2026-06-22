@@ -94,6 +94,7 @@ type AppStateValue = {
   role: UserRole | null;
   currentUserId: string;
   currentUserName: string;
+  hasBankAccount: boolean;
   familyLinked: boolean;
   inviteCode: string;
   linkedChildren: LinkedChild[];
@@ -125,6 +126,7 @@ export function AppStateProvider({ children }: PropsWithChildren) {
   const [role, setRole] = useState<UserRole | null>(null);
   const [currentUserId, setCurrentUserId] = useState('1');
   const [currentUserName, setCurrentUserName] = useState(defaultParentName);
+  const [hasBankAccount, setHasBankAccount] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -138,6 +140,7 @@ export function AppStateProvider({ children }: PropsWithChildren) {
             setRole(user.role);
             setCurrentUserId(user.userId);
             setCurrentUserName(user.name);
+            setHasBankAccount(user.hasBankAccount ?? false);
           }
 
           if (user.role === 'child') {
@@ -178,6 +181,7 @@ export function AppStateProvider({ children }: PropsWithChildren) {
       role,
       currentUserId,
       currentUserName,
+      hasBankAccount,
       familyLinked,
       inviteCode: 'PF-4829',
       linkedChildren: dummyLinkedChildren,

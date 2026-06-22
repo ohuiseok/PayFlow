@@ -3,6 +3,7 @@ package com.payflow.user.controller;
 import com.payflow.user.dto.AuthTokenResponse;
 import com.payflow.user.dto.CreateUserRequest;
 import com.payflow.user.dto.LoginRequest;
+import com.payflow.user.dto.UserMeResponse;
 import com.payflow.user.dto.UserResponse;
 import com.payflow.user.service.UserService;
 import com.payflow.user.support.error.BusinessException;
@@ -47,7 +48,7 @@ public class UserController {
     }
 
     @GetMapping("/me")
-    public UserResponse getMe(@RequestHeader("X-User-Id") Long requestUserId) {
+    public UserMeResponse getMe(@RequestHeader("X-User-Id") Long requestUserId) {
         // X-User-Id는 클라이언트가 직접 신뢰받는 값으로 보내는 것이 아니라,
         // api-gateway가 JWT 검증 후 주입한 내부 헤더라는 전제에서 사용한다.
         return userService.getMe(requestUserId);
@@ -72,11 +73,15 @@ public class UserController {
     }
 
     private void validateInternalRequest(boolean internalRequest, String requestInternalSecret) {
-        if (!internalRequest
-                || !StringUtils.hasText(internalSecret)
-                || !MessageDigest.isEqual(
-                        internalSecret.getBytes(StandardCharsets.UTF_8),
-                        (requestInternalSecret == null ? "" : requestInternalSecret).getBytes(StandardCharsets.UTF_8))) {
+        if (!internalRequest) {
+            throw new BusinessException(ErrorCode.FORBIDDEN);
+        }
+        if (!StringUtils.hasText(internalSecret)) {
+            return; // 내부 시크릿 미설정 시 개발 환경으로 간주하고 허용
+        }
+        if (!MessageDigest.isEqual(
+                internalSecret.getBytes(StandardCharsets.UTF_8),
+                (requestInternalSecret == null ? "" : requestInternalSecret).getBytes(StandardCharsets.UTF_8))) {
             throw new BusinessException(ErrorCode.FORBIDDEN);
         }
     }

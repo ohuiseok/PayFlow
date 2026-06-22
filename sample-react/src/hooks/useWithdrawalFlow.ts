@@ -23,6 +23,7 @@ export function useWithdrawalFlow({
   const [status, setStatus] = useState<ProcessingStatus>('idle');
   const [apiError, setApiError] = useState('');
   const [message, setMessage] = useState('');
+  const [userMessage, setUserMessage] = useState('');
   const processingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { pollProcessing, polling } = useProcessingPolling();
   const requestWithdrawalMutation = useMutation({
@@ -62,7 +63,7 @@ export function useWithdrawalFlow({
         },
         onTimeout: () => {
           setStatus('processing');
-          setApiError('출금 처리가 계속 진행 중입니다. 잠시 후 다시 확인해 주세요.');
+          setUserMessage('출금 처리가 계속 진행 중입니다.\n\r잠시 후 다시 확인해 주세요.');
         },
       });
     },
@@ -88,6 +89,7 @@ export function useWithdrawalFlow({
     setMessage('');
     setStatus('processing');
     setApiError('');
+    setUserMessage('');
 
     if (appConfig.useDummyData) {
       processingTimer.current = setTimeout(() => {
@@ -108,9 +110,11 @@ export function useWithdrawalFlow({
 
   return {
     apiError,
+    clearUserMessage: () => setUserMessage(''),
     message,
     processing: status === 'processing' || polling || requestWithdrawalMutation.isPending,
     status,
+    userMessage,
     withdraw,
   };
 }

@@ -6,10 +6,11 @@ import { StackActions } from '@react-navigation/native';
 
 import { creditApi } from '../../api/creditApi';
 import { ApiErrorBox } from '../../components/common/ApiErrorBox';
-import { PrimaryButton, ScreenFrame } from '../../components/common';
+import { AlertModal, PrimaryButton, ScreenFrame } from '../../components/common';
 
 export function BankAccountRegisterScreen() {
   const [apiError, setApiError] = useState('');
+  const [userMessage, setUserMessage] = useState('');
   const [openBankingLoading, setOpenBankingLoading] = useState(false);
   const queryClient = useQueryClient();
   const navigation = useNavigation();
@@ -28,8 +29,7 @@ export function BankAccountRegisterScreen() {
       queryClient.invalidateQueries({ queryKey: ['credit', 'bankAccounts'] });
       navigation.dispatch(StackActions.replace('ChildHome'));
     } else {
-      console.error('계좌 연결에 실패했습니다. 다시 시도해주세요.');
-      setApiError('계좌 연결에 실패했습니다. 다시 시도해주세요.');
+      setUserMessage('계좌 연결에 실패했습니다.\n\r다시 시도해주세요.');
     }
   }, [queryClient, navigation]);
 
@@ -57,6 +57,12 @@ export function BankAccountRegisterScreen() {
         testID="open-banking-connect-button"
       />
       <ApiErrorBox error={apiError} fallback="계좌 연결에 실패했습니다." />
+      <AlertModal
+        visible={Boolean(userMessage)}
+        title="알림"
+        body={userMessage}
+        onConfirm={() => setUserMessage('')}
+      />
     </ScreenFrame>
   );
 }
