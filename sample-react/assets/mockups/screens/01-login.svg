@@ -15,5 +15,5 @@
   <rect x="48" y="618" width="294" height="94" rx="10" fill="#EAF6EF"/>
   <text x="68" y="653" fill="#1F7A5C" font-family="Arial, sans-serif" font-size="16" font-weight="800">역할 선택</text>
   <text x="68" y="682" fill="#4D5964" font-family="Arial, sans-serif" font-size="15">부모 계정은 충전과 승인</text>
-  <text x="68" y="707" fill="#4D5964" font-family="Arial, sans-serif" font-size="15">자녀 계정은 미션 제출과 캐시북</text>
+  <text x="68" y="707" fill="#4D5964" font-family="Arial, sans-serif" font-size="15">자녀 계정은 미션 제출과 사용 기록</text>
 </svg>

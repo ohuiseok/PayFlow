@@ -187,17 +187,6 @@ export function BalanceCard({ label, amount, description }: { label: string; amo
   );
 }
 
-export function InfoBox({ title, body, tone = 'green' }: { title: string; body: string; tone?: 'green' | 'blue' | 'yellow' }) {
-  return (
-    <Card tone={tone}>
-      <Text style={[styles.infoTitle, tone === 'blue' && styles.blueText, tone === 'yellow' && styles.yellowText]}>
-        {title}
-      </Text>
-      <Text style={styles.infoBody}>{body}</Text>
-    </Card>
-  );
-}
-
 export function AmountQuickSelect({ amounts, onSelect }: { amounts: number[]; onSelect: (amount: number) => void }) {
   return (
     <View style={styles.quickRow}>
@@ -305,7 +294,7 @@ const styles = StyleSheet.create({
   },
   description: {
     color: colors.muted,
-    fontSize: 17,
+    fontSize: 16,
     lineHeight: 25,
     marginTop: 10,
   },

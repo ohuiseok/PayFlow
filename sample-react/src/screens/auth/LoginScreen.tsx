@@ -4,7 +4,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { authApi } from '../../api/authApi';
 import { RoleSwitch } from '../../components/auth/RoleSwitch';
-import { colors, FormField, InfoBox, PrimaryButton, ScreenFrame } from '../../components/common';
+import { colors, FormField, PrimaryButton, ScreenFrame } from '../../components/common';
 import { appConfig } from '../../config/appConfig';
 import { RootStackParamList } from '../../navigation/routes';
 import { useAppState } from '../../state/AppState';
@@ -16,18 +16,29 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
 export function LoginScreen({ navigation }: Props) {
   const { isRestoringSession, loginAs, familyLinked, role } = useAppState();
-  const [phone, setPhone] = useState('01012345678');
-  const [password, setPassword] = useState('password12');
+  const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   // 이미 로그인 상태면 홈으로 자동 이동
+  // 딥링크로 [Login, CreditCharge] 같은 스택이 생긴 경우, reset으로 한 번에 재구성해
+  // 뒤로가기 시 Login이 아닌 홈으로 가도록 보장한다.
   useEffect(() => {
     if (isRestoringSession || !role) return;
-    if (role === 'parent') {
-      navigation.replace('ParentHome');
+    const homeRoute = role === 'parent' ? 'ParentHome' : (familyLinked ? 'ChildHome' : 'ChildInviteCode');
+    const state = navigation.getState();
+    if (state && state.routes.length > 1) {
+      // Login 아래에 다른 스크린이 있는 딥링크 케이스
+      navigation.reset({
+        index: state.routes.length - 1,
+        routes: [
+          { name: homeRoute },
+          ...state.routes.slice(1).map((r) => ({ name: r.name, params: r.params })),
+        ],
+      });
     } else {
-      navigation.replace(familyLinked ? 'ChildHome' : 'ChildInviteCode');
+      navigation.replace(homeRoute);
     }
   }, [isRestoringSession, role, familyLinked, navigation]);
 
@@ -62,6 +73,7 @@ export function LoginScreen({ navigation }: Props) {
       loginAs(user.role, user.name, user.userId);
       moveAfterAuth(user.role);
     } catch (loginError) {
+      console.error(getErrorMessage(loginError, '로그인에 실패했습니다.'), loginError);
       setError(getErrorMessage(loginError, '로그인에 실패했습니다.'));
     } finally {
       setLoading(false);
@@ -71,7 +83,7 @@ export function LoginScreen({ navigation }: Props) {
   return (
     <ScreenFrame>
       <View style={styles.loginCard}>
-        <Text style={styles.brand}>페이플로우 패밀리</Text>
+        <Text style={styles.brand}>PayFlow</Text>
         <Text style={styles.loginTitle}>미션으로 배우는 용돈 관리</Text>
         <Text style={styles.loginSub}>부모가 미션을 만들고 자녀가 보상을 받아요.</Text>
         <View style={styles.spacer} />
@@ -102,14 +114,6 @@ export function LoginScreen({ navigation }: Props) {
             처음이신가요? <Text style={styles.linkStrong}>회원가입</Text>
           </Text>
         </TouchableOpacity>
-        {appConfig.useDummyData ? (
-          <>
-            <InfoBox title="역할 선택" body="로그인은 부모 계정으로 시작합니다. 아래 버튼으로 자녀 계정도 바로 확인할 수 있어요." />
-            <RoleSwitch onSelect={login} />
-          </>
-        ) : (
-          <InfoBox title="서버 로그인" body="로그인 응답의 역할 값에 따라 부모/자녀 화면으로 자동 이동합니다." />
-        )}
       </View>
     </ScreenFrame>
   );
@@ -132,7 +136,7 @@ const styles = StyleSheet.create({
   },
   loginTitle: {
     color: colors.text,
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: '900',
     lineHeight: 39,
   },

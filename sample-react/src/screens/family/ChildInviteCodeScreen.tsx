@@ -1,9 +1,9 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { familyApi } from '../../api/familyApi';
 import { ApiErrorBox } from '../../components/common/ApiErrorBox';
-import { Body, Card, Heading, InfoBox, PrimaryButton, ScreenFrame } from '../../components/common';
+import { Body, Card, Heading, PrimaryButton, ScreenFrame } from '../../components/common';
 import { appConfig } from '../../config/appConfig';
 import { RootStackParamList } from '../../navigation/routes';
 import { useAppState } from '../../state/AppState';
@@ -16,7 +16,7 @@ export function ChildInviteCodeScreen({ navigation }: Props) {
   const [apiError, setApiError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const checkLink = async () => {
+  const checkLink = useCallback(async () => {
     if (appConfig.useDummyData) {
       completeFamilyLink();
       navigation.replace('ChildHome');
@@ -40,7 +40,11 @@ export function ChildInviteCodeScreen({ navigation }: Props) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [completeFamilyLink, navigation]);
+
+  useEffect(() => {
+    checkLink();
+  }, [checkLink]);
 
   return (
     <ScreenFrame
@@ -51,13 +55,7 @@ export function ChildInviteCodeScreen({ navigation }: Props) {
       <Card tone="blue">
         <Heading>내 사용자 번호</Heading>
         <Body>{currentUserId}</Body>
-      </Card>
-      <InfoBox
-        tone="yellow"
-        title="서버 처리 흐름"
-        body="현재 서버는 보호자가 자녀 사용자 번호를 입력하면 활성 가족 연결을 생성합니다."
-      />
-      <ApiErrorBox error={apiError} fallback="가족 연결 확인에 실패했습니다." />
+      </Card>      <ApiErrorBox error={apiError} fallback="가족 연결 확인에 실패했습니다." />
       <PrimaryButton
         title={loading ? '확인 중' : '연결 상태 확인'}
         onPress={checkLink}

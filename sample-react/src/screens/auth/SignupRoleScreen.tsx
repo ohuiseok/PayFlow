@@ -4,7 +4,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { authApi } from '../../api/authApi';
 import { RoleSelectCard } from '../../components/auth/RoleSelectCard';
-import { FormField, InfoBox, PrimaryButton, ScreenFrame } from '../../components/common';
+import { FormField, PrimaryButton, ScreenFrame } from '../../components/common';
 import { appConfig } from '../../config/appConfig';
 import { RootStackParamList } from '../../navigation/routes';
 import { useAppState } from '../../state/AppState';
@@ -55,6 +55,7 @@ export function SignupRoleScreen({ navigation }: Props) {
       signupAs(user.role, user.name, user.userId);
       navigation.replace(user.role === 'parent' ? 'ParentFamilyLink' : 'ChildInviteCode');
     } catch (signupError) {
+      console.error(getErrorMessage(signupError, '회원가입에 실패했습니다.'), signupError);
       setError(getErrorMessage(signupError, '회원가입에 실패했습니다.'));
     } finally {
       setLoading(false);
@@ -62,7 +63,7 @@ export function SignupRoleScreen({ navigation }: Props) {
   };
 
   return (
-    <ScreenFrame eyebrow="회원가입" title="어떤 계정인가요?" description="역할에 따라 화면과 권한이 달라집니다.">
+    <ScreenFrame eyebrow="" title="어떤 계정인가요?" description="">
       <View style={styles.roleCards}>
         <RoleSelectCard
           label="부모 계정"
@@ -74,7 +75,7 @@ export function SignupRoleScreen({ navigation }: Props) {
         <RoleSelectCard
           label="자녀 계정"
           title="미션을 완료하고 돈 벌기"
-          description="미션 확인, 완료 제출, 캐시북 기록"
+          description="미션 확인, 완료 제출, 사용 기록 기록"
           selected={role === 'child'}
           onPress={() => setRole('child')}
         />
@@ -95,9 +96,6 @@ export function SignupRoleScreen({ navigation }: Props) {
         error={error}
         disabled={loading}
       />
-      {!appConfig.useDummyData ? (
-        <InfoBox tone="blue" title="서버 회원가입" body="가입과 동시에 지갑이 생성되고, 역할 값에 따라 다음 화면이 결정됩니다." />
-      ) : null}
       <PrimaryButton title={loading ? '처리 중' : '다음으로'} onPress={submit} disabled={!canSubmit || loading} loading={loading} />
     </ScreenFrame>
   );

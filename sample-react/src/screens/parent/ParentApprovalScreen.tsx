@@ -6,7 +6,7 @@ import { StyleSheet, View } from 'react-native';
 import { familyApi } from '../../api/familyApi';
 import { missionApi } from '../../api/missionApi';
 import { ApiErrorBox } from '../../components/common/ApiErrorBox';
-import { Body, Card, FormField, Heading, InfoBox, Label, PrimaryButton, ScreenFrame, SecondaryButton } from '../../components/common';
+import { Body, Card, FormField, Heading, Label, PrimaryButton, ScreenFrame, SecondaryButton } from '../../components/common';
 import { EmptyState, LoadingState } from '../../components/common/ScreenStates';
 import { ChildOption, ChildSelector } from '../../components/mission/ChildSelector';
 import { MissionCard } from '../../components/mission/MissionCard';
@@ -150,9 +150,7 @@ export function ParentApprovalScreen({ navigation }: Props) {
             <Body>승인하면 미션 승인 처리 후 보상 지급이 이어집니다.</Body>
           </Card>
           <FormField label="반려 사유" placeholder="반려 사유" value={reason} onChangeText={setReason} disabled={loading} />
-          <ApiErrorBox error={apiError} fallback="미션 처리에 실패했습니다." />
-          {message ? <InfoBox tone="yellow" title="처리 결과" body={message} /> : null}
-          <View style={styles.twoButtons}>
+          <ApiErrorBox error={apiError} fallback="미션 처리에 실패했습니다." />          <View style={styles.twoButtons}>
             <PrimaryButton
               title={loading ? '처리 중' : '승인하고 지급'}
               onPress={() => approveMutation.mutate()}

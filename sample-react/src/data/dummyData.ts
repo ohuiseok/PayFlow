@@ -82,7 +82,7 @@ export const flows = [
     stage: '캘린더',
   },
   {
-    title: '아이 캐시북 기록',
+    title: '아이 사용 기록 기록',
     description: '아이가 어떤 미션으로 돈을 벌었는지 기록과 잔액을 확인합니다.',
     stage: '기록',
   },

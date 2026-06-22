@@ -1,10 +1,15 @@
-import { InfoBox } from '../common';
+import { useEffect } from 'react';
+
 import { getErrorMessage } from '../../utils/apiError';
 
 export function ApiErrorBox({ error, fallback }: { error: unknown; fallback: string }) {
-  if (!error) {
-    return null;
-  }
+  useEffect(() => {
+    if (!error) {
+      return;
+    }
 
-  return <InfoBox tone="yellow" title="서버 오류" body={getErrorMessage(error, fallback)} />;
+    console.error(getErrorMessage(error, fallback), error);
+  }, [error, fallback]);
+
+  return null;
 }

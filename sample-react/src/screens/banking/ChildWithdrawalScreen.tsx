@@ -15,7 +15,6 @@ import {
   formatAmountInput,
   formatWon,
   Heading,
-  InfoBox,
   Label,
   parseAmount,
   PrimaryButton,
@@ -30,7 +29,6 @@ import { RootStackParamList } from '../../navigation/routes';
 import { useAppState } from '../../state/AppState';
 import { isAmountInRange } from '../../utils/validators';
 import { formatBankAccountHolder, formatBankAccountLabel, toBankAccountViewModel } from '../../viewModels/bankAccountViewModel';
-import { processingLabel } from '../shared/processingStatus';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ChildWithdrawal'>;
 
@@ -69,10 +67,8 @@ export function ChildWithdrawalScreen({ navigation }: Props) {
       queryClient.invalidateQueries({ queryKey: ['cashbook'] });
     },
   });
-  const statusCopy = processingLabel(status);
-
   return (
-    <ScreenFrame eyebrow="계좌 출금" title="캐시북에서 출금" description="모은 보상을 등록 계좌로 보냅니다.">
+    <ScreenFrame eyebrow="계좌 출금" title="사용 기록에서 출금" description="모은 보상을 등록 계좌로 보냅니다.">
       <BalanceCard label="출금 가능 잔액" amount={displayBalance} description="요청 후 처리 상태를 거쳐 완료됩니다." />
       <Card>
         <Label>받을 계좌</Label>
@@ -92,8 +88,6 @@ export function ChildWithdrawalScreen({ navigation }: Props) {
         error={amountText && !valid ? '잔액 안에서 1,000원 이상 출금할 수 있습니다.' : undefined}
       />
       <AmountQuickSelect amounts={[5000, 10000, 30000]} onSelect={(value) => setAmountText(String(value))} />
-      <InfoBox tone="yellow" title="주의" body="출금 요청 중에는 같은 요청을 다시 보낼 수 없습니다." />
-      {status !== 'idle' ? <InfoBox tone={statusCopy.tone} title={statusCopy.title} body={statusCopy.body} /> : null}
       {status === 'completed' ? <Toast message={message || '출금 완료 · 잔액이 차감되었습니다.'} /> : null}
       {status === 'failed' ? <Toast tone="danger" message="출금에 실패했습니다. 금액과 계좌를 확인해 주세요." /> : null}
       <PrimaryButton
@@ -104,7 +98,7 @@ export function ChildWithdrawalScreen({ navigation }: Props) {
       />
       <ConfirmModal
         visible={confirming}
-        title={`${formatWon(amount)} 출금할까요?`}
+        title={`${formatWon(amount)} 출사용 기록요?`}
         body="확인하면 자녀 지갑 잔액에서 바로 차감하고 캐시북에 출금 기록을 남깁니다."
         confirmTitle="출금 진행"
         onConfirm={() => {

@@ -202,8 +202,8 @@ docs/implementation-plan/02-database-and-migration.md
 - [x] `reward-payment-{missionId}` Idempotency-Key 적용
 - [x] 이미 PAID인 미션 재승인 시 기존 결과 반환
 - [x] 송금 실패 시 failureReason 저장
-- [x] 캐시북 요약 API 구현
-- [x] 캐시북 내역 API 구현
+- [x] 사용 기록 요약 API 구현
+- [x] 사용 기록 내역 API 구현
 - [x] Gateway reward-service route 추가 (/api/families/**, /api/missions/**, /api/cashbook/**)
 - [x] docker-compose reward-service 추가
 - [x] reward-service 테스트 작성

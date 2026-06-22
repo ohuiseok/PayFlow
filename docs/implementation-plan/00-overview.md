@@ -39,7 +39,7 @@ Docker Compose
 3. 멱등성은 거래 테이블의 `idempotency_key`, `request_hash`로 처리한다.
 4. 가족은 별도 family aggregate 없이 `parent_child_links`로 단순하게 표현한다.
 5. 미션 제출 이력은 `reward_tasks` 상태 전이로 표현한다.
-6. 캐시북은 별도 테이블 없이 지갑 거래와 지급 완료 미션으로 조회한다.
+6. 사용 기록은 별도 테이블 없이 지갑 거래와 지급 완료 미션으로 조회한다.
 7. 원장은 `ledger_entries`, `ledger_lines`로 복식부기 형태를 유지한다.
 8. 서비스 간 호출은 동기 HTTP로 시작한다.
 9. 실패 복구는 상태값과 재시도 가능한 API로 설명한다.

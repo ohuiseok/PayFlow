@@ -12,7 +12,7 @@
   <rect x="24" y="334" width="342" height="142" rx="14" fill="#FFFFFF" stroke="#E4E9EE"/>
   <text x="48" y="374" fill="#2B6CB0" font-family="Arial, sans-serif" font-size="15" font-weight="800">자녀 계정</text>
   <text x="48" y="412" fill="#151B22" font-family="Arial, sans-serif" font-size="24" font-weight="800">미션을 완료하고 돈 벌기</text>
-  <text x="48" y="444" fill="#66717C" font-family="Arial, sans-serif" font-size="15">미션 확인, 완료 제출, 캐시북 기록</text>
+  <text x="48" y="444" fill="#66717C" font-family="Arial, sans-serif" font-size="15">미션 확인, 완료 제출, 사용 기록 기록</text>
   <rect x="24" y="520" width="342" height="58" rx="8" fill="#FFFFFF" stroke="#DDE4EA"/>
   <text x="48" y="555" fill="#75818D" font-family="Arial, sans-serif" font-size="16">이름</text>
   <rect x="24" y="594" width="342" height="58" rx="8" fill="#FFFFFF" stroke="#DDE4EA"/>

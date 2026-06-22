@@ -54,7 +54,7 @@ export function ChildHomeScreen({ navigation }: Props) {
   };
 
   return (
-    <ScreenFrame eyebrow="자녀 홈" title="내 미션과 캐시북" description="받을 수 있는 보상과 최근 기록을 확인합니다.">
+    <ScreenFrame eyebrow="자녀 홈" title="내 미션과 사용 기록" description="받을 수 있는 보상과 최근 기록을 확인합니다.">
       <BalanceCard
         label="내 지갑 잔액"
         amount={displayCashBalance}
@@ -83,8 +83,8 @@ export function ChildHomeScreen({ navigation }: Props) {
         />
       </View>
       <ApiErrorBox error={missionsQuery.error} fallback="미션 목록 조회에 실패했습니다." />
-      <ApiErrorBox error={summaryQuery.error} fallback="캐시북 요약 조회에 실패했습니다." />
-      <ApiErrorBox error={entriesQuery.error} fallback="캐시북 내역 조회에 실패했습니다." />
+      <ApiErrorBox error={summaryQuery.error} fallback="사용 기록 요약 조회에 실패했습니다." />
+      <ApiErrorBox error={entriesQuery.error} fallback="사용 기록 내역 조회에 실패했습니다." />
       <Text style={styles.sectionTitle}>미션</Text>
       {displayMissions.map((mission) => (
         <MissionCard
@@ -94,7 +94,7 @@ export function ChildHomeScreen({ navigation }: Props) {
           onPress={() => openMission(mission)}
         />
       ))}
-      <Text style={styles.sectionTitle}>최근 캐시북</Text>
+      <Text style={styles.sectionTitle}>최근 사용 기록</Text>
       {displayCashbookEntries.map((entry) => <CashbookEntryItem key={entry.id} entry={entry} />)}
     </ScreenFrame>
   );

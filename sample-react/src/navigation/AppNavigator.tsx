@@ -45,10 +45,10 @@ const screenOptions = {
   contentStyle: { backgroundColor: '#F5F7F8' },
   headerBackTitle: '뒤로',
   headerShadowVisible: false,
-  headerStyle: { backgroundColor: '#F5F7F8' },
-  headerTintColor: '#20262D',
+  headerStyle: { backgroundColor: '#97C4A5' },
+  headerTintColor: '#FAFAF8',
   headerTitleAlign: 'center' as const,
-  headerTitleStyle: { fontSize: 16, fontWeight: '900' as const },
+  headerTitleStyle: { fontFamily: 'Pretendard', fontSize: 19, fontWeight: '900' as const },
 };
 
 function RoleGuard({
@@ -133,9 +133,13 @@ export function AppNavigator() {
       <Stack.Screen name="SignupRole" component={SignupRoleScreen} options={{ title: screenTitles.SignupRole }} />
       <Stack.Screen name="ParentFamilyLink" component={GuardedParentFamilyLinkScreen} options={{ title: screenTitles.ParentFamilyLink }} />
       <Stack.Screen name="ChildInviteCode" component={GuardedChildInviteCodeScreen} options={{ title: screenTitles.ChildInviteCode }} />
-      <Stack.Screen name="ParentHome" component={GuardedParentHomeScreen} options={{ title: screenTitles.ParentHome }} />
+      <Stack.Screen
+        name="ParentHome"
+        component={GuardedParentHomeScreen}
+        options={{ headerBackVisible: false, headerLeft: () => null, title: screenTitles.ParentHome }}
+      />
       <Stack.Screen name="CreditCharge" component={GuardedCreditChargeScreen} options={{ title: screenTitles.CreditCharge }} />
-      <Stack.Screen name="PaymentOperations" component={GuardedPaymentOperationsScreen} options={{ title: '결제 운영' }} />
+      {/* <Stack.Screen name="PaymentOperations" component={GuardedPaymentOperationsScreen} options={{ title: '결제 운영' }} /> */}
       <Stack.Screen name="MissionCreate" component={GuardedMissionCreateScreen} options={{ title: screenTitles.MissionCreate }} />
       <Stack.Screen name="ParentApproval" component={GuardedParentApprovalScreen} options={{ title: screenTitles.ParentApproval }} />
       <Stack.Screen name="ChildHome" component={GuardedChildHomeScreen} options={{ title: screenTitles.ChildHome }} />

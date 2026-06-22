@@ -412,7 +412,7 @@ public class BankingService {
             );
             reflectDepositToWallet(transfer, userId);
             return BankingTransferResponse.from(transfer);
-        } catch (OpenBankingAmbiguousException | RuntimeException exception) {
+        } catch (RuntimeException exception) {
             saveApiLog(
                     transfer.getId(),
                     "WITHDRAW_TRANSFER",

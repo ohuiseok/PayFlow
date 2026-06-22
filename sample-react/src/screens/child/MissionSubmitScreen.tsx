@@ -4,7 +4,7 @@ import { useState } from 'react';
 
 import { missionApi } from '../../api/missionApi';
 import { ApiErrorBox } from '../../components/common/ApiErrorBox';
-import { FormField, InfoBox, PrimaryButton, ScreenFrame, SecondaryButton } from '../../components/common';
+import { FormField, PrimaryButton, ScreenFrame, SecondaryButton } from '../../components/common';
 import { LoadingState } from '../../components/common/ScreenStates';
 import { MissionCard } from '../../components/mission/MissionCard';
 import { appConfig } from '../../config/appConfig';
@@ -57,9 +57,7 @@ export function MissionSubmitScreen({ navigation, route }: Props) {
     <ScreenFrame eyebrow="완료 제출" title="미션 완료 알리기" description="완료한 내용을 부모에게 제출합니다.">
       <MissionCard mission={mission} />
       {canSubmit ? (
-        <>
-          <InfoBox tone="blue" title="사진 첨부" body="현재 버전에서는 사진 주소 예시값으로 제출합니다." />
-          <ApiErrorBox error={apiError} fallback="미션 제출에 실패했습니다." />
+        <>          <ApiErrorBox error={apiError} fallback="미션 제출에 실패했습니다." />
           <FormField label="제출 메모" placeholder="완료 내용을 적어주세요." value={memo} onChangeText={setMemo} disabled={loading} />
           <PrimaryButton
             title={loading ? '제출 중' : '제출하기'}
@@ -69,9 +67,7 @@ export function MissionSubmitScreen({ navigation, route }: Props) {
           />
         </>
       ) : (
-        <>
-          <InfoBox tone="yellow" title="제출할 수 없는 상태" body="이미 제출했거나 지급 완료된 미션은 다시 제출할 수 없습니다." />
-          <SecondaryButton title="자녀 홈으로" onPress={() => navigation.navigate('ChildHome')} />
+        <>          <SecondaryButton title="자녀 홈으로" onPress={() => navigation.navigate('ChildHome')} />
         </>
       )}
     </ScreenFrame>

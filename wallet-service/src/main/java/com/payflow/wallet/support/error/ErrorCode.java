@@ -11,7 +11,7 @@ public enum ErrorCode {
     RESOURCE_OWNER_MISMATCH(HttpStatus.FORBIDDEN, "리소스 소유자가 일치하지 않습니다."),
 
     USER_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 가입된 사용자입니다."),
-    INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다."),
+    INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "아이디 또는 비밀번호가 올바르지 않습니다."),
 
     WALLET_NOT_FOUND(HttpStatus.NOT_FOUND, "지갑을 찾을 수 없습니다."),
     WALLET_LOCKED(HttpStatus.CONFLICT, "잠긴 지갑입니다."),

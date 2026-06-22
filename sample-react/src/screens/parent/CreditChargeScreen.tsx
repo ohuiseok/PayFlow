@@ -11,8 +11,6 @@ import {
   Card,
   FormField,
   formatAmountInput,
-  formatWon,
-  InfoBox,
   Label,
   parseAmount,
   PrimaryButton,
@@ -29,7 +27,6 @@ import { RootStackParamList } from '../../navigation/routes';
 import { useAppState } from '../../state/AppState';
 import { isAmountInRange } from '../../utils/validators';
 import { formatBankAccountHolder, formatBankAccountLabel, toBankAccountViewModel } from '../../viewModels/bankAccountViewModel';
-import { processingLabel } from '../shared/processingStatus';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CreditCharge'>;
 
@@ -69,8 +66,6 @@ export function CreditChargeScreen({ navigation }: Props) {
       }
     },
   });
-  const statusCopy = processingLabel(status);
-
   useEffect(() => {
     if (Platform.OS !== 'web' || typeof window === 'undefined') {
       return;
@@ -94,7 +89,7 @@ export function CreditChargeScreen({ navigation }: Props) {
 
   return (
     <ScreenFrame eyebrow="크레딧 충전" title="보상 지갑 채우기" description="Toss 결제 또는 연결 계좌로 크레딧을 충전합니다.">
-      <BalanceCard label="현재 보상 크레딧" amount={displayBalance} description="충전 후 미션 승인에 사용할 수 있습니다." />
+      <BalanceCard label="현재 적립금" amount={displayBalance} description="충전 후 미션 승인에 사용할 수 있습니다." />
       <Card>
         <Label>충전 방식</Label>
         <PrimaryButton
@@ -109,7 +104,7 @@ export function CreditChargeScreen({ navigation }: Props) {
       <Card>
         <Label>{chargeMethod === 'toss' ? 'Toss 결제' : '충전 계좌'}</Label>
         {chargeMethod === 'toss' ? (
-          <Body>Toss 결제 승인 후 지갑에 바로 충전됩니다. 로컬 개발에서는 mock 승인으로 처리합니다.</Body>
+          <Body>Toss 결제 승인 후 지갑에 바로 충전됩니다.</Body>
         ) : appConfig.useDummyData ? (
           <>
             <Body>{formatBankAccountLabel(displayBankAccount)}</Body>
@@ -141,15 +136,6 @@ export function CreditChargeScreen({ navigation }: Props) {
         error={amountText && !validAmount ? '10,000원부터 1,000,000원까지 충전할 수 있습니다.' : undefined}
       />
       <AmountQuickSelect amounts={[10000, 30000, 50000]} onSelect={(value) => setAmountText(String(value))} />
-      <InfoBox
-        tone={status === 'idle' ? 'green' : statusCopy.tone}
-        title={status === 'idle' ? '예상 잔액' : statusCopy.title}
-        body={
-          status === 'idle'
-            ? `${formatWon(displayBalance + (validAmount ? amount : 0))}`
-            : `${statusCopy.body} · 현재 잔액 ${formatWon(displayBalance)}`
-        }
-      />
       {status === 'completed' ? <Toast message="충전 완료 · 보상 크레딧이 증가했습니다." /> : null}
       {status === 'failed' ? <Toast tone="danger" message="충전에 실패했습니다. 다시 시도해 주세요." /> : null}
       <PrimaryButton

@@ -1,6 +1,7 @@
 import { createContext, PropsWithChildren, useContext, useEffect, useMemo, useState } from 'react';
 
 import { authApi } from '../api/authApi';
+import { familyApi } from '../api/familyApi';
 import { tokenStorage } from '../storage/tokenStorage';
 import { BankAccount, CashbookEntry, LinkedChild, Mission, UserRole } from '../types';
 
@@ -68,7 +69,7 @@ const initialCashbook: CashbookEntry[] = [
 const initialParentCreditEntries: CashbookEntry[] = [
   {
     id: 'parent-credit-001',
-    title: '보상 크레딧 충전',
+    title: '적립금 충전',
     description: '국민은행 1234-56-789012',
     amount: 50000,
     type: 'charge',
@@ -138,6 +139,17 @@ export function AppStateProvider({ children }: PropsWithChildren) {
             setCurrentUserId(user.userId);
             setCurrentUserName(user.name);
           }
+
+          if (user.role === 'child') {
+            try {
+              const family = await familyApi.getMyParents();
+              if (!cancelled) {
+                setFamilyLinked(family.linked);
+              }
+            } catch (familyError) {
+              console.error('가족 연결 상태를 복원하지 못했습니다.', familyError);
+            }
+          }
         }
       } catch {
         // 토큰이 만료되었거나 유효하지 않으면 그냥 로그인 화면으로
@@ -205,7 +217,7 @@ export function AppStateProvider({ children }: PropsWithChildren) {
         setParentCreditEntries((items) => [
           {
             id: `parent-credit-${Date.now()}`,
-            title: '보상 크레딧 충전',
+            title: '적립금 충전',
             description: `${parentChargeAccount.bankName} ${parentChargeAccount.accountNumber}`,
             amount,
             type: 'charge',

@@ -2,6 +2,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
+import { creditApi } from '../../api/creditApi';
 import { familyApi } from '../../api/familyApi';
 import { defaultChildUserId, missionApi } from '../../api/missionApi';
 import { ApiErrorBox } from '../../components/common/ApiErrorBox';
@@ -24,7 +25,12 @@ import { hasMinLength, isAmountInRange } from '../../utils/validators';
 type Props = NativeStackScreenProps<RootStackParamList, 'MissionCreate'>;
 
 export function MissionCreateScreen({ navigation }: Props) {
-  const { createMission, linkedChildren, parentCreditBalance } = useAppState();
+  const { createMission, linkedChildren, parentCreditBalance: parentCreditBalanceFallback } = useAppState();
+  const summaryQuery = useQuery({
+    queryKey: ['credit', 'parentSummary'],
+    queryFn: () => creditApi.getParentSummary(),
+  });
+  const parentCreditBalance = summaryQuery.data?.creditBalance ?? parentCreditBalanceFallback;
   const queryClient = useQueryClient();
   const [title, setTitle] = useState('영어 단어 20개 외우기');
   const [description, setDescription] = useState('단어와 사진과 쓰기 결과를 올려주세요.');
@@ -137,7 +143,7 @@ export function MissionCreateScreen({ navigation }: Props) {
         value={formatAmountInput(amountText)}
         onChangeText={(value) => setAmountText(formatAmountInput(value))}
         keyboardType="number-pad"
-        error={amount > parentCreditBalance ? '보상 크레딧보다 큰 금액은 등록할 수 없습니다.' : undefined}
+        error={amount > parentCreditBalance ? '적립금보다 큰 금액은 등록할 수 없습니다.' : undefined}
         disabled={loading}
       />
       <PrimaryButton title={loading ? '등록 중' : '미션 등록'} onPress={submit} disabled={!valid || loading} loading={loading} />

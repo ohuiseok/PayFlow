@@ -2,7 +2,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useState } from 'react';
 
 import { ApiErrorBox } from '../../components/common/ApiErrorBox';
-import { FormField, InfoBox, PrimaryButton, ScreenFrame } from '../../components/common';
+import { FormField, PrimaryButton, ScreenFrame } from '../../components/common';
 import { MissionCard } from '../../components/mission/MissionCard';
 import { useResubmitMissionMutation } from '../../hooks/useMissionMutations';
 import { RootStackParamList } from '../../navigation/routes';
@@ -35,9 +35,7 @@ export function RejectResubmitScreen({ navigation, route }: Props) {
 
   return (
     <ScreenFrame eyebrow="반려 재제출" title="다시 제출하기" description="반려 사유를 확인하고 보완 내용을 보냅니다.">
-      <MissionCard mission={mission} />
-      <InfoBox tone="yellow" title="반려 사유" body={mission.rejectReason || '보완이 필요합니다.'} />
-      <ApiErrorBox error={apiError} fallback="미션 재제출에 실패했습니다." />
+      <MissionCard mission={mission} />      <ApiErrorBox error={apiError} fallback="미션 재제출에 실패했습니다." />
       <FormField label="재제출 메모" placeholder="보완 내용을 적어주세요." value={memo} onChangeText={setMemo} disabled={loading} />
       <PrimaryButton
         title={loading ? '재제출 중' : '재제출'}

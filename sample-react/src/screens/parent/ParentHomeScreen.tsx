@@ -45,7 +45,7 @@ export function ParentHomeScreen({ navigation }: Props) {
   return (
     <ScreenFrame eyebrow="부모 홈" title="오늘의 보상 흐름" description="자녀 미션, 크레딧, 결제 운영 상태를 한곳에서 확인합니다.">
       <BalanceCard
-        label="보상 크레딧"
+        label="적립금"
         amount={displayBalance}
         description={`승인 대기 ${displayPendingCount}건 · 진행 미션 ${active.length}건`}
       />
@@ -53,10 +53,10 @@ export function ParentHomeScreen({ navigation }: Props) {
       <ApiErrorBox error={summaryQuery.error} fallback="부모 크레딧 요약 조회에 실패했습니다." />
       <ApiErrorBox error={missionsQuery.error} fallback="부모 미션 목록 조회에 실패했습니다." />
       <View style={styles.actionGrid}>
-        <PrimaryButton title="충전" onPress={() => navigation.navigate('CreditCharge')} testID="parent-home-charge-button" />
-        <SecondaryButton title="결제 운영" onPress={() => navigation.navigate('PaymentOperations')} testID="parent-home-payment-operations-button" />
+        <SecondaryButton title="충전" onPress={() => navigation.navigate('CreditCharge')} testID="parent-home-charge-button" />
+        {/* <SecondaryButton title="결제 운영" onPress={() => navigation.navigate('PaymentOperations')} testID="parent-home-payment-operations-button" /> */}
         <SecondaryButton title="미션 등록" onPress={() => navigation.navigate('MissionCreate')} testID="parent-home-create-mission-button" />
-        <SecondaryButton title="승인" onPress={() => navigation.navigate('ParentApproval')} testID="parent-home-approval-button" />
+        <SecondaryButton title="미션 승인" onPress={() => navigation.navigate('ParentApproval')} testID="parent-home-approval-button" />
         <SecondaryButton title="자녀 연결" onPress={() => navigation.navigate('ParentFamilyLink')} testID="parent-home-family-link-button" />
         <SecondaryButton title="계좌 등록" onPress={() => navigation.navigate('BankAccountRegister')} testID="parent-home-bank-register-button" />
         {appConfig.useDummyData ? (
@@ -80,11 +80,11 @@ export function ParentHomeScreen({ navigation }: Props) {
       </View>
       <Text style={styles.sectionTitle}>진행 중 미션</Text>
       {active.length ? active.map((mission) => <MissionCard key={mission.id} mission={mission} />) : <EmptyState body="진행 중인 미션이 없습니다." />}
-      <Text style={styles.sectionTitle}>최근 크레딧 기록</Text>
+      <Text style={styles.sectionTitle}>최근 충전금 기록</Text>
       {displayCreditEntries.length ? (
         displayCreditEntries.slice(0, 3).map((entry) => <CashbookEntryItem key={entry.id} entry={entry} />)
       ) : (
-        <EmptyState body="최근 크레딧 기록이 없습니다." />
+        <EmptyState body="최근 충전금 기록이 없습니다." />
       )}
     </ScreenFrame>
   );
