@@ -7,6 +7,7 @@ import { ComponentType, PropsWithChildren, useEffect } from 'react';
 import { RootStackParamList } from './routes';
 import { BankAccountRegisterScreen } from '../screens/banking/BankAccountRegisterScreen';
 import { ChildWithdrawalScreen } from '../screens/banking/ChildWithdrawalScreen';
+import { ChildCashbookScreen } from '../screens/child/ChildCashbookScreen';
 import { ChildHomeScreen } from '../screens/child/ChildHomeScreen';
 import { MissionSubmitScreen } from '../screens/child/MissionSubmitScreen';
 import { RejectResubmitScreen } from '../screens/child/RejectResubmitScreen';
@@ -18,7 +19,9 @@ import { CreditChargeScreen } from '../screens/parent/CreditChargeScreen';
 import { MissionCreateScreen } from '../screens/parent/MissionCreateScreen';
 import { PaymentOperationsScreen } from '../screens/parent/PaymentOperationsScreen';
 import { ParentApprovalScreen } from '../screens/parent/ParentApprovalScreen';
+import { ParentCreditHistoryScreen } from '../screens/parent/ParentCreditHistoryScreen';
 import { ParentHomeScreen } from '../screens/parent/ParentHomeScreen';
+import { ParentWithdrawalScreen } from '../screens/parent/ParentWithdrawalScreen';
 import { useAppState } from '../state/AppState';
 import { UserRole } from '../types';
 
@@ -39,6 +42,7 @@ const screenTitles: Partial<Record<RouteName, string>> = {
   RejectResubmit: '재제출',
   BankAccountRegister: '계좌 등록',
   ChildWithdrawal: '출금',
+  ParentWithdrawal: '적립금 출금',
 };
 
 const screenOptions = {
@@ -112,6 +116,9 @@ const GuardedMissionSubmitScreen = withRoleGuard(MissionSubmitScreen, childOnly,
 const GuardedRejectResubmitScreen = withRoleGuard(RejectResubmitScreen, childOnly, 'ParentHome', true);
 const GuardedBankAccountRegisterScreen = withRoleGuard(BankAccountRegisterScreen, parentOrChild, 'Login');
 const GuardedChildWithdrawalScreen = withRoleGuard(ChildWithdrawalScreen, childOnly, 'ParentHome', true);
+const GuardedParentWithdrawalScreen = withRoleGuard(ParentWithdrawalScreen, parentOnly, 'ChildHome');
+const GuardedChildCashbookScreen = withRoleGuard(ChildCashbookScreen, childOnly, 'ParentHome', true);
+const GuardedParentCreditHistoryScreen = withRoleGuard(ParentCreditHistoryScreen, parentOnly, 'ChildHome');
 
 export function AppNavigator() {
   const { isRestoringSession } = useAppState();
@@ -147,6 +154,9 @@ export function AppNavigator() {
       <Stack.Screen name="RejectResubmit" component={GuardedRejectResubmitScreen} options={{ title: screenTitles.RejectResubmit }} />
       <Stack.Screen name="BankAccountRegister" component={GuardedBankAccountRegisterScreen} options={{ title: screenTitles.BankAccountRegister }} />
       <Stack.Screen name="ChildWithdrawal" component={GuardedChildWithdrawalScreen} options={{ title: screenTitles.ChildWithdrawal }} />
+      <Stack.Screen name="ParentWithdrawal" component={GuardedParentWithdrawalScreen} options={{ title: screenTitles.ParentWithdrawal }} />
+      <Stack.Screen name="ChildCashbook" component={GuardedChildCashbookScreen} options={{ title: '사용 기록' }} />
+      <Stack.Screen name="ParentCreditHistory" component={GuardedParentCreditHistoryScreen} options={{ title: '충전금 기록' }} />
     </Stack.Navigator>
   );
 }

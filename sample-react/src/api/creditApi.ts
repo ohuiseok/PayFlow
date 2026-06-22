@@ -303,7 +303,8 @@ export const creditApi = {
         },
       },
     );
-    return normalizeWithdrawal(response);
+    // 201 응답 = 출금 요청 성공 → 즉시 완료로 처리
+    return { ...normalizeWithdrawal(response), status: 'completed' as const };
   },
 
   async getWithdrawal(withdrawalId: string) {

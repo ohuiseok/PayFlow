@@ -4,6 +4,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useNavigation } from '@react-navigation/native';
 import { StackActions } from '@react-navigation/native';
 
+import { useAppState } from '../../state/AppState';
+
 import { creditApi } from '../../api/creditApi';
 import { ApiErrorBox } from '../../components/common/ApiErrorBox';
 import { AlertModal, PrimaryButton, ScreenFrame } from '../../components/common';
@@ -14,6 +16,7 @@ export function BankAccountRegisterScreen() {
   const [openBankingLoading, setOpenBankingLoading] = useState(false);
   const queryClient = useQueryClient();
   const navigation = useNavigation();
+  const { markBankAccountRegistered } = useAppState();
 
   useEffect(() => {
     if (Platform.OS !== 'web' || typeof window === 'undefined') {
@@ -26,12 +29,13 @@ export function BankAccountRegisterScreen() {
     }
     window.history.replaceState({}, document.title, window.location.pathname);
     if (openBankingStatus === 'completed') {
+      markBankAccountRegistered();
       queryClient.invalidateQueries({ queryKey: ['credit', 'bankAccounts'] });
       navigation.dispatch(StackActions.replace('ChildHome'));
     } else {
       setUserMessage('계좌 연결에 실패했습니다.\n\r다시 시도해주세요.');
     }
-  }, [queryClient, navigation]);
+  }, [queryClient, navigation, markBankAccountRegistered]);
 
   const connectOpenBanking = async () => {
     try {

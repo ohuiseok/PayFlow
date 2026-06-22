@@ -177,12 +177,46 @@ export function StatusBadge({ label, tone = 'green' }: { label: string; tone?: '
   );
 }
 
-export function BalanceCard({ label, amount, description }: { label: string; amount: number; description: string }) {
+export function BalanceCard({
+  label,
+  amount,
+  description,
+  actions,
+}: {
+  label: string;
+  amount: number;
+  description: string;
+  actions?: { label: string; onPress: () => void; testID?: string; badge?: number }[];
+}) {
   return (
     <Card tone="dark">
-      <Text style={styles.darkLabel}>{label}</Text>
-      <Text style={styles.balance}>{formatWon(amount)}</Text>
-      <Text style={styles.darkBody}>{description}</Text>
+      <View style={actions?.length ? styles.balanceCardRow : undefined}>
+        <View style={actions?.length ? styles.balanceCardLeft : undefined}>
+          <Text style={styles.darkLabel}>{label}</Text>
+          <Text style={styles.balance}>{formatWon(amount)}</Text>
+          <Text style={styles.darkBody}>{description}</Text>
+        </View>
+        {actions?.length ? (
+          <View style={styles.balanceCardActions}>
+            {actions.map((action) => (
+              <TouchableOpacity
+                key={action.label}
+                activeOpacity={0.75}
+                onPress={action.onPress}
+                style={styles.balanceCardActionButton}
+                testID={action.testID}
+              >
+                <Text style={styles.balanceCardActionText}>{action.label}</Text>
+                {action.badge != null && action.badge > 0 ? (
+                  <View style={styles.balanceCardBadge}>
+                    <Text style={styles.balanceCardBadgeText}>{action.badge}</Text>
+                  </View>
+                ) : null}
+              </TouchableOpacity>
+            ))}
+          </View>
+        ) : null}
+      </View>
     </Card>
   );
 }
@@ -468,6 +502,47 @@ const styles = StyleSheet.create({
   darkBody: {
     color: '#B7C1CB',
     fontSize: 15,
+  },
+  balanceCardRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+  },
+  balanceCardLeft: {
+    flex: 1,
+  },
+  balanceCardActions: {
+    gap: 8,
+    marginLeft: 16,
+  },
+  balanceCardActionButton: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.13)',
+    borderRadius: 8,
+    minWidth: 62,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+  },
+  balanceCardActionText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '900',
+  },
+  balanceCardBadge: {
+    alignItems: 'center',
+    backgroundColor: colors.danger,
+    borderRadius: 999,
+    height: 18,
+    justifyContent: 'center',
+    minWidth: 18,
+    paddingHorizontal: 4,
+    position: 'absolute',
+    right: -6,
+    top: -6,
+  },
+  balanceCardBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '900',
   },
   infoTitle: {
     color: colors.primary,

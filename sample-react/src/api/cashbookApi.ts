@@ -21,7 +21,7 @@ type CashbookEntryResponse = {
 export type CashbookSummary = {
   childUserId: string;
   childName: string;
-  walletId: string;
+  walletId: string | undefined;
   balance: number;
   weeklyEarned: number;
   completedMissionCount: number;
@@ -35,7 +35,7 @@ export const cashbookApi = {
     return {
       childUserId: String(response.childUserId),
       childName: response.childName ?? 'Child',
-      walletId: String(response.walletId ?? ''),
+      walletId: response.walletId != null ? String(response.walletId) : undefined,
       balance: response.walletBalance,
       weeklyEarned: response.paidRewardAmount,
       completedMissionCount: response.paidMissionCount,

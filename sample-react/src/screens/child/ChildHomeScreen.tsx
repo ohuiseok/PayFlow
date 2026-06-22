@@ -1,13 +1,15 @@
+import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useQuery } from '@tanstack/react-query';
-import { StyleSheet, Text, View } from 'react-native';
+import { useEffect, useLayoutEffect } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { authApi } from '../../api/authApi';
 import { cashbookApi } from '../../api/cashbookApi';
 import { defaultChildUserId, missionApi } from '../../api/missionApi';
 import { ApiErrorBox } from '../../components/common/ApiErrorBox';
 import { BalanceCard, colors, PrimaryButton, ScreenFrame, SecondaryButton } from '../../components/common';
 import { MissionCard } from '../../components/mission/MissionCard';
-import { CashbookEntryItem } from '../../components/wallet/CashbookEntryItem';
 import { appConfig } from '../../config/appConfig';
 import { RootStackParamList } from '../../navigation/routes';
 import { useAppState } from '../../state/AppState';
@@ -16,8 +18,35 @@ import { Mission } from '../../types';
 type Props = NativeStackScreenProps<RootStackParamList, 'ChildHome'>;
 
 export function ChildHomeScreen({ navigation }: Props) {
-  const { cashbookEntries, childCashBalance, currentUserId, hasBankAccount, loginAs, logout, missions } = useAppState();
+  const { childCashBalance, currentUserId, hasBankAccount: hasBankAccountState, markBankAccountRegistered, loginAs, logout, missions } = useAppState();
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <Pressable
+          onPress={async () => {
+            await logout();
+            navigation.replace('Login');
+          }}
+          style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1, paddingHorizontal: 4 })}
+        >
+          <Ionicons name="log-out-outline" size={24} color="#FAFAF8" />
+        </Pressable>
+      ),
+    });
+  }, [navigation, logout]);
   const childUserId = appConfig.useDummyData ? defaultChildUserId : currentUserId;
+  const meQuery = useQuery({
+    queryKey: ['users', 'me'],
+    queryFn: authApi.me,
+    enabled: !appConfig.useDummyData,
+  });
+  const hasBankAccount = meQuery.data?.hasBankAccount ?? hasBankAccountState;
+  useEffect(() => {
+    if (meQuery.data?.hasBankAccount && !hasBankAccountState) {
+      markBankAccountRegistered();
+    }
+  }, [meQuery.data?.hasBankAccount, hasBankAccountState, markBankAccountRegistered]);
   const missionsQuery = useQuery({
     queryKey: ['missions', 'child', 'active', childUserId],
     queryFn: () => missionApi.getMissions({ role: 'child' }),
@@ -28,16 +57,9 @@ export function ChildHomeScreen({ navigation }: Props) {
     queryFn: () => cashbookApi.getChildSummary(childUserId),
     enabled: !appConfig.useDummyData,
   });
-  const entriesQuery = useQuery({
-    queryKey: ['cashbook', 'entries', childUserId],
-    queryFn: () => cashbookApi.getChildEntries(childUserId),
-    enabled: !appConfig.useDummyData,
-  });
   const apiMissions = missionsQuery.data ?? null;
   const cashbookSummary = summaryQuery.data ?? null;
-  const apiCashbookEntries = entriesQuery.data ?? null;
   const displayMissions = apiMissions ?? missions;
-  const displayCashbookEntries = apiCashbookEntries ?? cashbookEntries;
   const displayCashBalance = cashbookSummary?.balance ?? childCashBalance;
   const todo = displayMissions.filter((mission) => mission.status === 'todo');
   const rejected = displayMissions.filter((mission) => mission.status === 'rejected');
@@ -59,13 +81,13 @@ export function ChildHomeScreen({ navigation }: Props) {
         label="내 지갑 잔액"
         amount={displayCashBalance}
         description={`진행 가능 ${todo.length}건 · 반려 ${rejected.length}건`}
+        actions={[
+          ...(hasBankAccount ? [] : [{ label: '계좌 등록', onPress: () => navigation.navigate('BankAccountRegister'), testID: 'child-home-bank-register-button' }]),
+          { label: '출금', onPress: () => navigation.navigate('ChildWithdrawal'), testID: 'child-home-withdrawal-button' },
+        ]}
       />
-      <View style={styles.actionGrid}>
-        {!hasBankAccount ? (
-          <SecondaryButton title="계좌 등록" onPress={() => navigation.navigate('BankAccountRegister')} testID="child-home-bank-register-button" />
-        ) : null}
-        <SecondaryButton title="출금" onPress={() => navigation.navigate('ChildWithdrawal')} testID="child-home-withdrawal-button" />
-        {appConfig.useDummyData ? (
+      {appConfig.useDummyData ? (
+        <View style={styles.actionGrid}>
           <SecondaryButton
             title="부모 홈"
             onPress={() => {
@@ -74,20 +96,20 @@ export function ChildHomeScreen({ navigation }: Props) {
             }}
             testID="child-home-switch-parent-button"
           />
-        ) : null}
-        <SecondaryButton
-          title="로그아웃"
-          onPress={async () => {
-            await logout();
-            navigation.replace('Login');
-          }}
-          testID="child-home-logout-button"
-        />
-      </View>
+        </View>
+      ) : null}
       <ApiErrorBox error={missionsQuery.error} fallback="미션 목록 조회에 실패했습니다." />
       <ApiErrorBox error={summaryQuery.error} fallback="사용 기록 요약 조회에 실패했습니다." />
-      <ApiErrorBox error={entriesQuery.error} fallback="사용 기록 내역 조회에 실패했습니다." />
-      <Text style={styles.sectionTitle}>미션</Text>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>오늘의 미션</Text>
+        <Pressable
+          onPress={() => navigation.navigate('ChildCashbook')}
+          style={({ pressed }) => [styles.sectionIconButton, pressed && { opacity: 0.5 }]}
+          testID="child-home-cashbook-button"
+        >
+          <Ionicons name="list-outline" size={20} color={colors.dark} />
+        </Pressable>
+      </View>
       {displayMissions.map((mission) => (
         <MissionCard
           key={mission.id}
@@ -96,8 +118,6 @@ export function ChildHomeScreen({ navigation }: Props) {
           onPress={() => openMission(mission)}
         />
       ))}
-      <Text style={styles.sectionTitle}>최근 사용 기록</Text>
-      {displayCashbookEntries.map((entry) => <CashbookEntryItem key={entry.id} entry={entry} />)}
     </ScreenFrame>
   );
 }
@@ -107,11 +127,24 @@ const styles = StyleSheet.create({
     gap: 12,
     marginBottom: 24,
   },
+  sectionHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+    marginTop: 6,
+  },
   sectionTitle: {
     color: colors.text,
     fontSize: 19,
     fontWeight: '900',
-    marginBottom: 12,
-    marginTop: 6,
+  },
+  sectionIconButton: {
+    alignItems: 'center',
+    backgroundColor: '#EEF1F4',
+    borderRadius: 8,
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
 });

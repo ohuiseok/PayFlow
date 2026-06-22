@@ -15,6 +15,9 @@ export type RootStackParamList = {
   RejectResubmit: { missionId?: string } | undefined;
   BankAccountRegister: undefined;
   ChildWithdrawal: undefined;
+  ParentWithdrawal: undefined;
+  ChildCashbook: undefined;
+  ParentCreditHistory: undefined;
 };
 
 export const linking: LinkingOptions<RootStackParamList> = {
@@ -36,6 +39,9 @@ export const linking: LinkingOptions<RootStackParamList> = {
       RejectResubmit: 'child/missions/:missionId?/resubmit',
       BankAccountRegister: 'child/bank-account',
       ChildWithdrawal: 'child/withdrawal',
+      ParentWithdrawal: 'parent/withdrawal',
+      ChildCashbook: 'child/cashbook',
+      ParentCreditHistory: 'parent/credit-history',
     },
   },
 } as const;

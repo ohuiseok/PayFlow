@@ -2,9 +2,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 
-import { cashbookApi } from '../../api/cashbookApi';
 import { creditApi } from '../../api/creditApi';
-import { defaultChildUserId } from '../../api/missionApi';
 import {
   AlertModal,
   AmountQuickSelect,
@@ -30,19 +28,19 @@ import { useAppState } from '../../state/AppState';
 import { isAmountInRange } from '../../utils/validators';
 import { formatBankAccountHolder, formatBankAccountLabel, toBankAccountViewModel } from '../../viewModels/bankAccountViewModel';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'ChildWithdrawal'>;
+type Props = NativeStackScreenProps<RootStackParamList, 'ParentWithdrawal'>;
 
-export function ChildWithdrawalScreen({ navigation }: Props) {
-  const { childCashBalance, currentUserId, linkedBankAccount, withdrawCash } = useAppState();
+export function ParentWithdrawalScreen({ navigation }: Props) {
+  const { parentCreditBalance, parentChargeAccount } = useAppState();
   const [amountText, setAmountText] = useState('5000');
   const [confirming, setConfirming] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const withdrawnAmountRef = useRef(0);
   const queryClient = useQueryClient();
-  const childUserId = appConfig.useDummyData ? defaultChildUserId : currentUserId || defaultChildUserId;
+
   const summaryQuery = useQuery({
-    queryKey: ['cashbook', 'summary', childUserId],
-    queryFn: () => cashbookApi.getChildSummary(childUserId),
+    queryKey: ['credit', 'parentSummary'],
+    queryFn: creditApi.getParentSummary,
     enabled: !appConfig.useDummyData,
   });
   const bankAccountsQuery = useQuery({
@@ -50,13 +48,18 @@ export function ChildWithdrawalScreen({ navigation }: Props) {
     queryFn: creditApi.getBankAccounts,
     enabled: !appConfig.useDummyData,
   });
+
   const amount = parseAmount(amountText);
-  const displayBalance = summaryQuery.data?.balance ?? childCashBalance;
+  const displayBalance = summaryQuery.data?.creditBalance ?? parentCreditBalance;
   const bankAccounts = bankAccountsQuery.data ?? [];
   const selectedBankAccount = bankAccounts.find((account) => account.primary) ?? bankAccounts[0];
-  const displayBankAccount = toBankAccountViewModel(appConfig.useDummyData ? linkedBankAccount : selectedBankAccount);
+  const dummyBankAccount = appConfig.useDummyData
+    ? { bankName: parentChargeAccount.bankName, maskedAccountNumber: parentChargeAccount.accountNumber, accountHolderName: parentChargeAccount.holderName }
+    : null;
+  const displayBankAccount = toBankAccountViewModel(appConfig.useDummyData ? dummyBankAccount : selectedBankAccount);
   const queriesLoading = summaryQuery.isLoading || bankAccountsQuery.isLoading;
   const valid = isAmountInRange(amount, 1000, displayBalance);
+
   const { apiError, clearUserMessage, processing, status, userMessage, withdraw } = useWithdrawalFlow({
     amount,
     selectedBankAccount,
@@ -64,25 +67,27 @@ export function ChildWithdrawalScreen({ navigation }: Props) {
     walletId: summaryQuery.data?.walletId,
     onCompleted: () => {
       if (appConfig.useDummyData) {
-        return withdrawCash(withdrawnAmountRef.current);
+        return;
       }
-      queryClient.invalidateQueries({ queryKey: ['cashbook'] });
+      queryClient.invalidateQueries({ queryKey: ['credit'] });
     },
   });
+
   useEffect(() => {
     if (status === 'completed') {
       setSuccessMessage(`${formatWon(withdrawnAmountRef.current)} 출금이 완료되었습니다.`);
     }
   }, [status]);
+
   return (
-    <ScreenFrame eyebrow="계좌 출금" title="사용 기록에서 출금" description="모은 보상을 등록 계좌로 보냅니다.">
+    <ScreenFrame eyebrow="적립금 출금" title="계좌로 출금" description="적립금을 등록 계좌로 보냅니다.">
       <BalanceCard label="출금 가능 잔액" amount={displayBalance} description="요청 후 처리 상태를 거쳐 완료됩니다." />
       <Card>
         <Label>받을 계좌</Label>
         <Heading>{formatBankAccountLabel(displayBankAccount)}</Heading>
         <Body>{formatBankAccountHolder(displayBankAccount, '계좌를 먼저 등록하세요.')}</Body>
       </Card>
-      <ApiErrorBox error={summaryQuery.error} fallback="자녀 지갑 정보를 불러오지 못했습니다." />
+      <ApiErrorBox error={summaryQuery.error} fallback="적립금 정보를 불러오지 못했습니다." />
       <ApiErrorBox error={bankAccountsQuery.error} fallback="연결 계좌를 불러오지 못했습니다." />
       <ApiErrorBox error={apiError} fallback="출금 처리 중 오류가 발생했습니다." />
       <FormField
@@ -104,7 +109,7 @@ export function ChildWithdrawalScreen({ navigation }: Props) {
       <ConfirmModal
         visible={confirming}
         title={`${formatWon(amount)} 출금하시겠어요?`}
-        body="확인하면 자녀 지갑 잔액에서 바로 차감하고 캐시북에 출금 기록을 남깁니다."
+        body="확인하면 적립금 잔액에서 바로 차감하고 등록 계좌로 출금합니다."
         confirmTitle="출금 진행"
         onConfirm={() => {
           setConfirming(false);
@@ -113,7 +118,7 @@ export function ChildWithdrawalScreen({ navigation }: Props) {
         }}
         onCancel={() => setConfirming(false)}
       />
-      {appConfig.useDummyData && linkedBankAccount ? (
+      {appConfig.useDummyData ? (
         <ProcessingTestActions disabled={processing || !valid} onSelect={(nextStatus) => withdraw(nextStatus)} />
       ) : null}
       <AlertModal

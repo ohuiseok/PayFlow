@@ -117,6 +117,7 @@ type AppStateValue = {
   rejectMission: (missionId: string, reason: string) => void;
   registerBankAccount: (account: BankAccount) => void;
   withdrawCash: (amount: number) => boolean;
+  markBankAccountRegistered: () => void;
 };
 
 const AppStateContext = createContext<AppStateValue | null>(null);
@@ -301,6 +302,9 @@ export function AppStateProvider({ children }: PropsWithChildren) {
       },
       registerBankAccount(account) {
         setLinkedBankAccount(account);
+      },
+      markBankAccountRegistered() {
+        setHasBankAccount(true);
       },
       withdrawCash(amount) {
         if (amount > childCashBalance) {

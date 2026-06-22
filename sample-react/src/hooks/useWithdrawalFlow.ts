@@ -25,6 +25,8 @@ export function useWithdrawalFlow({
   const [message, setMessage] = useState('');
   const [userMessage, setUserMessage] = useState('');
   const processingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onCompletedRef = useRef(onCompleted);
+  useEffect(() => { onCompletedRef.current = onCompleted; });
   const { pollProcessing, polling } = useProcessingPolling();
   const requestWithdrawalMutation = useMutation({
     mutationFn: () => {
@@ -43,7 +45,7 @@ export function useWithdrawalFlow({
         setStatus(requested.status);
         if (requested.status === 'completed') {
           setMessage('출금 완료 · 잔액이 차감되었습니다.');
-          onCompleted();
+          onCompletedRef.current();
         }
         return;
       }
@@ -54,7 +56,7 @@ export function useWithdrawalFlow({
           setStatus(result.status);
           if (result.status === 'completed') {
             setMessage('출금 완료 · 잔액이 차감되었습니다.');
-            onCompleted();
+            onCompletedRef.current();
           }
         },
         onError: (error) => {
@@ -111,7 +113,6 @@ export function useWithdrawalFlow({
   return {
     apiError,
     clearUserMessage: () => setUserMessage(''),
-    message,
     processing: status === 'processing' || polling || requestWithdrawalMutation.isPending,
     status,
     userMessage,

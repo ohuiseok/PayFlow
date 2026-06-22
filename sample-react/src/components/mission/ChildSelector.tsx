@@ -1,4 +1,4 @@
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { colors } from '../common';
 
@@ -25,97 +25,91 @@ export function ChildSelector({
     );
   }
 
+  if (children.length === 1) {
+    return null;
+  }
+
   return (
     <View style={styles.container}>
       <Text style={styles.label}>대상 자녀</Text>
-      {children.map((child) => {
-        const selected = String(child.childUserId) === String(selectedId);
-        return (
-          <TouchableOpacity
-            key={String(child.childUserId)}
-            style={[styles.row, selected && styles.rowSelected]}
-            onPress={() => onSelect(child)}
-            activeOpacity={0.7}
-          >
-            <View style={[styles.radio, selected && styles.radioSelected]}>
-              {selected ? <View style={styles.radioDot} /> : null}
-            </View>
-            <View style={styles.info}>
-              <Text style={[styles.name, selected && styles.nameSelected]}>{child.childName}</Text>
-            </View>
-          </TouchableOpacity>
-        );
-      })}
+      <View style={styles.segmentWrap}>
+        {children.map((child, index) => {
+          const isSelected = String(child.childUserId) === String(selectedId);
+          const isFirst = index === 0;
+          const isLast = index === children.length - 1;
+          return (
+            <TouchableOpacity
+              key={String(child.childUserId)}
+              activeOpacity={0.75}
+              onPress={() => onSelect(child)}
+              style={[
+                styles.segment,
+                isFirst && styles.segmentFirst,
+                isLast && styles.segmentLast,
+                isSelected && styles.segmentSelected,
+              ]}
+            >
+              <Text style={[styles.segmentText, isSelected && styles.segmentTextSelected]}>
+                {child.childName}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 4,
+    marginBottom: 20,
   },
   label: {
     color: colors.muted,
     fontSize: 13,
-    fontWeight: '600',
-    marginBottom: 8,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+    marginBottom: 10,
+    textTransform: 'uppercase',
   },
-  row: {
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderColor: colors.line,
-    borderRadius: 8,
-    borderWidth: 1,
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-  },
-  rowSelected: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primarySoft,
-  },
-  radio: {
-    alignItems: 'center',
-    borderColor: colors.line,
+  segmentWrap: {
+    backgroundColor: '#EEF1F4',
     borderRadius: 10,
-    borderWidth: 2,
-    height: 20,
-    justifyContent: 'center',
-    width: 20,
+    flexDirection: 'row',
+    padding: 3,
   },
-  radioSelected: {
-    borderColor: colors.primary,
-  },
-  radioDot: {
-    backgroundColor: colors.primary,
-    borderRadius: 5,
-    height: 10,
-    width: 10,
-  },
-  info: {
+  segment: {
+    alignItems: 'center',
+    borderRadius: 8,
     flex: 1,
+    justifyContent: 'center',
+    paddingVertical: 10,
   },
-  name: {
-    color: colors.text,
+  segmentFirst: {},
+  segmentLast: {},
+  segmentSelected: {
+    backgroundColor: colors.surface,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  segmentText: {
+    color: colors.muted,
     fontSize: 15,
     fontWeight: '700',
   },
-  nameSelected: {
-    color: colors.primary,
-  },
-  phone: {
-    color: colors.muted,
-    fontSize: 13,
-    marginTop: 2,
+  segmentTextSelected: {
+    color: colors.text,
+    fontWeight: '900',
   },
   emptyBox: {
     backgroundColor: colors.surface,
     borderColor: colors.line,
     borderRadius: 8,
     borderWidth: 1,
-    marginBottom: 8,
+    marginBottom: 16,
     padding: 16,
   },
   emptyText: {
