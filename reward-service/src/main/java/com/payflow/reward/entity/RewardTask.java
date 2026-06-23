@@ -11,6 +11,7 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -51,6 +52,8 @@ public class RewardTask {
     @Column(length = 500)
     private String failureReason;
 
+    private LocalDate missionDate;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -60,12 +63,13 @@ public class RewardTask {
     protected RewardTask() {
     }
 
-    public RewardTask(Long parentUserId, Long childUserId, String title, String description, BigDecimal rewardAmount) {
+    public RewardTask(Long parentUserId, Long childUserId, String title, String description, BigDecimal rewardAmount, LocalDate missionDate) {
         this.parentUserId = parentUserId;
         this.childUserId = childUserId;
         this.title = title;
         this.description = description;
         this.rewardAmount = rewardAmount;
+        this.missionDate = missionDate;
         this.status = RewardTaskStatus.CREATED;
     }
 
@@ -153,6 +157,10 @@ public class RewardTask {
 
     public String getFailureReason() {
         return failureReason;
+    }
+
+    public LocalDate getMissionDate() {
+        return missionDate;
     }
 
     public LocalDateTime getCreatedAt() {

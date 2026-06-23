@@ -3,6 +3,7 @@ package com.payflow.reward.repository;
 import com.payflow.reward.entity.RewardTask;
 import com.payflow.reward.entity.RewardTaskStatus;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
@@ -18,6 +19,10 @@ public interface RewardTaskRepository extends JpaRepository<RewardTask, Long> {
     List<RewardTask> findByParentUserIdOrderByCreatedAtDesc(Long parentUserId);
 
     List<RewardTask> findByChildUserIdOrderByCreatedAtDesc(Long childUserId);
+
+    List<RewardTask> findByParentUserIdAndMissionDateOrderByCreatedAtDesc(Long parentUserId, LocalDate missionDate);
+
+    List<RewardTask> findByChildUserIdAndMissionDateOrderByCreatedAtDesc(Long childUserId, LocalDate missionDate);
 
     List<RewardTask> findByParentUserIdAndStatusInOrderByCreatedAtDesc(Long parentUserId, Collection<RewardTaskStatus> statuses);
 

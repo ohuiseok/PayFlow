@@ -7,6 +7,7 @@ import com.payflow.reward.dto.SubmitMissionRequest;
 import com.payflow.reward.entity.RewardTaskStatus;
 import com.payflow.reward.service.RewardService;
 import jakarta.validation.Valid;
+import java.time.LocalDate;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -42,9 +43,10 @@ public class MissionController {
     public List<MissionResponse> getMissions(
             @RequestHeader("X-User-Id") Long requestUserId,
             @RequestHeader("X-User-Role") String role,
-            @RequestParam(required = false) RewardTaskStatus status
+            @RequestParam(required = false) RewardTaskStatus status,
+            @RequestParam(required = false) LocalDate date
     ) {
-        return rewardService.getMissions(requestUserId, role, status);
+        return rewardService.getMissions(requestUserId, role, status, date);
     }
 
     @GetMapping("/{missionId}")

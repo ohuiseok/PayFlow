@@ -24,6 +24,7 @@ import com.payflow.reward.support.error.BusinessException;
 import com.payflow.reward.support.error.ErrorCode;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.List;
@@ -97,19 +98,24 @@ public class RewardService {
                 request.childUserId(),
                 request.title().trim(),
                 request.description().trim(),
-                normalizeAmount(request.rewardAmount())
+                normalizeAmount(request.rewardAmount()),
+                request.missionDate()
         ));
         return toMissionResponse(task);
     }
 
     @Transactional(readOnly = true)
-    public List<MissionResponse> getMissions(Long requestUserId, String role, RewardTaskStatus status) {
+    public List<MissionResponse> getMissions(Long requestUserId, String role, RewardTaskStatus status, LocalDate date) {
         role = normalizeRole(role);
         List<RewardTask> tasks;
         if (ROLE_PARENT.equals(role)) {
-            tasks = rewardTaskRepository.findByParentUserIdOrderByCreatedAtDesc(requestUserId);
+            tasks = date != null
+                    ? rewardTaskRepository.findByParentUserIdAndMissionDateOrderByCreatedAtDesc(requestUserId, date)
+                    : rewardTaskRepository.findByParentUserIdOrderByCreatedAtDesc(requestUserId);
         } else if (ROLE_CHILD.equals(role)) {
-            tasks = rewardTaskRepository.findByChildUserIdOrderByCreatedAtDesc(requestUserId);
+            tasks = date != null
+                    ? rewardTaskRepository.findByChildUserIdAndMissionDateOrderByCreatedAtDesc(requestUserId, date)
+                    : rewardTaskRepository.findByChildUserIdOrderByCreatedAtDesc(requestUserId);
         } else {
             throw new BusinessException(ErrorCode.FORBIDDEN);
         }
@@ -204,7 +210,7 @@ public class RewardService {
     @Transactional(readOnly = true)
     public CashbookSummaryResponse getCashbookSummary(Long childUserId, Long requestUserId, String role) {
         validateCashbookAccess(childUserId, requestUserId, role);
-        BigDecimal balance = walletClient.getWalletByUserId(childUserId, true, internalSecret).balance();
+        var wallet = walletClient.getWalletByUserId(childUserId, true, internalSecret);
         List<RewardTask> paidTasks = rewardTaskRepository.findByChildUserIdAndStatusInOrderByCreatedAtDesc(
                 childUserId,
                 List.of(RewardTaskStatus.PAID)
@@ -212,7 +218,7 @@ public class RewardService {
         BigDecimal paidAmount = paidTasks.stream()
                 .map(RewardTask::getRewardAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        return new CashbookSummaryResponse(childUserId, balance, paidAmount, paidTasks.size());
+        return new CashbookSummaryResponse(childUserId, wallet.walletId(), wallet.balance(), paidAmount, paidTasks.size());
     }
 
     @Transactional(readOnly = true)
