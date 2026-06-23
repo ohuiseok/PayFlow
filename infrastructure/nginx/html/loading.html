@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PayFlow - 시연 서버 준비 중</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      background: #f5f5f5;
+      color: #333;
+    }
+    .container {
+      text-align: center;
+      padding: 2rem;
+    }
+    h1 { font-size: 1.5rem; margin-bottom: 1rem; }
+    p { color: #666; line-height: 1.6; }
+    #status { margin-top: 1.5rem; font-weight: 500; color: #555; }
+    .spinner {
+      width: 40px; height: 40px;
+      border: 4px solid #ddd;
+      border-top-color: #333;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 1.5rem auto 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>시연 서버를 준비하고 있습니다</h1>
+    <p>
+      비용 절감을 위해 시연 서버는 온디맨드로 실행됩니다.<br />
+      최초 접속 시 서버 부팅에 약 3분 소요됩니다.
+    </p>
+    <p id="status">서버를 켜는 중입니다...</p>
+    <div class="spinner"></div>
+  </div>
+
+  <script>
+    const START_API  = "https://API_GATEWAY_URL/start-demo";
+    const HEALTH_URL = "https://www.pay-flow.cloud/health";
+    const DEMO_URL   = "https://app.pay-flow.cloud";
+
+    async function startServer() {
+      await fetch(START_API, { method: "POST" }).catch(() => {});
+    }
+
+    async function checkHealth() {
+      try {
+        const res = await fetch(HEALTH_URL, { cache: "no-store" });
+        if (res.ok) {
+          location.href = DEMO_URL;
+          return;
+        }
+      } catch (e) {
+        document.getElementById("status").innerText = "서버 부팅 중입니다. 잠시만 기다려주세요.";
+      }
+      setTimeout(checkHealth, 5000);
+    }
+
+    startServer().finally(checkHealth);
+  </script>
+</body>
+</html>

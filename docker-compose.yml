@@ -5,15 +5,25 @@ services:
     image: nginx:1.27-alpine
     container_name: ${PROJECT_NAME:-payflow}-nginx
     ports:
-      - "${NGINX_PORT:-80}:80"
+      - "80:80"
+      - "443:443"
     volumes:
       - ./infrastructure/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-    depends_on:
-      api-gateway:
-        condition: service_healthy
+      - ./infrastructure/nginx/html:/usr/share/nginx/html:ro
+      - certbot_www:/var/www/certbot:ro
+      - certbot_conf:/etc/letsencrypt:ro
     networks:
       - payflow-network
     mem_limit: ${NGINX_MEM_LIMIT:-64m}
+    restart: unless-stopped
+
+  certbot:
+    image: certbot/certbot:latest
+    container_name: ${PROJECT_NAME:-payflow}-certbot
+    volumes:
+      - certbot_www:/var/www/certbot
+      - certbot_conf:/etc/letsencrypt
+    entrypoint: /bin/sh -c "trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done"
     restart: unless-stopped
 
   sample-react:
@@ -409,6 +419,8 @@ volumes:
     name: ${MYSQL_VOLUME_NAME:-payflow_mysql_data}
   kafka_data:
     name: ${KAFKA_VOLUME_NAME:-payflow_kafka_data}
+  certbot_www:
+  certbot_conf:
 
 networks:
   payflow-network:
