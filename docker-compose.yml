@@ -12,6 +12,7 @@ services:
       - ./infrastructure/nginx/html:/usr/share/nginx/html:ro
       - certbot_www:/var/www/certbot:ro
       - certbot_conf:/etc/letsencrypt:ro
+      - nginx_logs:/var/log/nginx
     depends_on:
       api-gateway:
         condition: service_healthy
@@ -426,6 +427,8 @@ volumes:
     name: ${KAFKA_VOLUME_NAME:-payflow_kafka_data}
   certbot_www:
   certbot_conf:
+  nginx_logs:
+    name: payflow-nginx-logs
 
 networks:
   payflow-network:
