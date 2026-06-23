@@ -112,6 +112,9 @@ gateway:
 management:
   endpoints:
     web:
+      base-path: /
+      path-mapping:
+        health: health
       exposure:
         include: health,info,metrics,gateway
   endpoint:
