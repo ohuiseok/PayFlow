@@ -12,6 +12,11 @@ services:
       - ./infrastructure/nginx/html:/usr/share/nginx/html:ro
       - certbot_www:/var/www/certbot:ro
       - certbot_conf:/etc/letsencrypt:ro
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+      sample-react:
+        condition: service_healthy
     networks:
       - payflow-network
     mem_limit: ${NGINX_MEM_LIMIT:-64m}
@@ -138,7 +143,7 @@ services:
   api-gateway:
     build:
       context: ./api-gateway
-    container_name: api-gateway
+    container_name: ${PROJECT_NAME:-payflow}-api-gateway
     environment:
       JAVA_TOOL_OPTIONS: ${GATEWAY_JAVA_OPTS:--Xms128m -Xmx320m}
       USER_SERVICE_URI: http://user-service:8081
