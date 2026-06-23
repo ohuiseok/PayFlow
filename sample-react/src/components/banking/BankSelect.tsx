@@ -53,7 +53,7 @@ const styles = StyleSheet.create({
   },
   option: {
     alignItems: 'center',
-    backgroundColor: '#FBFCFD',
+    backgroundColor: '#f8faff',
     borderColor: colors.line,
     borderRadius: 8,
     borderWidth: 1,

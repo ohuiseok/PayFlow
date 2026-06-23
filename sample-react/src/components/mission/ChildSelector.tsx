@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   segmentWrap: {
-    backgroundColor: '#EEF1F4',
+    backgroundColor: '#e9efff',
     borderRadius: 10,
     flexDirection: 'row',
     padding: 3,

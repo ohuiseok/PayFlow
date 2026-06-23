@@ -320,7 +320,7 @@ function LedgerCard({ entry }: { entry: LedgerEntry }) {
 
 const styles = StyleSheet.create({
   tabs: {
-    backgroundColor: '#E8EEF2',
+    backgroundColor: '#e0e7ff',
     borderRadius: 8,
     flexDirection: 'row',
     flexWrap: 'wrap',

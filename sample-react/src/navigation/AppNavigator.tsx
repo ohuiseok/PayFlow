@@ -46,11 +46,11 @@ const screenTitles: Partial<Record<RouteName, string>> = {
 };
 
 const screenOptions = {
-  contentStyle: { backgroundColor: '#F5F7F8' },
+  contentStyle: { backgroundColor: '#F0F4FF' },
   headerBackTitle: '뒤로',
   headerShadowVisible: false,
-  headerStyle: { backgroundColor: '#97C4A5' },
-  headerTintColor: '#FAFAF8',
+  headerStyle: { backgroundColor: '#0471e9' },
+  headerTintColor: '#FFFFFF',
   headerTitleAlign: 'center' as const,
   headerTitleStyle: { fontFamily: 'Pretendard', fontSize: 19, fontWeight: '900' as const },
 };
@@ -125,8 +125,8 @@ export function AppNavigator() {
 
   if (isRestoringSession) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F5F7F8' }}>
-        <ActivityIndicator size="large" color="#20262D" />
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F0F4FF' }}>
+        <ActivityIndicator size="large" color="#0471e9" />
       </View>
     );
   }

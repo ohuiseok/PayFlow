@@ -12,18 +12,18 @@ import {
 } from 'react-native';
 
 export const colors = {
-  background: '#F5F7F8',
+  background: '#F0F4FF',
   surface: '#FFFFFF',
   text: '#111820',
   muted: '#6B7682',
-  line: '#DDE4EA',
-  primary: '#248763',
-  primarySoft: '#E7F5EE',
+  line: '#CBD1EC',
+  primary: '#0471e9',
+  primarySoft: '#e9efff',
   dark: '#20262D',
-  blueSoft: '#EAF4FF',
-  blue: '#2F6FB2',
-  yellowSoft: '#FFF7E7',
-  yellow: '#95690A',
+  blueSoft: 'rgba(155, 166, 221, 0.22)',
+  blue: '#9ba6dd',
+  yellowSoft: 'rgba(194, 168, 117, 0.15)',
+  yellow: '#c2a875',
   danger: '#D84F45',
 };
 
@@ -373,19 +373,19 @@ const styles = StyleSheet.create({
   defaultCard: {},
   greenCard: {
     backgroundColor: colors.primarySoft,
-    borderColor: '#BFE8D4',
+    borderColor: 'rgba(4, 113, 233, 0.25)',
   },
   blueCard: {
     backgroundColor: colors.blueSoft,
-    borderColor: '#C6DDF6',
+    borderColor: 'rgba(155, 166, 221, 0.45)',
   },
   yellowCard: {
     backgroundColor: colors.yellowSoft,
-    borderColor: '#F1CC70',
+    borderColor: 'rgba(194, 168, 117, 0.35)',
   },
   darkCard: {
-    backgroundColor: '#17202A',
-    borderColor: '#17202A',
+    backgroundColor: '#0d1a30',
+    borderColor: '#0d1a30',
   },
   label: {
     color: colors.primary,
@@ -426,7 +426,7 @@ const styles = StyleSheet.create({
   },
   secondaryButton: {
     alignItems: 'center',
-    backgroundColor: '#EEF1F4',
+    backgroundColor: '#e9efff',
     borderRadius: 8,
     justifyContent: 'center',
     minHeight: 58,
@@ -447,7 +447,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   input: {
-    backgroundColor: '#FBFCFD',
+    backgroundColor: '#f8faff',
     borderColor: colors.line,
     borderRadius: 8,
     borderWidth: 1,
@@ -457,7 +457,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   inputDisabled: {
-    backgroundColor: '#EEF1F4',
+    backgroundColor: '#e9efff',
     color: colors.muted,
   },
   inputError: {
@@ -643,7 +643,7 @@ const styles = StyleSheet.create({
   },
   modalCancelButton: {
     alignItems: 'center',
-    backgroundColor: '#EEF1F4',
+    backgroundColor: '#e9efff',
     borderRadius: 8,
     flex: 1,
     justifyContent: 'center',

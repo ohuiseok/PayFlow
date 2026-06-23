@@ -74,8 +74,11 @@ function normalizeMission(mission: ApiMission): Mission {
 export const defaultChildUserId = 2;
 
 export const missionApi = {
-  async getMissions(input: { role: UserRole; status?: 'active' }) {
-    const response = await apiClient.get<ApiMission[]>('/api/missions');
+  async getMissions(input: { role: UserRole; status?: 'active'; date?: string }) {
+    const params = new URLSearchParams();
+    if (input.date) params.append('date', input.date);
+    const qs = params.toString();
+    const response = await apiClient.get<ApiMission[]>(qs ? `/api/missions?${qs}` : '/api/missions');
     return response.map(normalizeMission);
   },
 

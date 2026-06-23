@@ -51,7 +51,7 @@ export function ParentApprovalScreen({ navigation }: Props) {
     () => childOptions[0]?.childUserId ?? null,
   );
 
-  const displayMissions = missionsQuery.data ?? missions;
+  const displayMissions = appConfig.useDummyData ? missions : (missionsQuery.data ?? []);
   const childMissions = selectedChildId
     ? displayMissions.filter((m) => String(m.childId) === String(selectedChildId))
     : displayMissions;
@@ -336,7 +336,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   reasonInput: {
-    backgroundColor: '#FBFCFD',
+    backgroundColor: '#f8faff',
     borderColor: colors.line,
     borderRadius: 8,
     borderWidth: 1,
@@ -355,7 +355,7 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     alignItems: 'center',
-    backgroundColor: '#EEF1F4',
+    backgroundColor: '#e9efff',
     borderRadius: 8,
     flex: 1,
     justifyContent: 'center',

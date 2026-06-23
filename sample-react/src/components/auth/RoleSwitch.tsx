@@ -24,7 +24,7 @@ const styles = StyleSheet.create({
   },
   switchButton: {
     alignItems: 'center',
-    backgroundColor: '#EEF1F4',
+    backgroundColor: '#e9efff',
     borderRadius: 8,
     flex: 1,
     justifyContent: 'center',

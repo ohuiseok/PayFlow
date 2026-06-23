@@ -36,7 +36,7 @@ const styles = StyleSheet.create({
   },
   roleSelected: {
     backgroundColor: colors.primarySoft,
-    borderColor: '#BFE8D4',
+    borderColor: 'rgba(4, 113, 233, 0.4)',
   },
   roleLabel: {
     color: colors.primary,

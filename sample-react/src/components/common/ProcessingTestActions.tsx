@@ -55,7 +55,7 @@ const styles = StyleSheet.create({
   },
   chip: {
     alignItems: 'center',
-    backgroundColor: '#EEF1F4',
+    backgroundColor: '#e9efff',
     borderRadius: 8,
     flex: 1,
     justifyContent: 'center',

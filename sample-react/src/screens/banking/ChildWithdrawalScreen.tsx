@@ -51,7 +51,7 @@ export function ChildWithdrawalScreen({ navigation }: Props) {
     enabled: !appConfig.useDummyData,
   });
   const amount = parseAmount(amountText);
-  const displayBalance = summaryQuery.data?.balance ?? childCashBalance;
+  const displayBalance = appConfig.useDummyData ? childCashBalance : (summaryQuery.data?.balance ?? 0);
   const bankAccounts = bankAccountsQuery.data ?? [];
   const selectedBankAccount = bankAccounts.find((account) => account.primary) ?? bankAccounts[0];
   const displayBankAccount = toBankAccountViewModel(appConfig.useDummyData ? linkedBankAccount : selectedBankAccount);
@@ -98,7 +98,7 @@ export function ChildWithdrawalScreen({ navigation }: Props) {
       <PrimaryButton
         title={processing ? '처리 중' : displayBankAccount ? '출금 요청' : '계좌 등록하기'}
         onPress={() => (displayBankAccount ? setConfirming(true) : navigation.navigate('BankAccountRegister'))}
-        disabled={displayBankAccount ? !valid || processing || queriesLoading : false}
+        disabled={queriesLoading || (displayBankAccount ? !valid || processing : false)}
         loading={processing}
       />
       <ConfirmModal

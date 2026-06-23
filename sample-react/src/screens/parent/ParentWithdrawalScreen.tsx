@@ -103,7 +103,7 @@ export function ParentWithdrawalScreen({ navigation }: Props) {
       <PrimaryButton
         title={processing ? '처리 중' : displayBankAccount ? '출금 요청' : '계좌 등록하기'}
         onPress={() => (displayBankAccount ? setConfirming(true) : navigation.navigate('BankAccountRegister'))}
-        disabled={displayBankAccount ? !valid || processing || queriesLoading : false}
+        disabled={queriesLoading || (displayBankAccount ? !valid || processing : false)}
         loading={processing}
       />
       <ConfirmModal

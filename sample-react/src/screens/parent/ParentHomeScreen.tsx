@@ -1,8 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useQuery } from '@tanstack/react-query';
-import { useLayoutEffect } from 'react';
+import { useLayoutEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+
+import { DatePickerModal, formatDateLabel, todayString } from '../../components/common/DatePickerModal';
 
 import { creditApi } from '../../api/creditApi';
 import { familyApi } from '../../api/familyApi';
@@ -19,6 +21,8 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ParentHome'>;
 
 export function ParentHomeScreen({ navigation }: Props) {
   const { loginAs, logout, missions, parentCreditBalance } = useAppState();
+  const [selectedDate, setSelectedDate] = useState(todayString);
+  const [calendarVisible, setCalendarVisible] = useState(false);
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -30,7 +34,7 @@ export function ParentHomeScreen({ navigation }: Props) {
           }}
           style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1, paddingHorizontal: 4 })}
         >
-          <Ionicons name="log-out-outline" size={24} color="#FAFAF8" />
+          <Ionicons name="log-out-outline" size={24} color="#FFFFFF" />
         </Pressable>
       ),
     });
@@ -46,17 +50,16 @@ export function ParentHomeScreen({ navigation }: Props) {
     enabled: !appConfig.useDummyData,
   });
   const missionsQuery = useQuery({
-    queryKey: ['missions', 'parent', 'active'],
-    queryFn: () => missionApi.getMissions({ role: 'parent' }),
+    queryKey: ['missions', 'parent', 'active', selectedDate],
+    queryFn: () => missionApi.getMissions({ role: 'parent', date: selectedDate }),
     enabled: !appConfig.useDummyData,
   });
   const summary = summaryQuery.data ?? null;
-  const apiMissions = missionsQuery.data ?? null;
-  const displayMissions = apiMissions ?? missions;
+  const displayMissions = appConfig.useDummyData ? missions : (missionsQuery.data ?? []);
   const pending = displayMissions.filter((mission) => mission.status === 'submitted');
   const active = displayMissions.filter((mission) => mission.status !== 'paid');
-  const displayBalance = summary?.creditBalance ?? parentCreditBalance;
-  const displayPendingCount = summary?.pendingApprovalCount ?? pending.length;
+  const displayBalance = appConfig.useDummyData ? parentCreditBalance : (summary?.creditBalance ?? 0);
+  const displayPendingCount = appConfig.useDummyData ? pending.length : (summary?.pendingApprovalCount ?? 0);
   const hasLinkedChild = appConfig.useDummyData
     ? true
     : (familyQuery.data?.linked ?? false);
@@ -73,7 +76,7 @@ export function ParentHomeScreen({ navigation }: Props) {
           { label: '승인', onPress: () => navigation.navigate('ParentApproval'), testID: 'parent-home-approval-button', badge: displayPendingCount },
         ]}
       />
-      {summaryQuery.isLoading || missionsQuery.isLoading ? <LoadingState title="서버 조회 중" body="부모 홈 정보를 불러오고 있습니다." /> : null}
+      {!appConfig.useDummyData && (summaryQuery.isLoading || missionsQuery.isLoading) ? <LoadingState title="서버 조회 중" body="부모 홈 정보를 불러오고 있습니다." /> : null}
       <ApiErrorBox error={summaryQuery.error} fallback="부모 크레딧 요약 조회에 실패했습니다." />
       <ApiErrorBox error={missionsQuery.error} fallback="부모 미션 목록 조회에 실패했습니다." />
       {!hasLinkedChild ? (
@@ -106,9 +109,24 @@ export function ParentHomeScreen({ navigation }: Props) {
           />
         ) : null}
       </View>
+      <DatePickerModal
+        visible={calendarVisible}
+        selected={selectedDate}
+        onSelect={setSelectedDate}
+        onClose={() => setCalendarVisible(false)}
+      />
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>진행 중 미션</Text>
+        <View>
+          <Text style={styles.sectionTitle}>진행 중 미션</Text>
+          <Text style={styles.sectionDate}>{formatDateLabel(selectedDate)}</Text>
+        </View>
         <View style={styles.sectionActions}>
+          <Pressable
+            onPress={() => setCalendarVisible(true)}
+            style={({ pressed }) => [styles.sectionIconButton, pressed && { opacity: 0.5 }]}
+          >
+            <Ionicons name="calendar-outline" size={20} color={colors.primary} />
+          </Pressable>
           {hasLinkedChild ? (
             <Pressable
               onPress={() => navigation.navigate('ParentFamilyLink')}
@@ -156,13 +174,19 @@ const styles = StyleSheet.create({
     fontSize: 19,
     fontWeight: '900',
   },
+  sectionDate: {
+    color: colors.muted,
+    fontSize: 13,
+    fontWeight: '600',
+    marginTop: 2,
+  },
   sectionActions: {
     flexDirection: 'row',
     gap: 8,
   },
   sectionIconButton: {
     alignItems: 'center',
-    backgroundColor: '#EEF1F4',
+    backgroundColor: '#e9efff',
     borderRadius: 8,
     gap: 4,
     justifyContent: 'center',
@@ -171,8 +195,8 @@ const styles = StyleSheet.create({
   },
   onboardingCard: {
     alignItems: 'center',
-    backgroundColor: '#F0F4FF',
-    borderColor: '#C7D4F5',
+    backgroundColor: '#e9efff',
+    borderColor: 'rgba(155, 166, 221, 0.45)',
     borderRadius: 14,
     borderWidth: 1,
     flexDirection: 'row',

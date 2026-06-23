@@ -1,12 +1,16 @@
+import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { creditApi } from '../../api/creditApi';
 import { familyApi } from '../../api/familyApi';
 import { defaultChildUserId, missionApi } from '../../api/missionApi';
 import { ApiErrorBox } from '../../components/common/ApiErrorBox';
+import { DatePickerModal, formatDateLabel, todayString } from '../../components/common/DatePickerModal';
 import {
+  colors,
   FormField,
   formatAmountInput,
   parseAmount,
@@ -19,7 +23,6 @@ import { RootStackParamList } from '../../navigation/routes';
 import { useAppState } from '../../state/AppState';
 import { LinkedChild } from '../../types';
 import { getErrorMessage } from '../../utils/apiError';
-import { validateMissionDueDate } from '../../utils/dateValidation';
 import { hasMinLength, isAmountInRange } from '../../utils/validators';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'MissionCreate'>;
@@ -35,7 +38,8 @@ export function MissionCreateScreen({ navigation }: Props) {
   const [title, setTitle] = useState('영어 단어 20개 외우기');
   const [description, setDescription] = useState('단어와 사진과 쓰기 결과를 올려주세요.');
   const [amountText, setAmountText] = useState('5000');
-  const [dueDate, setDueDate] = useState('2026-06-30');
+  const [dueDate, setDueDate] = useState(todayString);
+  const [calendarVisible, setCalendarVisible] = useState(false);
   const [apiError, setApiError] = useState('');
 
   // 더미 모드: AppState의 linkedChildren 사용
@@ -74,11 +78,10 @@ export function MissionCreateScreen({ navigation }: Props) {
   const selectedChild = childOptions.find((c) => String(c.childUserId) === String(selectedChildId)) ?? null;
 
   const amount = parseAmount(amountText);
-  const dueDateError = validateMissionDueDate(dueDate);
   const valid =
     hasMinLength(title, 1) &&
     isAmountInRange(amount, 1000, parentCreditBalance) &&
-    !dueDateError &&
+    !!dueDate &&
     selectedChild !== null;
 
   const createMissionMutation = useMutation({
@@ -118,8 +121,15 @@ export function MissionCreateScreen({ navigation }: Props) {
     createMissionMutation.mutate();
   };
 
+
   return (
     <ScreenFrame eyebrow="미션 등록" title="새 미션 만들기" description="자녀에게 할 일과 보상 금액을 보냅니다.">
+      <DatePickerModal
+        visible={calendarVisible}
+        selected={dueDate}
+        onSelect={setDueDate}
+        onClose={() => setCalendarVisible(false)}
+      />
       <ChildSelector
         children={childOptions}
         selectedId={selectedChildId}
@@ -129,14 +139,18 @@ export function MissionCreateScreen({ navigation }: Props) {
       <ApiErrorBox error={apiError} fallback="미션 등록에 실패했습니다." />
       <FormField label="미션 이름" placeholder="예: 수학 문제집 3쪽" value={title} onChangeText={setTitle} disabled={loading} />
       <FormField label="조건 안내" placeholder="완료 기준" value={description} onChangeText={setDescription} disabled={loading} />
-      <FormField
-        label="수행 날짜"
-        placeholder="예: 2026-06-30"
-        value={dueDate}
-        onChangeText={setDueDate}
-        error={dueDateError}
-        disabled={loading}
-      />
+      <View style={styles.fieldWrap}>
+        <Text style={styles.fieldLabel}>수행 날짜</Text>
+        <Pressable
+          onPress={() => !loading && setCalendarVisible(true)}
+          style={({ pressed }) => [styles.dateButton, loading && styles.dateButtonDisabled, pressed && { opacity: 0.7 }]}
+        >
+          <Ionicons name="calendar-outline" size={18} color={loading ? colors.muted : colors.primary} />
+          <Text style={[styles.dateText, loading && styles.dateTextMuted]}>
+            {formatDateLabel(dueDate)}
+          </Text>
+        </Pressable>
+      </View>
       <FormField
         label="보상 금액"
         placeholder="1,000원 이상"
@@ -150,3 +164,37 @@ export function MissionCreateScreen({ navigation }: Props) {
     </ScreenFrame>
   );
 }
+
+const styles = StyleSheet.create({
+  fieldWrap: {
+    marginBottom: 14,
+  },
+  fieldLabel: {
+    color: colors.dark,
+    fontSize: 14,
+    fontWeight: '800',
+    marginBottom: 8,
+  },
+  dateButton: {
+    alignItems: 'center',
+    backgroundColor: colors.primarySoft,
+    borderColor: 'rgba(4, 113, 233, 0.25)',
+    borderRadius: 8,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 10,
+    minHeight: 58,
+    paddingHorizontal: 16,
+  },
+  dateButtonDisabled: {
+    opacity: 0.5,
+  },
+  dateText: {
+    color: colors.primary,
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  dateTextMuted: {
+    color: colors.muted,
+  },
+});
