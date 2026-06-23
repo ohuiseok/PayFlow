@@ -3,7 +3,10 @@ import { createContext, PropsWithChildren, useContext, useEffect, useMemo, useSt
 import { authApi } from '../api/authApi';
 import { familyApi } from '../api/familyApi';
 import { tokenStorage } from '../storage/tokenStorage';
+import { appConfig } from '../config/appConfig';
 import { BankAccount, CashbookEntry, LinkedChild, Mission, UserRole } from '../types';
+
+const DUMMY_ROLE_KEY = 'payflow_dummy_role';
 
 const defaultParentName = '지수';
 const defaultChildName = '민지';
@@ -133,6 +136,18 @@ export function AppStateProvider({ children }: PropsWithChildren) {
     let cancelled = false;
 
     async function restoreSession() {
+      // 더미 모드: localStorage에서 역할 복원 (페이지 리로드 시 세션 유지)
+      if (appConfig.useDummyData) {
+        const savedRole = localStorage.getItem(DUMMY_ROLE_KEY) as UserRole | null;
+        if (!cancelled) {
+          setRole(savedRole);
+          // 더미 모드에서 child는 항상 가족 연결된 상태로 취급
+          if (savedRole === 'child') setFamilyLinked(true);
+          setIsRestoringSession(false);
+        }
+        return;
+      }
+
       try {
         const token = await tokenStorage.getAccessToken();
         if (token) {
@@ -197,8 +212,15 @@ export function AppStateProvider({ children }: PropsWithChildren) {
         setRole(nextRole);
         setCurrentUserId(userId ?? (nextRole === 'parent' ? '1' : '2'));
         setCurrentUserName(name?.trim() || (nextRole === 'parent' ? defaultParentName : defaultChildName));
+        if (appConfig.useDummyData) {
+          localStorage.setItem(DUMMY_ROLE_KEY, nextRole);
+          if (nextRole === 'child') setFamilyLinked(true);
+        }
       },
       async logout() {
+        if (appConfig.useDummyData) {
+          localStorage.removeItem(DUMMY_ROLE_KEY);
+        }
         try {
           await authApi.logout();
         } catch {
