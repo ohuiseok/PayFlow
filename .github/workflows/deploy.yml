@@ -19,8 +19,7 @@ jobs:
           script: |
             cd /home/ubuntu/app
 
-            git fetch origin main
-            git reset --hard ${{ github.sha }}
+            git pull origin main
 
             docker compose --env-file /home/ubuntu/config/payflow.env up -d --build
             docker image prune -f
