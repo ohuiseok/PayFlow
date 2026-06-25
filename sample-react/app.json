@@ -7,7 +7,11 @@
     "icon": "./assets/icon.png",
     "scheme": "payflow",
     "userInterfaceStyle": "light",
-    "platforms": ["ios", "android", "web"],
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.payflow.app"
@@ -26,6 +30,11 @@
       "bundler": "metro",
       "output": "single",
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "99a6b243-1747-4bbf-ae26-02fda6e26b29"
+      }
     }
   }
 }
