@@ -15,7 +15,7 @@ spring:
           globalcors:
             corsConfigurations:
               '[/**]':
-                allowedOrigins:
+                allowedOriginPatterns:
                   - "https://pay-flow.cloud"
                   - "https://www.pay-flow.cloud"
                   - "https://app.pay-flow.cloud"
