@@ -17,6 +17,7 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_KEY }}
           script: |
+            sudo chown -R ubuntu:ubuntu /home/ubuntu/app
             git config --global --add safe.directory /home/ubuntu/app
             cd /home/ubuntu/app
 
