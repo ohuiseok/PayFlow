@@ -24,7 +24,7 @@ export function MissionSubmitScreen({ navigation, route }: Props) {
   });
   const missions = appConfig.useDummyData ? dummyMissions : (missionsQuery.data ?? []);
   const mission = missions.find((item) => item.id === route.params?.missionId) ?? missions.find((item) => item.status === 'todo') ?? missions[0];
-  const [memo, setMemo] = useState('완료 사진을 첨부했어요.');
+  const [memo, setMemo] = useState('참여 완료 증빙을 첨부했습니다.');
   const [apiError, setApiError] = useState('');
   const submitMutation = useSubmitMissionMutation({
     missionId: mission?.id ?? '',
@@ -37,8 +37,8 @@ export function MissionSubmitScreen({ navigation, route }: Props) {
 
   if (!mission) {
     return (
-      <ScreenFrame eyebrow="완료 제출" title="미션 완료 알리기" description="완료한 내용을 부모에게 제출합니다.">
-        <LoadingState body="미션 정보를 불러오는 중입니다." />
+      <ScreenFrame eyebrow="완료 제출" title="정책 미션 완료 알리기" description="완료한 내용을 기관 담당자에게 제출합니다.">
+        <LoadingState body="정책 미션 정보를 불러오는 중입니다." />
       </ScreenFrame>
     );
   }
@@ -54,10 +54,11 @@ export function MissionSubmitScreen({ navigation, route }: Props) {
   };
 
   return (
-    <ScreenFrame eyebrow="완료 제출" title="미션 완료 알리기" description="완료한 내용을 부모에게 제출합니다.">
+    <ScreenFrame eyebrow="완료 제출" title="정책 미션 완료 알리기" description="완료한 내용을 기관 담당자에게 제출합니다.">
       <MissionCard mission={mission} />
       {canSubmit ? (
-        <>          <ApiErrorBox error={apiError} fallback="미션 제출에 실패했습니다." />
+        <>
+          <ApiErrorBox error={apiError} fallback="정책 미션 제출에 실패했습니다." />
           <FormField label="제출 메모" placeholder="완료 내용을 적어주세요." value={memo} onChangeText={setMemo} disabled={loading} />
           <PrimaryButton
             title={loading ? '제출 중' : '제출하기'}
@@ -67,7 +68,8 @@ export function MissionSubmitScreen({ navigation, route }: Props) {
           />
         </>
       ) : (
-        <>          <SecondaryButton title="자녀 홈으로" onPress={() => navigation.navigate('ChildHome')} />
+        <>
+          <SecondaryButton title="청년 홈으로" onPress={() => navigation.navigate('ChildHome')} />
         </>
       )}
     </ScreenFrame>

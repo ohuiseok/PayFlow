@@ -25,7 +25,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 @TestPropertySource(properties = {
         "outbox.publisher.enabled=true",
         "outbox.publisher.max-retries=2",
-        "outbox.publisher.processing-timeout=30s"
+        "outbox.publisher.processing-timeout=30s",
+        "spring.task.scheduling.enabled=false"
 })
 class OutboxEventRelayTest {
 
@@ -50,7 +51,7 @@ class OutboxEventRelayTest {
         when(kafkaTemplate.send(eq("transfer.completed"), eq("1"), eq("{}")))
                 .thenReturn(CompletableFuture.completedFuture(new SendResult<>(record, null)));
 
-        outboxEventRelay.publishPendingEvents();
+        outboxEventRelay.publishPendingEventsNow();
 
         OutboxEvent published = outboxEventRepository.findById(event.getId()).orElseThrow();
         assertThat(published.getStatus()).isEqualTo(OutboxEventStatus.PUBLISHED);
@@ -65,7 +66,7 @@ class OutboxEventRelayTest {
         when(kafkaTemplate.send(eq("transfer.completed"), eq("1"), eq("{}")))
                 .thenReturn(CompletableFuture.failedFuture(new RuntimeException("kafka down")));
 
-        outboxEventRelay.publishPendingEvents();
+        outboxEventRelay.publishPendingEventsNow();
 
         OutboxEvent failed = outboxEventRepository.findById(event.getId()).orElseThrow();
         assertThat(failed.getStatus()).isEqualTo(OutboxEventStatus.FAILED);
@@ -80,7 +81,7 @@ class OutboxEventRelayTest {
         event.markFailed("second failure");
         outboxEventRepository.save(event);
 
-        outboxEventRelay.publishPendingEvents();
+        outboxEventRelay.publishPendingEventsNow();
 
         OutboxEvent skipped = outboxEventRepository.findById(event.getId()).orElseThrow();
         assertThat(skipped.getStatus()).isEqualTo(OutboxEventStatus.FAILED);
@@ -97,7 +98,7 @@ class OutboxEventRelayTest {
         when(kafkaTemplate.send(eq("transfer.completed"), eq("1"), eq("{}")))
                 .thenReturn(CompletableFuture.completedFuture(new SendResult<>(record, null)));
 
-        outboxEventRelay.publishPendingEvents();
+        outboxEventRelay.publishPendingEventsNow();
 
         OutboxEvent published = outboxEventRepository.findById(event.getId()).orElseThrow();
         assertThat(published.getStatus()).isEqualTo(OutboxEventStatus.PUBLISHED);
@@ -111,7 +112,7 @@ class OutboxEventRelayTest {
         event.markProcessing(LocalDateTime.now());
         event = outboxEventRepository.save(event);
 
-        outboxEventRelay.publishPendingEvents();
+        outboxEventRelay.publishPendingEventsNow();
 
         OutboxEvent processing = outboxEventRepository.findById(event.getId()).orElseThrow();
         assertThat(processing.getStatus()).isEqualTo(OutboxEventStatus.PROCESSING);

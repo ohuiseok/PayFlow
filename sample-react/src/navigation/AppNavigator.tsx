@@ -31,18 +31,18 @@ type RouteName = keyof RootStackParamList;
 const screenTitles: Partial<Record<RouteName, string>> = {
   Login: '로그인',
   SignupRole: '회원가입',
-  ParentFamilyLink: '자녀 연결',
-  ChildInviteCode: '보호자 연결',
-  ParentHome: '부모 홈',
-  CreditCharge: '적립금 충전',
-  MissionCreate: '미션 등록',
+  ParentFamilyLink: '참여자 연결',
+  ChildInviteCode: '기관 연결',
+  ParentHome: '기관 홈',
+  CreditCharge: '지원금 충전',
+  MissionCreate: '정책 미션 등록',
   ParentApproval: '승인 대기',
-  ChildHome: '자녀 홈',
+  ChildHome: '청년 홈',
   MissionSubmit: '완료 제출',
   RejectResubmit: '재제출',
   BankAccountRegister: '계좌 등록',
   ChildWithdrawal: '출금',
-  ParentWithdrawal: '적립금 출금',
+  ParentWithdrawal: '지원금 출금',
 };
 
 const screenOptions = {
@@ -155,8 +155,8 @@ export function AppNavigator() {
       <Stack.Screen name="BankAccountRegister" component={GuardedBankAccountRegisterScreen} options={{ title: screenTitles.BankAccountRegister }} />
       <Stack.Screen name="ChildWithdrawal" component={GuardedChildWithdrawalScreen} options={{ title: screenTitles.ChildWithdrawal }} />
       <Stack.Screen name="ParentWithdrawal" component={GuardedParentWithdrawalScreen} options={{ title: screenTitles.ParentWithdrawal }} />
-      <Stack.Screen name="ChildCashbook" component={GuardedChildCashbookScreen} options={{ title: '사용 기록' }} />
-      <Stack.Screen name="ParentCreditHistory" component={GuardedParentCreditHistoryScreen} options={{ title: '충전금 기록' }} />
+      <Stack.Screen name="ChildCashbook" component={GuardedChildCashbookScreen} options={{ title: '지원금 내역' }} />
+      <Stack.Screen name="ParentCreditHistory" component={GuardedParentCreditHistoryScreen} options={{ title: '예산 기록' }} />
     </Stack.Navigator>
   );
 }

@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { authApi } from '../../api/authApi';
-import { RoleSwitch } from '../../components/auth/RoleSwitch';
 import { colors, FormField, PrimaryButton, ScreenFrame } from '../../components/common';
 import { appConfig } from '../../config/appConfig';
 import { RootStackParamList } from '../../navigation/routes';
@@ -21,15 +20,11 @@ export function LoginScreen({ navigation }: Props) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // 이미 로그인 상태면 홈으로 자동 이동
-  // 딥링크로 [Login, CreditCharge] 같은 스택이 생긴 경우, reset으로 한 번에 재구성해
-  // 뒤로가기 시 Login이 아닌 홈으로 가도록 보장한다.
   useEffect(() => {
     if (isRestoringSession || !role) return;
     const homeRoute = role === 'parent' ? 'ParentHome' : (familyLinked ? 'ChildHome' : 'ChildInviteCode');
     const state = navigation.getState();
     if (state && state.routes.length > 1) {
-      // Login 아래에 다른 스크린이 있는 딥링크 케이스
       navigation.reset({
         index: state.routes.length - 1,
         routes: [
@@ -84,8 +79,8 @@ export function LoginScreen({ navigation }: Props) {
     <ScreenFrame>
       <View style={styles.loginCard}>
         <Text style={styles.brand}>PayFlow</Text>
-        <Text style={styles.loginTitle}>미션으로 배우는 용돈 관리</Text>
-        <Text style={styles.loginSub}>부모가 미션을 만들고 자녀가 보상을 받아요.</Text>
+        <Text style={styles.loginTitle}>청년 정책 참여와 지원금 지급을 한 흐름으로</Text>
+        <Text style={styles.loginSub}>기관은 정책 미션을 관리하고, 청년은 참여 결과와 지원금 내역을 확인합니다.</Text>
         <View style={styles.spacer} />
         <FormField
           placeholder="휴대폰 번호"

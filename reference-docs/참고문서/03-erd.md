@@ -1,4 +1,6 @@
-# ERD
+﻿# ERD
+
+> 도메인 전환 안내: 현재 PayFlow는 **청년 정책 참여 미션 및 지원금 지급 플랫폼**으로 설명한다. 내부 구현 호환성을 위해 `PARENT`/`CHILD`, `/api/families`, `/api/missions`, `/api/cashbook`, `reward-service` 같은 명칭은 유지하지만, 문서와 발표에서는 각각 **기관 담당자**, **청년 참여자**, **참여자 연결**, **정책 미션**, **지원금 사용 내역**, **정책 미션/지원금 서비스**로 해석한다.
 
 PayFlow는 서비스별 DB를 분리합니다. 다른 서비스의 테이블을 직접 join하지 않고, 필요한 경우 API 호출이나 이벤트로 식별자만 주고받습니다.
 
@@ -392,12 +394,12 @@ Toss 웹훅을 수신한 기록을 보관합니다.
 
 ### reward_tasks
 
-미션과 보상 지급 상태를 저장합니다.
+미션과 지원금 지급 상태를 저장합니다.
 
 - `transfer_id` UNIQUE — 보상 중복 지급 방지
-- `submission_note`: 자녀 제출 메모
-- `reject_reason`: 부모 반려 사유
-- `failure_reason`: 보상 지급 실패 사유 (상태는 APPROVED 유지)
+- `submission_note`: 청년 제출 메모
+- `reject_reason`: 기관 반려 사유
+- `failure_reason`: 지원금 지급 실패 사유 (상태는 APPROVED 유지)
 
 상태: `CREATED` → `SUBMITTED` → `APPROVED` → `PAID` / `REJECTED` / `CANCELED`
 
@@ -429,3 +431,5 @@ Toss 웹훅을 수신한 기록을 보관합니다.
 | outbox 테이블 사용 | DB 변경과 Kafka 발행 사이의 유실을 막기 위해 |
 | 보상 retry metadata 저장 | 운영자가 재시도 횟수와 실패 사유를 API로 확인할 수 있게 하기 위해 |
 | ledger 원장 불변 | 정정이 필요한 경우 새 전표로 남기는 회계 원칙을 따르기 위해 |
+
+

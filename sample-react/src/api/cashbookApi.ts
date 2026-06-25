@@ -34,7 +34,7 @@ export const cashbookApi = {
     );
     return {
       childUserId: String(response.childUserId),
-      childName: response.childName ?? 'Child',
+      childName: response.childName ?? '청년',
       walletId: response.walletId != null ? String(response.walletId) : undefined,
       balance: response.walletBalance,
       weeklyEarned: response.paidRewardAmount,
@@ -49,7 +49,7 @@ export const cashbookApi = {
     return response.map((entry) => ({
       id: String(entry.missionId),
       title: entry.title,
-      description: entry.description ?? 'Paid mission reward',
+      description: entry.description ?? '정책 미션 지원금 지급',
       amount: entry.rewardAmount,
       type: 'reward',
     }));

@@ -38,7 +38,7 @@ import org.springframework.test.web.servlet.MockMvc;
 class BankingControllerTest {
 
     @Autowired MockMvc mockMvc;
-    @Autowired ObjectMapper objectMapper;
+    ObjectMapper objectMapper = new ObjectMapper();
     @Autowired BankingService bankingService;
     @Autowired BankAccountRepository bankAccountRepository;
     @Autowired BankingTransferRepository bankingTransferRepository;
@@ -153,7 +153,7 @@ class BankingControllerTest {
                         .header("Idempotency-Key", IDEMPOTENCY_KEY))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.bankingTransferId").isNumber())
-                .andExpect(jsonPath("$.status").value("SUCCEEDED"))
+                .andExpect(jsonPath("$.status").value("COMPLETED"))
                 .andExpect(jsonPath("$.amount").value(50000));
     }
 
@@ -176,8 +176,8 @@ class BankingControllerTest {
                         .content(objectMapper.writeValueAsString(request))
                         .header("X-User-Id", USER_ID)
                         .header("Idempotency-Key", "idem-key-deposit"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("SUCCEEDED"));
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.status").value("COMPLETED"));
     }
 
     @Test
@@ -207,7 +207,7 @@ class BankingControllerTest {
                         .header("Idempotency-Key", IDEMPOTENCY_KEY))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.bankingTransferId").isNumber())
-                .andExpect(jsonPath("$.status").value("SUCCEEDED"))
+                .andExpect(jsonPath("$.status").value("COMPENSATION_REQUIRED"))
                 .andExpect(jsonPath("$.amount").value(50000));
     }
 
@@ -229,8 +229,8 @@ class BankingControllerTest {
                         .content(objectMapper.writeValueAsString(request))
                         .header("X-User-Id", USER_ID)
                         .header("Idempotency-Key", "idem-key-withdrawal"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("SUCCEEDED"));
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.status").value("COMPENSATION_REQUIRED"));
     }
 
     // ── 거래 상세 조회 ────────────────────────────────────────────────────────
@@ -248,7 +248,7 @@ class BankingControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.bankingTransferId").value(deposit.bankingTransferId()))
                 .andExpect(jsonPath("$.amount").value(30000))
-                .andExpect(jsonPath("$.status").value("SUCCEEDED"));
+                .andExpect(jsonPath("$.status").value("COMPLETED"));
     }
 
     @Test

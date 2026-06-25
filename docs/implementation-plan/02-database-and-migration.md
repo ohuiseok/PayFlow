@@ -1,4 +1,6 @@
-# 02. Database And Migration
+﻿# 02. Database And Migration
+
+> 도메인 전환 안내: 현재 PayFlow는 **청년 정책 참여 미션 및 지원금 지급 플랫폼**으로 설명한다. 내부 구현 호환성을 위해 `PARENT`/`CHILD`, `/api/families`, `/api/missions`, `/api/cashbook`, `reward-service` 같은 명칭은 유지하지만, 문서와 발표에서는 각각 **기관 담당자**, **청년 참여자**, **참여자 연결**, **정책 미션**, **지원금 사용 내역**, **정책 미션/지원금 서비스**로 해석한다.
 
 MVP 데이터 모델은 현재 구현할 결제 흐름에 필요한 테이블만 둔다.
 
@@ -120,7 +122,7 @@ MVP 데이터 모델은 현재 구현할 결제 흐름에 필요한 테이블만
 
 ### parent_child_links
 
-부모와 자녀의 연결 관계를 저장한다.
+기관 담당자와 청년 참여자의 연결 관계를 저장한다.
 
 필드:
 
@@ -136,7 +138,7 @@ MVP 데이터 모델은 현재 구현할 결제 흐름에 필요한 테이블만
 
 ### reward_tasks
 
-가족 미션과 보상 지급 상태를 저장한다.
+가족 미션과 지원금 지급 상태를 저장한다.
 
 필드:
 
@@ -280,3 +282,5 @@ Open Banking OAuth 연결과 토큰 상태를 저장한다.
 기존 `bank_accounts`에 다음 필드를 추가한다.
 
 `provider_code`, `open_banking_authorization_id`, `fintech_use_num_encrypted`, `account_alias`, `linked_at`, `last_synced_at`
+
+

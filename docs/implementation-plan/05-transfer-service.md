@@ -1,4 +1,6 @@
-# 05. Transfer Service
+﻿# 05. Transfer Service
+
+> 도메인 전환 안내: 현재 PayFlow는 **청년 정책 참여 미션 및 지원금 지급 플랫폼**으로 설명한다. 내부 구현 호환성을 위해 `PARENT`/`CHILD`, `/api/families`, `/api/missions`, `/api/cashbook`, `reward-service` 같은 명칭은 유지하지만, 문서와 발표에서는 각각 **기관 담당자**, **청년 참여자**, **참여자 연결**, **정책 미션**, **지원금 사용 내역**, **정책 미션/지원금 서비스**로 해석한다.
 
 transfer-service는 사용자 간 송금을 처리한다.
 
@@ -77,3 +79,4 @@ transfer-service는 사용자 간 송금을 처리한다.
 출금 후 입금 실패 상태 기록
 
 송금 성공 후 원장 기록 요청
+

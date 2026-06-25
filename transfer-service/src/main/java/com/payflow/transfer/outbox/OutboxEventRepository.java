@@ -24,7 +24,7 @@ public interface OutboxEventRepository extends JpaRepository<OutboxEvent, Long> 
             int maxRetries
     );
 
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
             update OutboxEvent event
             set event.status = :processingStatus

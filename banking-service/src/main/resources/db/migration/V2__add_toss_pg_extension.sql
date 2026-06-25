@@ -1,10 +1,9 @@
-ALTER TABLE bank_accounts
-    ADD COLUMN provider_code VARCHAR(30),
-    ADD COLUMN open_banking_authorization_id BIGINT,
-    ADD COLUMN fintech_use_num_encrypted VARCHAR(2000),
-    ADD COLUMN account_alias VARCHAR(100),
-    ADD COLUMN linked_at DATETIME(6),
-    ADD COLUMN last_synced_at DATETIME(6);
+ALTER TABLE bank_accounts ADD COLUMN provider_code VARCHAR(30);
+ALTER TABLE bank_accounts ADD COLUMN open_banking_authorization_id BIGINT;
+ALTER TABLE bank_accounts ADD COLUMN fintech_use_num_encrypted VARCHAR(2000);
+ALTER TABLE bank_accounts ADD COLUMN account_alias VARCHAR(100);
+ALTER TABLE bank_accounts ADD COLUMN linked_at DATETIME(6);
+ALTER TABLE bank_accounts ADD COLUMN last_synced_at DATETIME(6);
 
 CREATE TABLE payment_providers (
     id BIGINT NOT NULL AUTO_INCREMENT,

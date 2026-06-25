@@ -43,6 +43,10 @@ public class OutboxEventRelay {
     @Scheduled(fixedDelayString = "${outbox.publisher.fixed-delay:2000}")
     @SchedulerLock(name = "outbox-event-relay", lockAtMostFor = "PT10S", lockAtLeastFor = "PT1S")
     public void publishPendingEvents() {
+        publishPendingEventsNow();
+    }
+
+    public void publishPendingEventsNow() {
         TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
         List<OutboxEvent> events = transactionTemplate.execute(status -> {
             recoverStuckProcessingEvents();
@@ -74,15 +78,14 @@ public class OutboxEventRelay {
     }
 
     private boolean claimInTransaction(Long eventId) {
-        LocalDateTime processingStartedAt = LocalDateTime.now();
-        int updated = outboxEventRepository.claimPublishableEvent(
-                eventId,
-                PUBLISHABLE_STATUSES,
-                OutboxEventStatus.PROCESSING,
-                processingStartedAt,
-                maxRetries
-        );
-        return updated == 1;
+        return outboxEventRepository.findById(eventId)
+                .filter(event -> PUBLISHABLE_STATUSES.contains(event.getStatus()))
+                .filter(event -> event.getRetryCount() < maxRetries)
+                .map(event -> {
+                    event.markProcessing(LocalDateTime.now());
+                    return true;
+                })
+                .orElse(false);
     }
 
     private String publishOne(OutboxEvent event) {

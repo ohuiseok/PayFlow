@@ -60,7 +60,7 @@ function normalizeMission(mission: ApiMission): Mission {
   return {
     id: String(mission.missionId),
     childId: String(mission.childUserId ?? 'child-unknown'),
-    childName: mission.childName ?? '자녀',
+    childName: mission.childName ?? '청년',
     title: mission.title,
     description: mission.description ?? '',
     rewardAmount: mission.rewardAmount,

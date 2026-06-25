@@ -1,4 +1,6 @@
-# 08. Toss PG Extension Plan
+﻿# 08. Toss PG Extension Plan
+
+> 도메인 전환 안내: 현재 PayFlow는 **청년 정책 참여 미션 및 지원금 지급 플랫폼**으로 설명한다. 내부 구현 호환성을 위해 `PARENT`/`CHILD`, `/api/families`, `/api/missions`, `/api/cashbook`, `reward-service` 같은 명칭은 유지하지만, 문서와 발표에서는 각각 **기관 담당자**, **청년 참여자**, **참여자 연결**, **정책 미션**, **지원금 사용 내역**, **정책 미션/지원금 서비스**로 해석한다.
 
 이 문서는 기존 PayFlow 충전 시스템을 확장해서 Toss Payments PG 충전과 Open Banking 계좌 연결 방식을 함께 지원하기 위한 개발 계획이다.
 
@@ -6,7 +8,7 @@
 
 ## 목표
 
-- 부모 사용자가 화면에서 `Toss 충전` 버튼으로 PG 결제를 시작할 수 있다.
+- 기관 담당자가 화면에서 `Toss 충전` 버튼으로 PG 결제를 시작할 수 있다.
 - 사용자가 `Open Banking 계좌 연결` 버튼으로 계좌를 연결하고, 연결 계좌 기반 충전을 사용할 수 있다.
 - Toss 결제 승인, 취소, 웹훅, 조회 응답을 내부 충전 상태와 분리해서 추적한다.
 - 중복 결제 승인, 중복 웹훅, 결제 성공 후 지갑 반영 실패를 복구 가능 상태로 남긴다.
@@ -183,7 +185,7 @@ POST /api/bank/transfers/{bankingTransferId}/result-check
 
 ## 화면 수정 계획
 
-### 부모 홈
+### 기관 홈
 
 - 지갑 잔액 영역에 `Toss 충전` 버튼을 추가한다.
 - 연결 계좌가 없으면 `Open Banking 계좌 연결` 버튼을 우선 노출한다.
@@ -237,3 +239,4 @@ POST /api/bank/transfers/{bankingTransferId}/result-check
 
 - Toss 승인 성공 후 지갑 반영이 완료되면 `TOSS_CHARGE + USER_WALLET_TOPUP` 원장이 1회만 생성된다.
 - Toss 취소 성공 후 지갑 차감이 완료되면 `TOSS_CANCEL + PG_CANCEL` 원장이 1회만 생성된다.
+

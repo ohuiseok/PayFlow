@@ -1,4 +1,6 @@
-# PayFlow 보안 및 코드 품질 리뷰
+﻿# PayFlow 보안 및 코드 품질 리뷰
+
+> 도메인 전환 안내: 현재 PayFlow는 **청년 정책 참여 미션 및 지원금 지급 플랫폼**으로 설명한다. 내부 구현 호환성을 위해 `PARENT`/`CHILD`, `/api/families`, `/api/missions`, `/api/cashbook`, `reward-service` 같은 명칭은 유지하지만, 문서와 발표에서는 각각 **기관 담당자**, **청년 참여자**, **참여자 연결**, **정책 미션**, **지원금 사용 내역**, **정책 미션/지원금 서비스**로 해석한다.
 
 **리뷰 날짜**: 2026-06-20  
 **리뷰 범위**: 8개 마이크로서비스 전체 Java 소스 (237개 파일)  
@@ -137,7 +139,7 @@ public List<TossChargeSummaryResponse> getCompensationRequiredCharges() {
 
 일반 사용자(CHILD 포함)가 전체 결제 현황 및 보상 대기 내역을 조회할 수 있습니다.
 
-수정 방향: `X-User-Role` 헤더로 ADMIN/PARENT 역할 확인, 또는 내부 전용 관리 서비스로 분리.
+수정 방향: `X-User-Role` 헤더로 ADMIN/기관 담당자 역할 확인, 또는 내부 전용 관리 서비스로 분리.
 
 ---
 
@@ -220,7 +222,7 @@ void validate() {
 
 ---
 
-### [H-4] 사용자가 직접 PARENT 역할 선택 가능
+### [H-4] 사용자가 직접 기관 담당자 역할 선택 가능
 
 **영향 파일**: `user-service/.../CreateUserRequest.java`
 
@@ -231,7 +233,7 @@ public record CreateUserRequest(
 ) {}
 ```
 
-누구든 회원가입 시 PARENT 역할로 등록하여 타인의 지갑 조회, 미션 생성, 송금 실행 권한을 가질 수 있습니다.
+누구든 회원가입 시 기관 담당자 역할로 등록하여 타인의 지갑 조회, 미션 생성, 송금 실행 권한을 가질 수 있습니다.
 
 수정 방향: 초대 코드 또는 관리자 승인 기반 역할 부여 흐름 도입.
 
@@ -326,14 +328,14 @@ return transferRepository
 
 ---
 
-### [M-4] getParentCreditSummary: 전체 목록 로드 후 메모리 필터링
+### [M-4] getAgencyCreditSummary: 전체 목록 로드 후 메모리 필터링
 
 **영향 파일**: `reward-service/.../RewardService.java`
 
 ```java
 // 승인 대기 건수를 위해 전체 목록 로드 후 .size()
 long pendingApprovalCount = rewardTaskRepository
-    .findByParentUserIdAndStatusInOrderByCreatedAtDesc(requestUserId, List.of(SUBMITTED)).size();
+    .findByAgencyUserIdAndStatusInOrderByCreatedAtDesc(requestUserId, List.of(SUBMITTED)).size();
 ```
 
 수정 방향: `COUNT` 및 `SUM` DB 쿼리로 대체.
@@ -430,3 +432,4 @@ userId + timestamp를 바인딩한 서명으로 CSRF를 방지합니다.
 
 - 개발 우선순위 및 수정 계획: [`implementation-plan/17-security-and-improvements.md`](implementation-plan/17-security-and-improvements.md)
 - 수정 진행 현황: [`CHECKLIST.md`](CHECKLIST.md) — "보안 및 코드 품질 개선" 섹션
+

@@ -8,12 +8,12 @@ import { BankAccount, CashbookEntry, LinkedChild, Mission, UserRole } from '../t
 
 const DUMMY_ROLE_KEY = 'payflow_dummy_role';
 
-const defaultParentName = '지수';
-const defaultChildName = '민지';
+const defaultParentName = '서울청년센터';
+const defaultChildName = '김민지';
 
 const dummyLinkedChildren: LinkedChild[] = [
-  { childUserId: 'child-001', childName: '민지', phoneNumber: '010-1234-5678' },
-  { childUserId: 'child-002', childName: '서연', phoneNumber: '010-8765-4321' },
+  { childUserId: 'child-001', childName: '김민지', phoneNumber: '010-1234-5678' },
+  { childUserId: 'child-002', childName: '이서연', phoneNumber: '010-8765-4321' },
 ];
 
 const initialMissions: Mission[] = [
@@ -21,9 +21,9 @@ const initialMissions: Mission[] = [
     id: 'mission-001',
     childId: 'child-001',
     childName: defaultChildName,
-    title: '수학 문제집 3쪽 풀기',
-    description: '오늘 배운 단원 문제를 차분히 풀고 사진을 올려주세요.',
-    rewardAmount: 3000,
+    title: '청년 금융 교육 참여',
+    description: '온라인 금융 교육을 수강하고 수료 화면을 제출해 주세요.',
+    rewardAmount: 5000,
     dueDate: '2026-06-12',
     status: 'todo',
   },
@@ -31,39 +31,39 @@ const initialMissions: Mission[] = [
     id: 'mission-002',
     childId: 'child-001',
     childName: defaultChildName,
-    title: '방 청소하기',
-    description: '책상 위와 침대 주변을 정리하고 완료 사진을 제출하세요.',
-    rewardAmount: 2000,
+    title: '정책 설문 응답',
+    description: '청년 주거 정책 설문에 참여하고 완료 화면을 제출해 주세요.',
+    rewardAmount: 3000,
     dueDate: '2026-06-14',
     status: 'submitted',
-    submitMemo: '책상과 침대 아래까지 정리했어요.',
+    submitMemo: '설문 응답을 완료했고 완료 화면을 첨부했습니다.',
   },
   {
     id: 'mission-003',
     childId: 'child-001',
     childName: defaultChildName,
-    title: '분리수거 버리기',
-    description: '분리수거함을 비우고 현관 앞을 정리하세요.',
-    rewardAmount: 2000,
+    title: '취업 상담 후기 제출',
+    description: '취업 상담 참여 후기를 100자 이상 작성해 주세요.',
+    rewardAmount: 7000,
     dueDate: '2026-06-20',
     status: 'rejected',
-    submitMemo: '비닐을 따로 모아뒀어요.',
-    rejectReason: '종이류가 아직 남아 있어요. 한 번만 더 확인해 주세요.',
+    submitMemo: '상담을 다녀왔습니다.',
+    rejectReason: '후기 내용이 부족합니다. 상담에서 얻은 내용을 조금 더 적어주세요.',
   },
 ];
 
 const initialCashbook: CashbookEntry[] = [
   {
     id: 'cash-001',
-    title: '지난주 독서 미션',
-    description: '미션 보상 지급 완료',
+    title: '청년 정책 참여 지원금',
+    description: '정책 미션 지원금 지급 완료',
     amount: 7000,
     type: 'reward',
   },
   {
     id: 'cash-002',
-    title: '간식 사기',
-    description: '사용 기록',
+    title: '계좌 출금',
+    description: '지원금 사용 기록',
     amount: -1500,
     type: 'withdrawal',
   },
@@ -72,15 +72,15 @@ const initialCashbook: CashbookEntry[] = [
 const initialParentCreditEntries: CashbookEntry[] = [
   {
     id: 'parent-credit-001',
-    title: '적립금 충전',
+    title: '지원금 예산 충전',
     description: '국민은행 1234-56-789012',
     amount: 50000,
     type: 'charge',
   },
   {
     id: 'parent-credit-002',
-    title: '지난주 독서 미션',
-    description: `${defaultChildName}에게 보상 지급`,
+    title: '청년 정책 참여 지원금',
+    description: `${defaultChildName}에게 지원금 지급`,
     amount: -7000,
     type: 'reward',
   },
@@ -131,17 +131,22 @@ export function AppStateProvider({ children }: PropsWithChildren) {
   const [currentUserId, setCurrentUserId] = useState('1');
   const [currentUserName, setCurrentUserName] = useState(defaultParentName);
   const [hasBankAccount, setHasBankAccount] = useState(false);
+  const [familyLinked, setFamilyLinked] = useState(false);
+  const [parentCreditBalance, setParentCreditBalance] = useState(0);
+  const [parentCreditEntries, setParentCreditEntries] = useState<CashbookEntry[]>(initialParentCreditEntries);
+  const [childCashBalance, setChildCashBalance] = useState(17000);
+  const [linkedBankAccount, setLinkedBankAccount] = useState<BankAccount | null>(null);
+  const [missions, setMissions] = useState<Mission[]>(initialMissions);
+  const [cashbookEntries, setCashbookEntries] = useState<CashbookEntry[]>(initialCashbook);
 
   useEffect(() => {
     let cancelled = false;
 
     async function restoreSession() {
-      // 더미 모드: localStorage에서 역할 복원 (페이지 리로드 시 세션 유지)
       if (appConfig.useDummyData) {
         const savedRole = localStorage.getItem(DUMMY_ROLE_KEY) as UserRole | null;
         if (!cancelled) {
           setRole(savedRole);
-          // 더미 모드에서 child는 항상 가족 연결된 상태로 취급
           if (savedRole === 'child') setFamilyLinked(true);
           setIsRestoringSession(false);
         }
@@ -166,12 +171,11 @@ export function AppStateProvider({ children }: PropsWithChildren) {
                 setFamilyLinked(family.linked);
               }
             } catch (familyError) {
-              console.error('가족 연결 상태를 복원하지 못했습니다.', familyError);
+              console.error('참여자 연결 상태를 복원하지 못했습니다.', familyError);
             }
           }
         }
       } catch {
-        // 토큰이 만료되었거나 유효하지 않으면 그냥 로그인 화면으로
         await tokenStorage.clearAccessToken();
       } finally {
         if (!cancelled) {
@@ -183,13 +187,6 @@ export function AppStateProvider({ children }: PropsWithChildren) {
     restoreSession();
     return () => { cancelled = true; };
   }, []);
-  const [familyLinked, setFamilyLinked] = useState(false);
-  const [parentCreditBalance, setParentCreditBalance] = useState(0);
-  const [parentCreditEntries, setParentCreditEntries] = useState<CashbookEntry[]>(initialParentCreditEntries);
-  const [childCashBalance, setChildCashBalance] = useState(17000);
-  const [linkedBankAccount, setLinkedBankAccount] = useState<BankAccount | null>(null);
-  const [missions, setMissions] = useState<Mission[]>(initialMissions);
-  const [cashbookEntries, setCashbookEntries] = useState<CashbookEntry[]>(initialCashbook);
 
   const value = useMemo<AppStateValue>(
     () => ({
@@ -224,7 +221,6 @@ export function AppStateProvider({ children }: PropsWithChildren) {
         try {
           await authApi.logout();
         } catch {
-          // 서버 로그아웃 실패해도 로컬 상태는 초기화한다
           await tokenStorage.clearAccessToken();
         }
         setRole(null);
@@ -244,7 +240,7 @@ export function AppStateProvider({ children }: PropsWithChildren) {
         setParentCreditEntries((items) => [
           {
             id: `parent-credit-${Date.now()}`,
-            title: '적립금 충전',
+            title: '지원금 예산 충전',
             description: `${parentChargeAccount.bankName} ${parentChargeAccount.accountNumber}`,
             amount,
             type: 'charge',
@@ -291,7 +287,7 @@ export function AppStateProvider({ children }: PropsWithChildren) {
           {
             id: `parent-credit-${Date.now()}`,
             title: mission.title,
-            description: `${mission.childName}에게 보상 지급`,
+            description: `${mission.childName}에게 지원금 지급`,
             amount: -mission.rewardAmount,
             type: 'reward',
           },
@@ -305,7 +301,7 @@ export function AppStateProvider({ children }: PropsWithChildren) {
           {
             id: `cash-${Date.now()}`,
             title: mission.title,
-            description: '미션 보상 지급 완료',
+            description: '정책 미션 지원금 지급 완료',
             amount: mission.rewardAmount,
             type: 'reward',
           },
@@ -349,14 +345,13 @@ export function AppStateProvider({ children }: PropsWithChildren) {
         return true;
       },
     }),
-    // logout은 setter만 닫으므로 deps 불필요 — eslint-disable-next-line react-hooks/exhaustive-deps
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       cashbookEntries,
       childCashBalance,
       currentUserId,
       currentUserName,
       familyLinked,
+      hasBankAccount,
       isRestoringSession,
       linkedBankAccount,
       missions,

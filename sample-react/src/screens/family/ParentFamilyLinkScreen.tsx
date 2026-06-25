@@ -36,27 +36,28 @@ export function ParentFamilyLinkScreen({ navigation }: Props) {
       navigation.replace('ParentHome');
     },
     onError: (error) => {
-      setApiError(getErrorMessage(error, '자녀 연결에 실패했습니다.'));
+      setApiError(getErrorMessage(error, '청년 참여자 연결에 실패했습니다.'));
     },
   });
 
   return (
     <ScreenFrame
-      eyebrow="가족 연결"
-      title="자녀 연결하기"
-      description="자녀 사용자 번호를 입력해 부모와 자녀를 연결합니다."
-    >      <FormField
-        label="자녀 사용자 번호"
+      eyebrow="참여자 연결"
+      title="청년 참여자 연결하기"
+      description="청년 사용자 번호를 입력해 기관 담당자와 참여자를 연결합니다."
+    >
+      <FormField
+        label="청년 사용자 번호"
         placeholder="2"
         value={childUserId}
         onChangeText={setChildUserId}
         keyboardType="number-pad"
         disabled={linkMutation.isPending}
-        error={valid ? undefined : '올바른 자녀 사용자 번호를 입력하세요.'}
+        error={valid ? undefined : '올바른 청년 사용자 번호를 입력하세요.'}
       />
-      <ApiErrorBox error={apiError} fallback="자녀 연결에 실패했습니다." />
+      <ApiErrorBox error={apiError} fallback="청년 참여자 연결에 실패했습니다." />
       <PrimaryButton
-        title={linkMutation.isPending ? '연결 중' : '자녀 연결'}
+        title={linkMutation.isPending ? '연결 중' : '참여자 연결'}
         onPress={() => linkMutation.mutate()}
         disabled={!valid || linkMutation.isPending}
         loading={linkMutation.isPending}

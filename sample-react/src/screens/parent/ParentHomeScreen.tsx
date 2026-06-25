@@ -10,7 +10,7 @@ import { creditApi } from '../../api/creditApi';
 import { familyApi } from '../../api/familyApi';
 import { missionApi } from '../../api/missionApi';
 import { ApiErrorBox } from '../../components/common/ApiErrorBox';
-import { BalanceCard, colors, PrimaryButton, ScreenFrame, SecondaryButton } from '../../components/common';
+import { BalanceCard, colors, ScreenFrame, SecondaryButton } from '../../components/common';
 import { EmptyState, LoadingState } from '../../components/common/ScreenStates';
 import { MissionCard } from '../../components/mission/MissionCard';
 import { appConfig } from '../../config/appConfig';
@@ -65,9 +65,9 @@ export function ParentHomeScreen({ navigation }: Props) {
     : (familyQuery.data?.linked ?? false);
 
   return (
-    <ScreenFrame eyebrow="부모 홈" title="오늘의 보상 흐름" description="자녀 미션, 크레딧, 결제 운영 상태를 한곳에서 확인합니다.">
+    <ScreenFrame eyebrow="기관 홈" title="오늘의 정책 지원 흐름" description="청년 미션, 지원금, 결제 운영 상태를 한곳에서 확인합니다.">
       <BalanceCard
-        label="적립금"
+        label="지원금 잔액"
         amount={displayBalance}
         description={`승인 대기 ${displayPendingCount}건 · 진행 미션 ${active.length}건`}
         actions={[
@@ -76,16 +76,16 @@ export function ParentHomeScreen({ navigation }: Props) {
           { label: '승인', onPress: () => navigation.navigate('ParentApproval'), testID: 'parent-home-approval-button', badge: displayPendingCount },
         ]}
       />
-      {!appConfig.useDummyData && (summaryQuery.isLoading || missionsQuery.isLoading) ? <LoadingState title="서버 조회 중" body="부모 홈 정보를 불러오고 있습니다." /> : null}
-      <ApiErrorBox error={summaryQuery.error} fallback="부모 크레딧 요약 조회에 실패했습니다." />
-      <ApiErrorBox error={missionsQuery.error} fallback="부모 미션 목록 조회에 실패했습니다." />
+      {!appConfig.useDummyData && (summaryQuery.isLoading || missionsQuery.isLoading) ? <LoadingState title="서버 조회 중" body="기관 홈 정보를 불러오고 있습니다." /> : null}
+      <ApiErrorBox error={summaryQuery.error} fallback="지원금 요약 조회에 실패했습니다." />
+      <ApiErrorBox error={missionsQuery.error} fallback="정책 미션 목록 조회에 실패했습니다." />
       {!hasLinkedChild ? (
         <View style={styles.onboardingCard}>
           <View style={styles.onboardingLeft}>
             <Ionicons name="people-outline" size={28} color={colors.primary} />
             <View style={styles.onboardingText}>
-              <Text style={styles.onboardingTitle}>자녀를 연결해보세요</Text>
-              <Text style={styles.onboardingBody}>자녀를 연결하면 미션과 적립금을 관리할 수 있어요.</Text>
+              <Text style={styles.onboardingTitle}>청년 참여자를 연결해보세요</Text>
+              <Text style={styles.onboardingBody}>참여자를 연결하면 정책 미션과 지원금을 관리할 수 있어요.</Text>
             </View>
           </View>
           <Pressable
@@ -100,7 +100,7 @@ export function ParentHomeScreen({ navigation }: Props) {
       <View style={styles.actionGrid}>
         {appConfig.useDummyData ? (
           <SecondaryButton
-            title="자녀 화면"
+            title="청년 화면"
             onPress={() => {
               loginAs('child');
               navigation.navigate('ChildHome');
@@ -117,7 +117,7 @@ export function ParentHomeScreen({ navigation }: Props) {
       />
       <View style={styles.sectionHeader}>
         <View>
-          <Text style={styles.sectionTitle}>진행 중 미션</Text>
+          <Text style={styles.sectionTitle}>진행 중 정책 미션</Text>
           <Text style={styles.sectionDate}>{formatDateLabel(selectedDate)}</Text>
         </View>
         <View style={styles.sectionActions}>
@@ -152,7 +152,7 @@ export function ParentHomeScreen({ navigation }: Props) {
           </Pressable>
         </View>
       </View>
-      {active.length ? active.map((mission) => <MissionCard key={mission.id} mission={mission} />) : <EmptyState body="진행 중인 미션이 없습니다." />}
+      {active.length ? active.map((mission) => <MissionCard key={mission.id} mission={mission} />) : <EmptyState body="진행 중인 정책 미션이 없습니다." />}
     </ScreenFrame>
   );
 }

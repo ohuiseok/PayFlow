@@ -103,6 +103,13 @@ public class LedgerService {
     }
 
     @Transactional(readOnly = true)
+    public TransferFailureEventResponse getTransferFailure(Long transferId) {
+        TransferFailureEvent event = transferFailureEventRepository.findByTransferId(transferId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
+        return TransferFailureEventResponse.from(event);
+    }
+
+    @Transactional(readOnly = true)
     public List<LedgerEntryResponse> getLedgerEntries(Long requestUserId) {
         // [C-4] 인증된 사용자가 관여한 원장 엔트리만 반환한다. 타인 데이터 노출을 방지한다.
         return ledgerEntryRepository.findTop100ByUserId(requestUserId)

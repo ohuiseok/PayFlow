@@ -80,7 +80,8 @@ class LedgerControllerTest {
                 new BigDecimal("10000")
         ));
 
-        mockMvc.perform(get("/ledgers/entries"))
+        mockMvc.perform(get("/ledgers/entries")
+                        .header("X-User-Id", 1L))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].sourceType").value("TOSS_CHARGE"))
                 .andExpect(jsonPath("$[0].lines.length()").value(2));
@@ -90,7 +91,8 @@ class LedgerControllerTest {
     void getTransferFailuresReturnsFailureEvents() throws Exception {
         ledgerService.recordTransferFailure(new TransferFailedEvent(200L, 1L, 2L, new BigDecimal("3000"), "FAILED", "wallet timeout"));
 
-        mockMvc.perform(get("/ledgers/transfer-failures"))
+        mockMvc.perform(get("/ledgers/transfer-failures")
+                        .header("X-User-Id", 1L))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].transferId").value(200))
                 .andExpect(jsonPath("$[0].senderUserId").value(1))
@@ -105,7 +107,8 @@ class LedgerControllerTest {
     void getTransferFailureReturnsFailureEvent() throws Exception {
         ledgerService.recordTransferFailure(new TransferFailedEvent(200L, 1L, 2L, new BigDecimal("3000"), "FAILED", "wallet timeout"));
 
-        mockMvc.perform(get("/ledgers/transfer-failures/{transferId}", 200L))
+        mockMvc.perform(get("/ledgers/transfer-failures/{transferId}", 200L)
+                        .header("X-User-Id", 1L))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.transferId").value(200))
                 .andExpect(jsonPath("$.status").value("FAILED"));
@@ -113,7 +116,8 @@ class LedgerControllerTest {
 
     @Test
     void getTransferFailureReturnsNotFoundWhenMissing() throws Exception {
-        mockMvc.perform(get("/ledgers/transfer-failures/{transferId}", 999L))
+        mockMvc.perform(get("/ledgers/transfer-failures/{transferId}", 999L)
+                        .header("X-User-Id", 1L))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("RESOURCE_NOT_FOUND"));
     }

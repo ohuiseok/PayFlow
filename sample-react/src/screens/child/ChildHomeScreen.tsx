@@ -8,7 +8,7 @@ import { authApi } from '../../api/authApi';
 import { cashbookApi } from '../../api/cashbookApi';
 import { defaultChildUserId, missionApi } from '../../api/missionApi';
 import { ApiErrorBox } from '../../components/common/ApiErrorBox';
-import { BalanceCard, colors, PrimaryButton, ScreenFrame, SecondaryButton } from '../../components/common';
+import { BalanceCard, colors, ScreenFrame, SecondaryButton } from '../../components/common';
 import { LoadingState } from '../../components/common/ScreenStates';
 import { DatePickerModal, formatDateLabel, todayString } from '../../components/common/DatePickerModal';
 import { MissionCard } from '../../components/mission/MissionCard';
@@ -79,9 +79,9 @@ export function ChildHomeScreen({ navigation }: Props) {
   };
 
   return (
-    <ScreenFrame eyebrow="자녀 홈" title="내 미션과 사용 기록" description="받을 수 있는 보상과 최근 기록을 확인합니다.">
+    <ScreenFrame eyebrow="청년 홈" title="내 정책 미션과 지원금 내역" description="참여 가능한 미션과 최근 지원금 기록을 확인합니다.">
       <BalanceCard
-        label="내 지갑 잔액"
+        label="내 지원금 잔액"
         amount={displayCashBalance}
         description={`진행 가능 ${todo.length}건 · 반려 ${rejected.length}건`}
         actions={[
@@ -92,7 +92,7 @@ export function ChildHomeScreen({ navigation }: Props) {
       {appConfig.useDummyData ? (
         <View style={styles.actionGrid}>
           <SecondaryButton
-            title="부모 홈"
+            title="기관 홈"
             onPress={() => {
               loginAs('parent');
               navigation.navigate('ParentHome');
@@ -102,10 +102,10 @@ export function ChildHomeScreen({ navigation }: Props) {
         </View>
       ) : null}
       {!appConfig.useDummyData && (missionsQuery.isLoading || summaryQuery.isLoading) ? (
-        <LoadingState title="서버 조회 중" body="미션 정보를 불러오고 있습니다." />
+        <LoadingState title="서버 조회 중" body="정책 미션 정보를 불러오고 있습니다." />
       ) : null}
-      <ApiErrorBox error={missionsQuery.error} fallback="미션 목록 조회에 실패했습니다." />
-      <ApiErrorBox error={summaryQuery.error} fallback="사용 기록 요약 조회에 실패했습니다." />
+      <ApiErrorBox error={missionsQuery.error} fallback="정책 미션 목록 조회에 실패했습니다." />
+      <ApiErrorBox error={summaryQuery.error} fallback="지원금 내역 요약 조회에 실패했습니다." />
       <DatePickerModal
         visible={calendarVisible}
         selected={selectedDate}
@@ -114,7 +114,7 @@ export function ChildHomeScreen({ navigation }: Props) {
       />
       <View style={styles.sectionHeader}>
         <View>
-          <Text style={styles.sectionTitle}>오늘의 미션</Text>
+          <Text style={styles.sectionTitle}>오늘의 정책 미션</Text>
           <Text style={styles.sectionDate}>{formatDateLabel(selectedDate)}</Text>
         </View>
         <View style={styles.sectionActions}>

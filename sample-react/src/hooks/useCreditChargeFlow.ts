@@ -36,7 +36,7 @@ export function useCreditChargeFlow({
               callbackBaseUrl: appConfig.apiBaseUrl,
               amount: started.amount,
               orderId: started.orderId,
-              orderName: 'PayFlow 크레딧 충전',
+              orderName: 'PayFlow 지원금 충전',
               customerName: started.customerKey,
             }).then(() => ({
               chargeId: started.chargeId,
@@ -85,7 +85,7 @@ export function useCreditChargeFlow({
         },
         onTimeout: () => {
           setStatus('processing');
-          setUserMessage('충전 처리가 계속 진행 중입니다.\n\r잠시 후 다시 확인해 주세요.');
+          setUserMessage('충전 처리가 계속 진행 중입니다.\n잠시 후 다시 확인해 주세요.');
         },
       });
     },

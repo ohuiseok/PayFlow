@@ -48,7 +48,7 @@ export function SignupRoleScreen({ navigation }: Props) {
       });
 
       if (role === 'parent' && user.role !== 'parent') {
-        setError('부모 계정 생성에 실패했습니다. 부모 초대 코드 설정을 확인하세요.');
+        setError('기관 담당자 계정 생성에 실패했습니다. 초대 코드 설정을 확인하세요.');
         return;
       }
 
@@ -66,16 +66,16 @@ export function SignupRoleScreen({ navigation }: Props) {
     <ScreenFrame eyebrow="" title="어떤 계정인가요?" description="">
       <View style={styles.roleCards}>
         <RoleSelectCard
-          label="부모 계정"
-          title="미션을 만들고 보상 지급"
-          description="적립금 충전, 자녀 연결, 제출 승인"
+          label="기관 계정"
+          title="정책 미션을 만들고 지원금을 지급"
+          description="지원금 충전, 청년 연결, 제출 승인"
           selected={role === 'parent'}
           onPress={() => setRole('parent')}
         />
         <RoleSelectCard
-          label="자녀 계정"
-          title="미션을 완료하고 돈 벌기"
-          description="미션 확인, 완료 제출, 사용 기록 기록"
+          label="청년 계정"
+          title="정책 미션을 완료하고 지원금 받기"
+          description="미션 확인, 완료 제출, 사용 내역 확인"
           selected={role === 'child'}
           onPress={() => setRole('child')}
         />

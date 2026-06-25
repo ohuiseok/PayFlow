@@ -89,8 +89,8 @@ export function CreditChargeScreen({ navigation }: Props) {
   }, [queryClient]);
 
   return (
-    <ScreenFrame eyebrow="적립금 충전" title="적립금 채우기" description="">
-      <BalanceCard label="현재 적립금" amount={displayBalance} description="충전 후 미션 승인에 사용할 수 있습니다." />
+    <ScreenFrame eyebrow="지원금 충전" title="지원금 예산 채우기" description="">
+      <BalanceCard label="현재 지원금 예산" amount={displayBalance} description="충전 후 정책 미션 승인과 지원금 지급에 사용할 수 있습니다." />
       <Card>
         <Label>충전 방식</Label>
         <PrimaryButton
@@ -111,7 +111,7 @@ export function CreditChargeScreen({ navigation }: Props) {
       <Card>
         <Label>{chargeMethod === 'toss' ? 'Toss 결제' : '충전 계좌'}</Label>
         {chargeMethod === 'toss' ? (
-          <Body>Toss 결제 승인 후 지갑에 바로 충전됩니다.</Body>
+          <Body>Toss 결제 승인 후 기관 지갑에 바로 충전합니다.</Body>
         ) : appConfig.useDummyData ? (
           <>
             <Body>{formatBankAccountLabel(displayBankAccount)}</Body>
@@ -143,7 +143,7 @@ export function CreditChargeScreen({ navigation }: Props) {
         error={amountText && !validAmount ? '10,000원부터 1,000,000원까지 충전할 수 있습니다.' : undefined}
       />
       <AmountQuickSelect amounts={[10000, 30000, 50000]} onSelect={(value) => setAmountText(String(value))} />
-      {status === 'completed' ? <Toast message="충전 완료 · 보상 크레딧이 증가했습니다." /> : null}
+      {status === 'completed' ? <Toast message="충전 완료 · 지원금 예산이 증가했습니다." /> : null}
       {status === 'failed' ? <Toast tone="danger" message="충전에 실패했습니다. 다시 시도해 주세요." /> : null}
       <PrimaryButton
         title={processing ? '처리 중' : chargeMethod === 'toss' ? 'Toss로 충전하기' : '계좌로 충전하기'}
@@ -154,7 +154,7 @@ export function CreditChargeScreen({ navigation }: Props) {
       {appConfig.useDummyData ? (
         <ProcessingTestActions disabled={processing || !canCharge} onSelect={(nextStatus) => charge(nextStatus)} />
       ) : null}
-      {status === 'completed' ? <SecondaryButton title="부모 홈으로" onPress={() => navigation.navigate('ParentHome')} /> : null}
+      {status === 'completed' ? <SecondaryButton title="기관 홈으로" onPress={() => navigation.navigate('ParentHome')} /> : null}
       <AlertModal
         visible={Boolean(userMessage)}
         title="알림"

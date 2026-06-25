@@ -43,7 +43,7 @@ export function ParentApprovalScreen({ navigation }: Props) {
         .filter((f) => f.status === 'CONNECTED' && f.childUserId != null)
         .map((f) => ({
           childUserId: f.childUserId!,
-          childName: f.childName ?? `자녀 ${f.childUserId}`,
+          childName: f.childName ?? `청년 ${f.childUserId}`,
           phoneNumber: f.childPhoneNumber ?? '-',
         }));
 
@@ -57,7 +57,7 @@ export function ParentApprovalScreen({ navigation }: Props) {
     : displayMissions;
   const pending = childMissions.filter((mission) => mission.status === 'submitted');
 
-  const [reason, setReason] = useState('완료 내용을 더 자세히 적어서 다시 제출해 주세요.');
+  const [reason, setReason] = useState('완료 내용이 부족합니다. 내용을 보완해 다시 제출해 주세요.');
   const [rejectModalVisible, setRejectModalVisible] = useState(false);
   const [message, setMessage] = useState('');
   const [apiError, setApiError] = useState('');
@@ -81,11 +81,11 @@ export function ParentApprovalScreen({ navigation }: Props) {
       setMessage('');
     },
     onSuccess: (ok) => {
-      setMessage(ok ? '미션을 승인했고 보상을 지급했습니다.' : '부모 크레딧이 부족합니다.');
+      setMessage(ok ? '정책 미션을 승인했고 지원금을 지급했습니다.' : '기관 지원금 잔액이 부족합니다.');
       invalidateAfterDecision();
     },
     onError: (error) => {
-      setApiError(getErrorMessage(error, '미션 승인에 실패했습니다.'));
+      setApiError(getErrorMessage(error, '정책 미션 승인에 실패했습니다.'));
     },
   });
 
@@ -107,7 +107,7 @@ export function ParentApprovalScreen({ navigation }: Props) {
       invalidateAfterDecision();
     },
     onError: (error) => {
-      setApiError(getErrorMessage(error, '미션 반려에 실패했습니다.'));
+      setApiError(getErrorMessage(error, '정책 미션 반려에 실패했습니다.'));
     },
   });
 
@@ -116,8 +116,8 @@ export function ParentApprovalScreen({ navigation }: Props) {
   return (
     <ScreenFrame
       eyebrow="승인 검토"
-      title="제출된 미션"
-      description="자녀를 선택하면 해당 자녀의 제출된 미션을 승인하거나 반려합니다."
+      title="제출된 정책 미션"
+      description="청년을 선택하면 해당 참여자가 제출한 정책 미션을 승인하거나 반려합니다."
     >
       <ChildSelector
         children={childOptions}
@@ -128,13 +128,13 @@ export function ParentApprovalScreen({ navigation }: Props) {
           setApiError('');
         }}
       />
-      <ApiErrorBox error={familyQuery.error} fallback="연결 자녀 조회에 실패했습니다." />
-      {missionsQuery.isLoading ? <LoadingState title="미션 불러오는 중" body="제출된 미션을 확인하고 있습니다." /> : null}
-      <ApiErrorBox error={missionsQuery.error} fallback="미션 조회에 실패했습니다." />
+      <ApiErrorBox error={familyQuery.error} fallback="연결 참여자 조회에 실패했습니다." />
+      {missionsQuery.isLoading ? <LoadingState title="미션 불러오는 중" body="제출된 정책 미션을 확인하고 있습니다." /> : null}
+      <ApiErrorBox error={missionsQuery.error} fallback="정책 미션 조회에 실패했습니다." />
       {selected ? (
         <>
           <MissionApprovalCard mission={selected} />
-          <ApiErrorBox error={apiError} fallback="미션 처리에 실패했습니다." />
+          <ApiErrorBox error={apiError} fallback="정책 미션 처리에 실패했습니다." />
           <View style={styles.twoButtons}>
             <PrimaryButton
               title={loading ? '처리 중' : '승인하고 지급'}
@@ -145,14 +145,14 @@ export function ParentApprovalScreen({ navigation }: Props) {
             <SecondaryButton
               title="반려"
               onPress={() => {
-                setReason('완료 내용을 더 자세히 적어서 다시 제출해 주세요.');
+                setReason('완료 내용이 부족합니다. 내용을 보완해 다시 제출해 주세요.');
                 setRejectModalVisible(true);
               }}
             />
           </View>
           {message && appConfig.useDummyData ? (
             <SecondaryButton
-              title="자녀로 보기"
+              title="청년 화면으로 보기"
               onPress={() => {
                 loginAs('child');
                 navigation.navigate('ChildHome');
@@ -169,13 +169,13 @@ export function ParentApprovalScreen({ navigation }: Props) {
             <View style={styles.backdrop}>
               <View style={styles.panel}>
                 <Text style={styles.panelTitle}>반려 사유 입력</Text>
-                <Text style={styles.panelBody}>자녀에게 전달할 반려 사유를 입력해 주세요.</Text>
+                <Text style={styles.panelBody}>청년 참여자에게 전달할 반려 사유를 입력해 주세요.</Text>
                 <TextInput
                   autoFocus
                   multiline
                   numberOfLines={3}
                   onChangeText={setReason}
-                  placeholder="예) 완료 내용을 더 자세히 적어서 다시 제출해 주세요."
+                  placeholder="예: 증빙 내용이 부족합니다. 보완 후 다시 제출해 주세요."
                   placeholderTextColor="#8792A0"
                   style={styles.reasonInput}
                   value={reason}
@@ -208,8 +208,8 @@ export function ParentApprovalScreen({ navigation }: Props) {
         </>
       ) : (
         <>
-          <EmptyState title="승인 대기 없음" body="선택한 자녀의 제출된 미션이 없습니다." />
-          <SecondaryButton title="부모 홈으로" onPress={() => navigation.navigate('ParentHome')} />
+          <EmptyState title="승인 대기 없음" body="선택한 청년이 제출한 정책 미션이 없습니다." />
+          <SecondaryButton title="기관 홈으로" onPress={() => navigation.navigate('ParentHome')} />
         </>
       )}
     </ScreenFrame>
@@ -233,7 +233,7 @@ function MissionApprovalCard({ mission }: { mission: Mission }) {
       <Text style={cardStyles.memoText}>
         {mission.submitMemo || '제출 메모가 없습니다.'}
       </Text>
-      <Text style={cardStyles.hint}>승인하면 미션 보상이 자녀 지갑으로 즉시 지급됩니다.</Text>
+      <Text style={cardStyles.hint}>승인하면 정책 미션 지원금이 청년 지갑으로 즉시 지급됩니다.</Text>
     </View>
   );
 }

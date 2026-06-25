@@ -1,4 +1,6 @@
-# 00. Implementation Overview
+﻿# 00. Implementation Overview
+
+> 도메인 전환 안내: 현재 PayFlow는 **청년 정책 참여 미션 및 지원금 지급 플랫폼**으로 설명한다. 내부 구현 호환성을 위해 `PARENT`/`CHILD`, `/api/families`, `/api/missions`, `/api/cashbook`, `reward-service` 같은 명칭은 유지하지만, 문서와 발표에서는 각각 **기관 담당자**, **청년 참여자**, **참여자 연결**, **정책 미션**, **지원금 사용 내역**, **정책 미션/지원금 서비스**로 해석한다.
 
 ## Code Comment Rule
 
@@ -6,7 +8,7 @@
 
 PayFlow는 포트폴리오용 결제 MVP다.
 
-핵심 목표는 "사용자 지갑, 충전, 송금, 가족 미션 보상, 원장 기록"이 실제로 작동하고 테스트로 설명되는 것이다.
+핵심 목표는 "사용자 지갑, 충전, 송금, 가족 정책 미션 지원금, 원장 기록"이 실제로 작동하고 테스트로 설명되는 것이다.
 
 ## MVP 서비스
 
@@ -65,7 +67,7 @@ Docker Compose
 
 사용자 간 송금이 가능하다.
 
-부모가 자녀에게 미션을 만들고 보상을 지급할 수 있다.
+기관 담당자가 청년 참여자에게 미션을 만들고 보상을 지급할 수 있다.
 
 송금과 보상 지급이 원장에 기록된다.
 
@@ -79,5 +81,6 @@ Docker Compose
 - Toss 충전은 별도 `payment_charges`, `toss_payment_orders`, `toss_payment_events` 테이블로 외부 결제 상태를 추적한다.
 - Open Banking 계좌 연결은 `open_banking_authorizations` 테이블과 확장된 `bank_accounts`로 인증/계좌 동기화 상태를 저장한다.
 - 지갑 잔액 변경은 계속 `wallet-service`의 내부 입금 API만 사용한다.
-- 화면은 부모 홈의 `Toss 충전` 버튼과 `Open Banking 계좌 연결` 버튼을 기준으로 재구성한다.
+- 화면은 기관 홈의 `Toss 충전` 버튼과 `Open Banking 계좌 연결` 버튼을 기준으로 재구성한다.
 - 상세 계획은 `docs/implementation-plan/08-toss-pg-extension.md`를 따른다.
+

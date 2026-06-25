@@ -375,17 +375,6 @@ public class BankingService {
 
         // mock 모드에서는 OpenBanking API 호출 없이 바로 성공 처리한다.
         // 포트폴리오 데모 환경에서 transfer 권한 없이도 충전 흐름을 시연할 수 있도록 한다.
-        if (!"real".equalsIgnoreCase(openBankingProperties.mode())) {
-            transfer.markBankSucceeded(
-                    java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.BASIC_ISO_DATE),
-                    "mock-api-tran-id",
-                    "A0000",
-                    "000"
-            );
-            reflectDepositToWallet(transfer, userId);
-            return BankingTransferResponse.from(transfer);
-        }
-
         try {
             OpenBankingTransferResponse openBankingResponse = openBankingClient.withdrawTransfer(
                     toWithdrawTransferRequest(
@@ -408,6 +397,27 @@ public class BankingService {
                     null
             );
             // 포트폴리오 데모: real 모드에서도 API 응답과 무관하게 항상 성공 처리한다.
+            if (openBankingResponse == null) {
+                transfer.markBankProcessing(null, null, "OpenBanking response is empty.");
+                return BankingTransferResponse.from(transfer);
+            }
+            if (openBankingResponse.needsResultCheck()) {
+                transfer.markBankProcessing(
+                        openBankingResponse.bankTranDate(),
+                        openBankingResponse.rspCode(),
+                        openBankingResponse.bankRspCode(),
+                        openBankingResponse.summary()
+                );
+                return BankingTransferResponse.from(transfer);
+            }
+            if (!openBankingResponse.isSuccess()) {
+                transfer.markBankFailed(
+                        openBankingResponse.rspCode(),
+                        openBankingResponse.bankRspCode(),
+                        openBankingResponse.summary()
+                );
+                return BankingTransferResponse.from(transfer);
+            }
             transfer.markBankSucceeded(
                     openBankingResponse != null ? openBankingResponse.bankTranDate()
                             : java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.BASIC_ISO_DATE),
@@ -540,14 +550,18 @@ public class BankingService {
 
     private void reflectDepositToWallet(BankingTransfer transfer, Long userId) {
         transfer.markWalletReflecting(DEPOSIT_REFERENCE_TYPE, transfer.getBankTranId());
-        var wallet = walletClient.getWalletByUserId(userId, true, internalSecret);
-        walletClient.deposit(
-                wallet.walletId(),
-                new WalletBalanceChangeRequest(transfer.getAmount(), DEPOSIT_REFERENCE_TYPE, transfer.getBankTranId()),
-                true,
-                internalSecret
-        );
-        transfer.succeed(wallet.walletId(), null);
+        try {
+            var wallet = walletClient.getWalletByUserId(userId, true, internalSecret);
+            walletClient.deposit(
+                    wallet.walletId(),
+                    new WalletBalanceChangeRequest(transfer.getAmount(), DEPOSIT_REFERENCE_TYPE, transfer.getBankTranId()),
+                    true,
+                    internalSecret
+            );
+            transfer.succeed(wallet.walletId(), null);
+        } catch (RuntimeException exception) {
+            transfer.fail(resolveMessage(exception));
+        }
     }
 
     private void saveUserToken(Long userId, OpenBankingTokenResponse tokenResponse) {

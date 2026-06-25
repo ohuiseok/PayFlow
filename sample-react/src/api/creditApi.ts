@@ -162,20 +162,20 @@ function normalizeWithdrawal(response: WithdrawalResponse): WithdrawalResult {
 function walletTransactionTitle(referenceType: string, transactionType: string) {
   switch (referenceType) {
     case 'TOSS_PAYMENT_CHARGE':
-      return 'Toss 적립금 충전';
+      return 'Toss 지원금 충전';
     case 'OPEN_BANKING_CHARGE':
     case 'MANUAL_CHARGE':
-      return '적립금 충전';
+      return '지원금 충전';
     case 'OPEN_BANKING_WITHDRAWAL':
       return '계좌 출금';
     case 'OPEN_BANKING_REFUND':
       return '출금 보정 환급';
     case 'TRANSFER':
-      return transactionType === 'WITHDRAW' ? '미션 보상 지급' : '미션 보상 수령';
+      return transactionType === 'WITHDRAW' ? '정책 미션 지원금 지급' : '정책 미션 지원금 수령';
     case 'TOSS_PAYMENT_CANCEL':
       return 'Toss 충전 취소';
     default:
-      return transactionType === 'WITHDRAW' ? '크레딧 사용' : '크레딧 입금';
+      return transactionType === 'WITHDRAW' ? '지원금 사용' : '지원금 입금';
   }
 }
 
@@ -249,7 +249,7 @@ export const creditApi = {
       '/api/payments/toss/charges',
       {
         amount: input.amount,
-        orderName: 'PayFlow 크레딧 충전',
+        orderName: 'PayFlow 지원금 충전',
       },
       {
         headers: {
@@ -290,7 +290,7 @@ export const creditApi = {
     return normalizeCharge(response);
   },
 
-  async requestWithdrawal(input: { walletId: string; bankAccountId: string; amount: number }) {
+  async requestWithdrawal(input: { walletId: string; bankAccountId: string; amount: number }): Promise<WithdrawalResult> {
     const response = await apiClient.post<WithdrawalResponse>(
       '/api/bank/withdrawals',
       {
@@ -303,8 +303,9 @@ export const creditApi = {
         },
       },
     );
-    // 201 응답 = 출금 요청 성공 → 즉시 완료로 처리
-    return { ...normalizeWithdrawal(response), status: 'completed' as const };
+
+    const result = normalizeWithdrawal(response);
+    return { ...result, status: 'completed' };
   },
 
   async getWithdrawal(withdrawalId: string) {

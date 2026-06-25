@@ -1,4 +1,6 @@
-# API Docs
+﻿# API Docs
+
+> 도메인 전환 안내: 현재 PayFlow는 **청년 정책 참여 미션 및 지원금 지급 플랫폼**으로 설명한다. 내부 구현 호환성을 위해 `PARENT`/`CHILD`, `/api/families`, `/api/missions`, `/api/cashbook`, `reward-service` 같은 명칭은 유지하지만, 문서와 발표에서는 각각 **기관 담당자**, **청년 참여자**, **참여자 연결**, **정책 미션**, **지원금 사용 내역**, **정책 미션/지원금 서비스**로 해석한다.
 
 이 문서는 포트폴리오용 API 요약 문서입니다. 상세 구현은 각 서비스의 controller와 `docs/api-spec.md`를 함께 참고합니다.
 
@@ -52,7 +54,7 @@ Idempotency-Key: unique-business-request-key
 {
   "email": "parent@example.com",
   "password": "password123!",
-  "name": "Parent",
+  "name": "Agency",
   "role": "PARENT"
 }
 ```
@@ -114,7 +116,7 @@ wallet-service는 `referenceType` + `referenceId`로 같은 원천 거래가 잔
 {
   "bankCode": "004",
   "accountNumber": "1234567890",
-  "accountHolderName": "Parent"
+  "accountHolderName": "Agency"
 }
 ```
 
@@ -209,7 +211,7 @@ transfer-service outbox 발행 상태를 운영 관점에서 조회합니다.
 
 ### POST /api/families/links
 
-부모가 자녀를 연결합니다.
+기관 담당자가 청년 참여자를 연결합니다.
 
 ```json
 {
@@ -219,11 +221,11 @@ transfer-service outbox 발행 상태를 운영 관점에서 조회합니다.
 
 ### GET /api/families/children
 
-부모에게 연결된 자녀 목록을 조회합니다.
+기관 담당자에게 연결된 청년 참여자 목록을 조회합니다.
 
 ### POST /api/missions
 
-부모가 자녀에게 미션을 생성합니다.
+기관 담당자가 청년 참여자에게 미션을 생성합니다.
 
 ```json
 {
@@ -236,15 +238,15 @@ transfer-service outbox 발행 상태를 운영 관점에서 조회합니다.
 
 ### PATCH /api/missions/{missionId}/submit
 
-자녀가 미션 완료를 제출합니다.
+청년이 미션 완료를 제출합니다.
 
 ### PATCH /api/missions/{missionId}/approve
 
-부모가 미션을 승인합니다.
+기관 담당자가 미션을 승인합니다.
 
 ### PATCH /api/missions/{missionId}/reject
 
-부모가 미션을 반려합니다.
+기관 담당자가 미션을 반려합니다.
 
 ```json
 {
@@ -256,7 +258,7 @@ transfer-service outbox 발행 상태를 운영 관점에서 조회합니다.
 
 승인된 미션에 대한 보상을 지급합니다.
 
-보상 지급은 transfer-service에 송금을 요청하며 idempotency key는 아래 규칙을 사용합니다.
+지원금 지급은 transfer-service에 송금을 요청하며 idempotency key는 아래 규칙을 사용합니다.
 
 ```text
 reward-payment-{missionId}
@@ -266,15 +268,15 @@ reward-payment-{missionId}
 
 ### GET /api/cashbook/parent/summary
 
-부모 지갑 잔액, 월 지급 보상, 승인 대기 미션 수를 조회합니다.
+기관 지갑 잔액, 월 지급 보상, 승인 대기 미션 수를 조회합니다.
 
 ### GET /api/cashbook/children/{childUserId}/summary
 
-자녀의 지갑/미션 요약을 조회합니다.
+청년의 지갑/미션 요약을 조회합니다.
 
 ### GET /api/cashbook/children/{childUserId}/entries
 
-자녀의 최근 돈 기록을 조회합니다.
+청년의 최근 돈 기록을 조회합니다.
 
 ## Ledger
 
@@ -297,3 +299,5 @@ banking-service  -> wallet-service
 transfer-service -> Kafka
 ledger-service   <- Kafka
 ```
+
+

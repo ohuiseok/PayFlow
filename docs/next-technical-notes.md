@@ -1,4 +1,6 @@
-# Next Technical Notes
+﻿# Next Technical Notes
+
+> 도메인 전환 안내: 현재 PayFlow는 **청년 정책 참여 미션 및 지원금 지급 플랫폼**으로 설명한다. 내부 구현 호환성을 위해 `PARENT`/`CHILD`, `/api/families`, `/api/missions`, `/api/cashbook`, `reward-service` 같은 명칭은 유지하지만, 문서와 발표에서는 각각 **기관 담당자**, **청년 참여자**, **참여자 연결**, **정책 미션**, **지원금 사용 내역**, **정책 미션/지원금 서비스**로 해석한다.
 
 ## Frontend/API Integration Status
 
@@ -8,9 +10,9 @@ Updated integration points:
 
 - Banking screens now use `GET /api/bank/accounts`, `POST /api/bank/accounts`, `POST /api/bank/deposits`, and `GET /api/bank/transfers/{bankingTransferId}`.
 - Mission screens now use array responses from `GET /api/missions` and PATCH actions for submit/approve/reject.
-- Parent approval calls both `PATCH /api/missions/{missionId}/approve` and `POST /api/missions/{missionId}/pay` so approval actually triggers reward payment.
+- Agency approval calls both `PATCH /api/missions/{missionId}/approve` and `POST /api/missions/{missionId}/pay` so approval actually triggers reward payment.
 - Family linking now matches the current reward-service contract: a parent connects directly with `POST /api/families/links` using `childUserId`.
-- Parent credit summary reads `GET /api/cashbook/parent/summary`.
+- Agency credit summary reads `GET /api/cashbook/parent/summary`.
 - Cashbook entries now read the backend `MissionResponse[]` shape from `GET /api/cashbook/children/{childUserId}/entries`.
 - Frontend verification scripts now include `npm run typecheck` and `npm test` aliases.
 - `tsconfig.json` excludes generated output (`dist`, `.expo`, `node_modules`) so type checks do not race against web export.
@@ -30,7 +32,7 @@ Not yet verified:
 
 Remaining frontend/API gaps:
 
-- Child-side family invitation remains a UI concept; the backend currently only supports parent-created direct links.
+- Youth-side family invitation remains a UI concept; the backend currently only supports parent-created direct links.
 
 ## Current Kafka MSA Status
 
@@ -74,3 +76,4 @@ Recommended next tasks:
 - Add DLQ strategy for events that exceed outbox max retries.
 - Add integration tests with real Kafka/Redis via Testcontainers.
 - Decide whether wallet money movement should remain synchronous HTTP or evolve into a Kafka-based saga.
+

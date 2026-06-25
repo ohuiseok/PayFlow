@@ -26,12 +26,12 @@ export function ChildCashbookScreen(_props: Props) {
   const displayEntries = appConfig.useDummyData ? cashbookEntries : (entriesQuery.data ?? []);
 
   return (
-    <ScreenFrame eyebrow="사용 기록" title="최근 사용 기록" description="지갑에서 출금되거나 미션으로 받은 내역입니다.">
-      <ApiErrorBox error={entriesQuery.error} fallback="사용 기록 조회에 실패했습니다." />
+    <ScreenFrame eyebrow="지원금 내역" title="최근 지원금 사용 내역" description="지갑 출금과 정책 미션으로 받은 지원금 내역입니다.">
+      <ApiErrorBox error={entriesQuery.error} fallback="지원금 사용 내역 조회에 실패했습니다." />
       {entriesQuery.isLoading ? (
-        <LoadingState title="불러오는 중" body="사용 기록을 불러오고 있습니다." />
+        <LoadingState title="불러오는 중" body="지원금 사용 내역을 불러오고 있습니다." />
       ) : displayEntries.length === 0 ? (
-        <EmptyState body="사용 기록이 없습니다." />
+        <EmptyState body="지원금 사용 내역이 없습니다." />
       ) : (
         displayEntries.map((entry) => <CashbookEntryItem key={entry.id} entry={entry} />)
       )}

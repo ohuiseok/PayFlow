@@ -30,14 +30,14 @@ export function ChildInviteCodeScreen({ navigation }: Props) {
     try {
       const family = await familyApi.getMyParents();
       if (!family.linked) {
-        setUserMessage('아직 보호자 연결이 완료되지 않았습니다. \n\r먼저 보호자에게 내 사용자 번호를 알려주세요.');
+        setUserMessage('아직 기관 연결이 완료되지 않았습니다.\n기관 담당자에게 내 사용자 번호를 알려주세요.');
         return;
       }
 
       completeFamilyLink();
       navigation.replace('ChildHome');
     } catch (error) {
-      setApiError(getErrorMessage(error, '가족 연결 확인에 실패했습니다.'));
+      setApiError(getErrorMessage(error, '기관 연결 확인에 실패했습니다.'));
     } finally {
       setLoading(false);
     }
@@ -49,15 +49,15 @@ export function ChildInviteCodeScreen({ navigation }: Props) {
 
   return (
     <ScreenFrame
-      eyebrow="가족 연결"
+      eyebrow="기관 연결"
       title="내 사용자 번호 공유"
-      description="보호자 계정에서 이 사용자 번호를 입력해 달라고 요청하세요."
+      description="기관 담당자가 이 사용자 번호를 입력하면 정책 참여자로 연결됩니다."
     >
       <Card tone="blue">
         <Heading>내 사용자 번호</Heading>
         <Body>{currentUserId}</Body>
       </Card>
-      <ApiErrorBox error={apiError} fallback="가족 연결 확인에 실패했습니다." />
+      <ApiErrorBox error={apiError} fallback="기관 연결 확인에 실패했습니다." />
       <AlertModal
         visible={Boolean(userMessage)}
         title="알림"

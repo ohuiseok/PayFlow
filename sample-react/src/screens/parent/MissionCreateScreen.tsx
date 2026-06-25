@@ -35,15 +35,13 @@ export function MissionCreateScreen({ navigation }: Props) {
   });
   const parentCreditBalance = summaryQuery.data?.creditBalance ?? parentCreditBalanceFallback;
   const queryClient = useQueryClient();
-  const [title, setTitle] = useState('영어 단어 20개 외우기');
-  const [description, setDescription] = useState('단어와 사진과 쓰기 결과를 올려주세요.');
+  const [title, setTitle] = useState('청년 금융 교육 참여');
+  const [description, setDescription] = useState('교육 수료 화면 또는 참여 후기를 제출해 주세요.');
   const [amountText, setAmountText] = useState('5000');
   const [dueDate, setDueDate] = useState(todayString);
   const [calendarVisible, setCalendarVisible] = useState(false);
   const [apiError, setApiError] = useState('');
 
-  // 더미 모드: AppState의 linkedChildren 사용
-  // API 모드: familyApi에서 조회
   const familyQuery = useQuery({
     queryKey: ['family', 'mine'],
     queryFn: familyApi.getMyFamilies,
@@ -60,7 +58,7 @@ export function MissionCreateScreen({ navigation }: Props) {
         .filter((f) => f.status === 'CONNECTED' && f.childUserId != null)
         .map((f) => ({
           childUserId: f.childUserId!,
-          childName: f.childName ?? `자녀 ${f.childUserId}`,
+          childName: f.childName ?? `청년 ${f.childUserId}`,
           phoneNumber: f.childPhoneNumber ?? '-',
         }));
 
@@ -109,7 +107,7 @@ export function MissionCreateScreen({ navigation }: Props) {
       navigation.navigate('ParentHome');
     },
     onError: (error) => {
-      setApiError(getErrorMessage(error, '미션 등록에 실패했습니다.'));
+      setApiError(getErrorMessage(error, '정책 미션 등록에 실패했습니다.'));
     },
   });
   const loading = createMissionMutation.isPending;
@@ -121,9 +119,8 @@ export function MissionCreateScreen({ navigation }: Props) {
     createMissionMutation.mutate();
   };
 
-
   return (
-    <ScreenFrame eyebrow="미션 등록" title="새 미션 만들기" description="자녀에게 할 일과 보상 금액을 보냅니다.">
+    <ScreenFrame eyebrow="정책 미션 등록" title="새 정책 미션 만들기" description="청년 참여자에게 수행할 과제와 지원금 금액을 보냅니다.">
       <DatePickerModal
         visible={calendarVisible}
         selected={dueDate}
@@ -135,10 +132,10 @@ export function MissionCreateScreen({ navigation }: Props) {
         selectedId={selectedChildId}
         onSelect={(child) => setSelectedChildId(child.childUserId)}
       />
-      <ApiErrorBox error={familyQuery.error} fallback="연결 자녀 조회에 실패했습니다." />
-      <ApiErrorBox error={apiError} fallback="미션 등록에 실패했습니다." />
-      <FormField label="미션 이름" placeholder="예: 수학 문제집 3쪽" value={title} onChangeText={setTitle} disabled={loading} />
-      <FormField label="조건 안내" placeholder="완료 기준" value={description} onChangeText={setDescription} disabled={loading} />
+      <ApiErrorBox error={familyQuery.error} fallback="연결 참여자 조회에 실패했습니다." />
+      <ApiErrorBox error={apiError} fallback="정책 미션 등록에 실패했습니다." />
+      <FormField label="미션 이름" placeholder="예: 청년 금융 교육 참여" value={title} onChangeText={setTitle} disabled={loading} />
+      <FormField label="참여 조건 안내" placeholder="완료 기준" value={description} onChangeText={setDescription} disabled={loading} />
       <View style={styles.fieldWrap}>
         <Text style={styles.fieldLabel}>수행 날짜</Text>
         <Pressable
@@ -152,15 +149,15 @@ export function MissionCreateScreen({ navigation }: Props) {
         </Pressable>
       </View>
       <FormField
-        label="보상 금액"
+        label="지원금 금액"
         placeholder="1,000원 이상"
         value={formatAmountInput(amountText)}
         onChangeText={(value) => setAmountText(formatAmountInput(value))}
         keyboardType="number-pad"
-        error={amount > parentCreditBalance ? '적립금보다 큰 금액은 등록할 수 없습니다.' : undefined}
+        error={amount > parentCreditBalance ? '지원금 잔액보다 큰 금액은 등록할 수 없습니다.' : undefined}
         disabled={loading}
       />
-      <PrimaryButton title={loading ? '등록 중' : '미션 등록'} onPress={submit} disabled={!valid || loading} loading={loading} />
+      <PrimaryButton title={loading ? '등록 중' : '정책 미션 등록'} onPress={submit} disabled={!valid || loading} loading={loading} />
     </ScreenFrame>
   );
 }

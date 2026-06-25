@@ -1,4 +1,6 @@
-# Portfolio Note: Open Banking Integration
+﻿# Portfolio Note: Open Banking Integration
+
+> 도메인 전환 안내: 현재 PayFlow는 **청년 정책 참여 미션 및 지원금 지급 플랫폼**으로 설명한다. 내부 구현 호환성을 위해 `PARENT`/`CHILD`, `/api/families`, `/api/missions`, `/api/cashbook`, `reward-service` 같은 명칭은 유지하지만, 문서와 발표에서는 각각 **기관 담당자**, **청년 참여자**, **참여자 연결**, **정책 미션**, **지원금 사용 내역**, **정책 미션/지원금 서비스**로 해석한다.
 
 This note summarizes the PayFlow Open Banking integration from a portfolio and interview perspective.
 The core point is not "I called an external API", but "I modeled financial uncertainty, idempotency, and sensitive data handling explicitly."
@@ -187,3 +189,4 @@ This implementation is suitable for a portfolio-grade MVP, but production harden
 - I encrypted user Open Banking tokens and avoided raw account number persistence.
 - I isolated no-permission APIs from business state changes.
 - I modeled withdrawal compensation explicitly instead of pretending a no-permission bank API succeeded.
+

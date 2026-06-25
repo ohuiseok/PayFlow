@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { colors } from '../common';
 
@@ -20,7 +20,7 @@ export function ChildSelector({
   if (children.length === 0) {
     return (
       <View style={styles.emptyBox}>
-        <Text style={styles.emptyText}>연결된 자녀가 없습니다. 먼저 자녀를 연결해 주세요.</Text>
+        <Text style={styles.emptyText}>연결된 청년 참여자가 없습니다. 먼저 참여자를 연결해 주세요.</Text>
       </View>
     );
   }
@@ -31,7 +31,7 @@ export function ChildSelector({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>대상 자녀</Text>
+      <Text style={styles.label}>대상 청년</Text>
       <View style={styles.segmentWrap}>
         {children.map((child, index) => {
           const isSelected = String(child.childUserId) === String(selectedId);

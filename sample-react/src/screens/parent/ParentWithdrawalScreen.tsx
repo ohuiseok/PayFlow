@@ -53,10 +53,7 @@ export function ParentWithdrawalScreen({ navigation }: Props) {
   const displayBalance = summaryQuery.data?.creditBalance ?? parentCreditBalance;
   const bankAccounts = bankAccountsQuery.data ?? [];
   const selectedBankAccount = bankAccounts.find((account) => account.primary) ?? bankAccounts[0];
-  const dummyBankAccount = appConfig.useDummyData
-    ? { bankName: parentChargeAccount.bankName, maskedAccountNumber: parentChargeAccount.accountNumber, accountHolderName: parentChargeAccount.holderName }
-    : null;
-  const displayBankAccount = toBankAccountViewModel(appConfig.useDummyData ? dummyBankAccount : selectedBankAccount);
+  const displayBankAccount = toBankAccountViewModel(appConfig.useDummyData ? parentChargeAccount : selectedBankAccount);
   const queriesLoading = summaryQuery.isLoading || bankAccountsQuery.isLoading;
   const valid = isAmountInRange(amount, 1000, displayBalance);
 
@@ -80,14 +77,14 @@ export function ParentWithdrawalScreen({ navigation }: Props) {
   }, [status]);
 
   return (
-    <ScreenFrame eyebrow="적립금 출금" title="계좌로 출금" description="적립금을 등록 계좌로 보냅니다.">
-      <BalanceCard label="출금 가능 잔액" amount={displayBalance} description="요청 후 처리 상태를 거쳐 완료됩니다." />
+    <ScreenFrame eyebrow="지원금 출금" title="계좌로 출금" description="남은 지원금 예산을 등록 계좌로 보냅니다.">
+      <BalanceCard label="출금 가능 예산" amount={displayBalance} description="요청 후 처리 상태를 거쳐 완료됩니다." />
       <Card>
         <Label>받을 계좌</Label>
         <Heading>{formatBankAccountLabel(displayBankAccount)}</Heading>
         <Body>{formatBankAccountHolder(displayBankAccount, '계좌를 먼저 등록하세요.')}</Body>
       </Card>
-      <ApiErrorBox error={summaryQuery.error} fallback="적립금 정보를 불러오지 못했습니다." />
+      <ApiErrorBox error={summaryQuery.error} fallback="지원금 예산 정보를 불러오지 못했습니다." />
       <ApiErrorBox error={bankAccountsQuery.error} fallback="연결 계좌를 불러오지 못했습니다." />
       <ApiErrorBox error={apiError} fallback="출금 처리 중 오류가 발생했습니다." />
       <FormField
@@ -97,7 +94,7 @@ export function ParentWithdrawalScreen({ navigation }: Props) {
         onChangeText={(value) => setAmountText(formatAmountInput(value))}
         keyboardType="number-pad"
         disabled={processing}
-        error={amountText && !valid ? '잔액 안에서 1,000원 이상 출금할 수 있습니다.' : undefined}
+        error={amountText && !valid ? '예산 안에서 1,000원 이상 출금할 수 있습니다.' : undefined}
       />
       <AmountQuickSelect amounts={[5000, 10000, 30000]} onSelect={(value) => setAmountText(String(value))} />
       <PrimaryButton
@@ -109,7 +106,7 @@ export function ParentWithdrawalScreen({ navigation }: Props) {
       <ConfirmModal
         visible={confirming}
         title={`${formatWon(amount)} 출금하시겠어요?`}
-        body="확인하면 적립금 잔액에서 바로 차감하고 등록 계좌로 출금합니다."
+        body="확인하면 지원금 예산 잔액에서 바로 차감하고 등록 계좌로 출금합니다."
         confirmTitle="출금 진행"
         onConfirm={() => {
           setConfirming(false);

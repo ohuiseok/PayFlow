@@ -65,7 +65,7 @@ export function useWithdrawalFlow({
         },
         onTimeout: () => {
           setStatus('processing');
-          setUserMessage('출금 처리가 계속 진행 중입니다.\n\r잠시 후 다시 확인해 주세요.');
+          setUserMessage('출금 처리가 계속 진행 중입니다.\n잠시 후 다시 확인해 주세요.');
         },
       });
     },
@@ -113,6 +113,7 @@ export function useWithdrawalFlow({
   return {
     apiError,
     clearUserMessage: () => setUserMessage(''),
+    message,
     processing: status === 'processing' || polling || requestWithdrawalMutation.isPending,
     status,
     userMessage,

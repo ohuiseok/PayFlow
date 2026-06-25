@@ -1,4 +1,6 @@
-# Load Test Report
+﻿# Load Test Report
+
+> 도메인 전환 안내: 현재 PayFlow는 **청년 정책 참여 미션 및 지원금 지급 플랫폼**으로 설명한다. 내부 구현 호환성을 위해 `PARENT`/`CHILD`, `/api/families`, `/api/missions`, `/api/cashbook`, `reward-service` 같은 명칭은 유지하지만, 문서와 발표에서는 각각 **기관 담당자**, **청년 참여자**, **참여자 연결**, **정책 미션**, **지원금 사용 내역**, **정책 미션/지원금 서비스**로 해석한다.
 
 이 문서는 포트폴리오용 부하 테스트 보고서 템플릿입니다. 현재 저장소에는 k6 스크립트 결과 파일이 아직 없으므로, 실제 실행 후 `Result` 섹션의 수치를 채우면 됩니다.
 
@@ -138,7 +140,7 @@ oldestPendingEventAgeSeconds
 
 목적:
 
-- reward-service가 미션 보상 지급 요청을 transfer-service에 안정적으로 위임하는지 확인
+- reward-service가 정책 미션 지원금 지급 요청을 transfer-service에 안정적으로 위임하는지 확인
 - `reward-payment-{missionId}` 멱등키가 중복 지급을 막는지 확인
 
 확인 지표:
@@ -193,3 +195,4 @@ GET /api/ledgers/transfer-failures
 - 송금 처리량이 증가할수록 같은 지갑에 대한 lock 경합이 latency를 올릴 수 있습니다.
 - outbox summary API를 둔 이유는 Kafka 발행 지연을 운영 관점에서 관찰하기 위해서입니다.
 - 부하 테스트 결과는 단순 TPS 숫자가 아니라 병목 위치와 개선 계획까지 함께 제시해야 설득력이 있습니다.
+

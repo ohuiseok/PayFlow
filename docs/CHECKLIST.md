@@ -1,4 +1,6 @@
-# PayFlow Implementation Checklist
+﻿# PayFlow Implementation Checklist
+
+> 도메인 전환 안내: 현재 PayFlow는 **청년 정책 참여 미션 및 지원금 지급 플랫폼**으로 설명한다. 내부 구현 호환성을 위해 `PARENT`/`CHILD`, `/api/families`, `/api/missions`, `/api/cashbook`, `reward-service` 같은 명칭은 유지하지만, 문서와 발표에서는 각각 **기관 담당자**, **청년 참여자**, **참여자 연결**, **정책 미션**, **지원금 사용 내역**, **정책 미션/지원금 서비스**로 해석한다.
 
 ## Current Verified Status - 2026-06-18
 
@@ -6,8 +8,8 @@
 - [x] `docker compose config --quiet` passed.
 - [x] `sample-react` API adapters are aligned with the current MVP backend routes.
 - [x] `sample-react` `npm run check` passed, including type check, web export, dummy Playwright e2e, and mocked API-mode Playwright e2e.
-- [x] Parent mission approval screen now queries real mission data and calls approve plus pay APIs.
-- [x] Parent family linking screen now matches the current direct-link backend contract.
+- [x] Agency mission approval screen now queries real mission data and calls approve plus pay APIs.
+- [x] Agency family linking screen now matches the current direct-link backend contract.
 - [x] Dedicated parent credit summary backend endpoint is implemented and connected from the frontend.
 - [ ] Full Docker Compose runtime smoke test remains pending because Docker Desktop was not running locally.
 
@@ -28,7 +30,7 @@
 2. transfer-service 송금과 멱등성 구현
 3. ledger-service 내부 원장 기록 구현
 4. banking-service 충전/출금 구현
-5. reward-service 부모-자녀 연결과 미션 보상 지급 구현
+5. reward-service 기관-청년 참여자 연결과 정책 미션 지원금 지급 구현
 6. smoke test와 문서 정리
 ```
 
@@ -179,25 +181,25 @@ docs/implementation-plan/02-database-and-migration.md
 
 - [x] reward-service 프로젝트 생성
 - [x] payflow_reward DB 설정 확인
-- [x] ParentChildLink 엔티티 구현
+- [x] AgencyYouthLink 엔티티 구현
 - [x] RewardTask 엔티티 구현
-- [x] ParentChildLinkStatus enum 구현
+- [x] AgencyYouthLinkStatus enum 구현
 - [x] RewardTaskStatus enum 구현
 - [x] Repository 구현
 - [x] WalletClient 구현
 - [x] TransferClient 구현
-- [x] 부모-자녀 연결 생성 API 구현
-- [x] 가족 목록 조회 API 구현 (children/parents 분리)
-- [-] 가족 연결 해제 API 구현 (FamilyController에 미포함, 추후 추가)
-- [x] 부모 미션 등록 API 구현
+- [x] 기관-청년 참여자 연결 생성 API 구현
+- [x] 참여자 목록 조회 API 구현 (children/parents 분리)
+- [-] 참여자 연결 해제 API 구현 (FamilyController에 미포함, 추후 추가)
+- [x] 기관 정책 미션 등록 API 구현
 - [-] 미션 수정 API 구현 (미포함, 상태 전이로 대체)
 - [x] 미션 취소 API 구현 (approve/reject/pay 상태 전이)
 - [x] 미션 목록/상세 조회 API 구현
 - [-] 월별 미션 캘린더 API 구현 (미포함, 목록 API로 대체)
-- [x] 자녀 완료 제출 API 구현
-- [-] 자녀 재제출 API 구현 (미포함, 추후 추가)
-- [x] 부모 승인 API 구현
-- [x] 부모 반려 API 구현
+- [x] 청년 완료 제출 API 구현
+- [-] 청년 재제출 API 구현 (미포함, 추후 추가)
+- [x] 기관 승인 API 구현
+- [x] 기관 반려 API 구현
 - [x] 승인 시 transfer-service 송금 연동
 - [x] `reward-payment-{missionId}` Idempotency-Key 적용
 - [x] 이미 PAID인 미션 재승인 시 기존 결과 반환
@@ -212,7 +214,7 @@ docs/implementation-plan/02-database-and-migration.md
 완료 기준:
 
 ```text
-부모가 등록한 미션을 자녀가 제출하고, 부모 승인 후 부모 지갑에서 자녀 지갑으로 실제 보상이 한 번만 지급된다.
+기관 담당자가 등록한 미션을 청년이 제출하고, 기관 승인 후 기관 지갑에서 청년 지갑으로 실제 보상이 한 번만 지급된다.
 ```
 
 ## 8. Gateway And Security
@@ -272,7 +274,7 @@ docs/implementation-plan/02-database-and-migration.md
 - [x] **[H-1]** user, wallet, transfer, reward, settlement 서비스: `ddl-auto=validate` + Flyway 전환
 - [x] **[H-2]** UserService.createUser: 지갑 생성 `@Retryable` + `WalletProvisioningService` 재시도 보상 로직 추가
 - [x] **[H-3]** TokenCryptoService: 암호화 키 미설정 시 `@PostConstruct`에서 기동 실패 처리
-- [x] **[H-4]** CreateUserRequest: PARENT 역할 자가 선택 제한 (`inviteCode` 기반, `MessageDigest.isEqual()` 상수 시간 비교)
+- [x] **[H-4]** CreateUserRequest: 기관 담당자 역할 자가 선택 제한 (`inviteCode` 기반, `MessageDigest.isEqual()` 상수 시간 비교)
 - [x] **[H-5]** Kafka DLT 설정: `DefaultErrorHandler` + `DeadLetterPublishingRecoverer` 추가 (ledger-service)
 - [x] **[H-6]** TossPaymentService.cancel: `SELECT FOR UPDATE` 비관적 락 추가
 
@@ -281,7 +283,7 @@ docs/implementation-plan/02-database-and-migration.md
 - [x] **[M-1]** 전체 서비스 `GlobalExceptionHandler`에 `@Slf4j` + 예외 로깅 추가
 - [x] **[M-2]** 로그인 브루트포스 방어: nginx `limit_req_zone` (5r/m, burst=3) rate limiting 추가
 - [x] **[M-3]** Transfer 조회: `senderUserId` / `receiverUserId` 인덱스 추가 + `Pageable` 페이지네이션 도입
-- [x] **[M-4]** RewardService.getParentCreditSummary: 전체 목록 로드 → `COUNT` / `SUM` 쿼리 교체
+- [x] **[M-4]** RewardService.getAgencyCreditSummary: 전체 목록 로드 → `COUNT` / `SUM` 쿼리 교체
 - [x] **[M-5]** JwtAuthenticationFilter: 수동 JSON 직렬화 → `ObjectMapper` 주입으로 교체
 - [x] **[M-6]** PROCESSING 상태 고착 Transfer 감지: `StuckTransferMonitor` 스케줄러 추가 (5분 주기)
 - [x] **[M-7]** TokenCryptoService: SHA-256 단순 해시 → PBKDF2WithHmacSHA256 키 유도 함수로 교체 + 레거시 SHA-256 fallback 복호화
@@ -299,3 +301,5 @@ docs/implementation-plan/02-database-and-migration.md
   - `GET /api/ledgers/transfer-failures`
   - `GET /api/ledgers/transfer-failures/{transferId}`
 - [x] documentation updated for Kafka/outbox/failure tracking flow
+
+

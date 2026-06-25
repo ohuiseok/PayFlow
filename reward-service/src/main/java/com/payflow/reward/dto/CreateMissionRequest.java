@@ -13,4 +13,7 @@ public record CreateMissionRequest(
         @NotNull BigDecimal rewardAmount,
         LocalDate missionDate
 ) {
+    public CreateMissionRequest(Long childUserId, String title, String description, BigDecimal rewardAmount) {
+        this(childUserId, title, description, rewardAmount, null);
+    }
 }

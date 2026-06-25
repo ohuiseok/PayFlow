@@ -25,7 +25,7 @@ function normalizeFamily(link: FamilyLinkResponse): LinkedFamily {
     familyId: link.familyLinkId,
     parentUserId: link.parentUserId,
     childUserId: link.childUserId,
-    childName: link.childName ?? `자녀 ${link.childUserId}`,
+    childName: link.childName ?? `청년 ${link.childUserId}`,
     childPhoneNumber: link.childPhoneNumber,
     status: link.status === 'ACTIVE' ? 'CONNECTED' : link.status,
   };
