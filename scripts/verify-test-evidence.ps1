@@ -42,7 +42,7 @@ function Read-DotEnv {
             $_ -match "^$([regex]::Escape($Name))="
         } | Select-Object -Last 1
         if ($line) {
-            return ($line -split '=', 2)[1].Trim()
+            return ($line -split '=', 2)[1].Trim().Trim('"').Trim("'")
         }
     }
     return $Default
@@ -56,8 +56,6 @@ function Assert-Identifier {
 }
 
 $projectName = Read-DotEnv 'PROJECT_NAME' 'payflow'
-$mysqlUser = Read-DotEnv 'MYSQL_USER' 'payflow'
-$mysqlPassword = Read-DotEnv 'MYSQL_PASSWORD' 'payflow'
 $transferDb = Read-DotEnv 'TRANSFER_DB_NAME' 'payflow_transfer'
 $walletDb = Read-DotEnv 'WALLET_DB_NAME' 'payflow_wallet'
 $ledgerDb = Read-DotEnv 'LEDGER_DB_NAME' 'payflow_ledger'
@@ -84,7 +82,28 @@ function Invoke-MySql {
         }
         $encodedQuery = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($Query))
         $formatArgs = if ($Table) { '--table' } else { '--batch --raw --skip-column-names' }
-        $remoteCommand = "echo '$encodedQuery' | base64 -d | docker exec -i $mysqlContainer sh -lc 'MYSQL_PWD=`"`$MYSQL_PASSWORD`" mysql --default-character-set=utf8mb4 -u`"`$MYSQL_USER`" $formatArgs'"
+        $credentialContainer = $mysqlContainer -replace '-mysql$', '-wallet-service'
+        if ($credentialContainer -notmatch '^[A-Za-z0-9_.-]+$') {
+            throw 'Derived credential container contains unsupported characters.'
+        }
+        # The production MySQL container may not retain MYSQL_* variables. Fall
+        # back to the running wallet service, whose datasource credentials are
+        # the same least-privilege account used by the application.
+        $remoteScript = @"
+mysql_user=`$(docker inspect --format '{{range .Config.Env}}{{println .}}{{end}}' $mysqlContainer | sed -n 's/^MYSQL_USER=//p' | tail -n 1)
+mysql_password=`$(docker inspect --format '{{range .Config.Env}}{{println .}}{{end}}' $mysqlContainer | sed -n 's/^MYSQL_PASSWORD=//p' | tail -n 1)
+if [ -z "`$mysql_user" ] || [ -z "`$mysql_password" ]; then
+  mysql_user=`$(docker inspect --format '{{range .Config.Env}}{{println .}}{{end}}' $credentialContainer | sed -n 's/^SPRING_DATASOURCE_USERNAME=//p' | tail -n 1)
+  mysql_password=`$(docker inspect --format '{{range .Config.Env}}{{println .}}{{end}}' $credentialContainer | sed -n 's/^SPRING_DATASOURCE_PASSWORD=//p' | tail -n 1)
+fi
+if [ -z "`$mysql_user" ] || [ -z "`$mysql_password" ]; then
+  echo 'MySQL credentials were not found in the database or wallet service container.' >&2
+  exit 1
+fi
+echo '$encodedQuery' | base64 -d | docker exec -i --env "MYSQL_PWD=`$mysql_password" $mysqlContainer mysql --default-character-set=utf8mb4 -u "`$mysql_user" $formatArgs
+"@
+        $encodedRemoteScript = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($remoteScript))
+        $remoteCommand = "echo '$encodedRemoteScript' | base64 -d | sh"
         $sshArgs = @('-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=accept-new')
         if ($SshKeyPath) {
             $sshArgs += @('-i', $SshKeyPath)
@@ -93,17 +112,9 @@ function Invoke-MySql {
         $output = & ssh @sshArgs 2>&1
         $queryExitCode = $LASTEXITCODE
     } else {
-        $dockerArgs = @(
-            'exec', '--env', "MYSQL_PWD=$mysqlPassword", $mysqlContainer,
-            'mysql', '--default-character-set=utf8mb4', '-u', $mysqlUser
-        )
-        if ($Table) {
-            $dockerArgs += '--table'
-        } else {
-            $dockerArgs += @('--batch', '--raw', '--skip-column-names')
-        }
-        $dockerArgs += @('-e', $Query)
-        $output = & docker @dockerArgs 2>&1
+        $formatArgs = if ($Table) { '--table' } else { '--batch --raw --skip-column-names' }
+        $mysqlCommand = 'MYSQL_PWD="$MYSQL_PASSWORD" exec mysql --default-character-set=utf8mb4 -u"$MYSQL_USER" ' + $formatArgs
+        $output = $Query | & docker exec -i $mysqlContainer sh -lc $mysqlCommand 2>&1
         $queryExitCode = $LASTEXITCODE
     }
     $ErrorActionPreference = $previousErrorActionPreference
@@ -119,7 +130,7 @@ function Add-QueryEvidence {
     Add-Content -LiteralPath $logPath -Encoding utf8 -Value (Invoke-MySql -Query $Query -Table)
 }
 
-if ($WaitSeconds -gt 0) {
+if ($WaitSeconds -gt 0 -and $Phase -eq 'Before') {
     Start-Sleep -Seconds $WaitSeconds
 }
 
@@ -153,6 +164,28 @@ if (-not (Test-Path -LiteralPath $baselinePath)) {
 $baseline = Get-Content -LiteralPath $baselinePath -Raw | ConvertFrom-Json
 $keyPattern = "k6:${RunId}:%"
 $keyCollate = "COLLATE utf8mb4_unicode_ci"
+$transferIdText = "CAST(t.id AS CHAR CHARACTER SET utf8mb4) $keyCollate"
+$walletReferenceId = "wt.reference_id $keyCollate"
+$outboxEventKey = "o.event_key $keyCollate"
+
+if ($WaitSeconds -gt 0) {
+    $convergenceDeadline = (Get-Date).AddSeconds($WaitSeconds)
+    do {
+        $pendingOutbox = [int](Invoke-MySql "SELECT COUNT(*) FROM $transferDb.transfers t JOIN $transferDb.outbox_events o ON $outboxEventKey = $transferIdText WHERE t.idempotency_key LIKE '$keyPattern' $keyCollate AND o.status <> 'PUBLISHED';")
+        $pendingLedger = [int](Invoke-MySql "SELECT COUNT(*) FROM $transferDb.transfers t LEFT JOIN $ledgerDb.ledger_entries le ON le.transfer_id = t.id WHERE t.idempotency_key LIKE '$keyPattern' $keyCollate AND t.status = 'SUCCEEDED' AND le.id IS NULL;")
+        if ($pendingOutbox -eq 0 -and $pendingLedger -eq 0) {
+            Write-Host 'Outbox and ledger convergence completed.'
+            break
+        }
+        $remainingSeconds = [int][Math]::Ceiling(($convergenceDeadline - (Get-Date)).TotalSeconds)
+        if ($remainingSeconds -le 0) {
+            Write-Warning "Convergence timeout: unpublishedOutbox=$pendingOutbox, missingLedger=$pendingLedger"
+            break
+        }
+        Write-Host "Waiting for convergence: unpublishedOutbox=$pendingOutbox, missingLedger=$pendingLedger"
+        Start-Sleep -Seconds ([Math]::Min(5, $remainingSeconds))
+    } while ($true)
+}
 
 @(
     "PayFlow SQL evidence - AFTER",
@@ -163,10 +196,10 @@ $keyCollate = "COLLATE utf8mb4_unicode_ci"
 
 $transferCount = [int](Invoke-MySql "SELECT COUNT(*) FROM $transferDb.transfers WHERE idempotency_key LIKE '$keyPattern' $keyCollate;")
 $duplicateIdempotency = [int](Invoke-MySql "SELECT COUNT(*) FROM (SELECT idempotency_key FROM $transferDb.transfers WHERE idempotency_key LIKE '$keyPattern' $keyCollate GROUP BY idempotency_key HAVING COUNT(*) > 1) duplicated;")
-$duplicateWalletTransactions = [int](Invoke-MySql "SELECT COUNT(*) FROM (SELECT wt.wallet_id, wt.transaction_type, wt.reference_type, wt.reference_id FROM $walletDb.wallet_transactions wt JOIN $transferDb.transfers t ON wt.reference_id = CAST(t.id AS CHAR) WHERE t.idempotency_key LIKE '$keyPattern' $keyCollate AND wt.reference_type = 'TRANSFER' GROUP BY wt.wallet_id, wt.transaction_type, wt.reference_type, wt.reference_id HAVING COUNT(*) > 1) duplicated;")
-$succeededTransactionAnomalies = [int](Invoke-MySql "SELECT COUNT(*) FROM (SELECT t.id, SUM(CASE WHEN wt.transaction_type = 'WITHDRAW' THEN 1 ELSE 0 END) withdrawals, SUM(CASE WHEN wt.transaction_type = 'DEPOSIT' THEN 1 ELSE 0 END) deposits FROM $transferDb.transfers t LEFT JOIN $walletDb.wallet_transactions wt ON wt.reference_id = CAST(t.id AS CHAR) AND wt.reference_type = 'TRANSFER' WHERE t.idempotency_key LIKE '$keyPattern' $keyCollate AND t.status = 'SUCCEEDED' GROUP BY t.id HAVING withdrawals <> 1 OR deposits <> 1) anomalies;")
-$missingOutbox = [int](Invoke-MySql "SELECT COUNT(*) FROM $transferDb.transfers t LEFT JOIN $transferDb.outbox_events o ON o.event_key = CAST(t.id AS CHAR) WHERE t.idempotency_key LIKE '$keyPattern' $keyCollate AND o.id IS NULL;")
-$unpublishedOutbox = [int](Invoke-MySql "SELECT COUNT(*) FROM $transferDb.transfers t JOIN $transferDb.outbox_events o ON o.event_key = CAST(t.id AS CHAR) WHERE t.idempotency_key LIKE '$keyPattern' $keyCollate AND o.status <> 'PUBLISHED';")
+$duplicateWalletTransactions = [int](Invoke-MySql "SELECT COUNT(*) FROM (SELECT wt.wallet_id, wt.transaction_type, wt.reference_type, wt.reference_id FROM $walletDb.wallet_transactions wt JOIN $transferDb.transfers t ON $walletReferenceId = $transferIdText WHERE t.idempotency_key LIKE '$keyPattern' $keyCollate AND wt.reference_type = 'TRANSFER' GROUP BY wt.wallet_id, wt.transaction_type, wt.reference_type, wt.reference_id HAVING COUNT(*) > 1) duplicated;")
+$succeededTransactionAnomalies = [int](Invoke-MySql "SELECT COUNT(*) FROM (SELECT t.id, SUM(CASE WHEN wt.transaction_type = 'WITHDRAW' THEN 1 ELSE 0 END) withdrawals, SUM(CASE WHEN wt.transaction_type = 'DEPOSIT' THEN 1 ELSE 0 END) deposits FROM $transferDb.transfers t LEFT JOIN $walletDb.wallet_transactions wt ON $walletReferenceId = $transferIdText AND wt.reference_type = 'TRANSFER' WHERE t.idempotency_key LIKE '$keyPattern' $keyCollate AND t.status = 'SUCCEEDED' GROUP BY t.id HAVING withdrawals <> 1 OR deposits <> 1) anomalies;")
+$missingOutbox = [int](Invoke-MySql "SELECT COUNT(*) FROM $transferDb.transfers t LEFT JOIN $transferDb.outbox_events o ON $outboxEventKey = $transferIdText WHERE t.idempotency_key LIKE '$keyPattern' $keyCollate AND o.id IS NULL;")
+$unpublishedOutbox = [int](Invoke-MySql "SELECT COUNT(*) FROM $transferDb.transfers t JOIN $transferDb.outbox_events o ON $outboxEventKey = $transferIdText WHERE t.idempotency_key LIKE '$keyPattern' $keyCollate AND o.status <> 'PUBLISHED';")
 $missingSucceededLedger = [int](Invoke-MySql "SELECT COUNT(*) FROM $transferDb.transfers t LEFT JOIN $ledgerDb.ledger_entries le ON le.transfer_id = t.id WHERE t.idempotency_key LIKE '$keyPattern' $keyCollate AND t.status = 'SUCCEEDED' AND le.id IS NULL;")
 $duplicateLedger = [int](Invoke-MySql "SELECT COUNT(*) FROM (SELECT le.transfer_id FROM $ledgerDb.ledger_entries le JOIN $transferDb.transfers t ON t.id = le.transfer_id WHERE t.idempotency_key LIKE '$keyPattern' $keyCollate GROUP BY le.transfer_id HAVING COUNT(*) > 1) duplicated;")
 $negativeBalances = [int](Invoke-MySql "SELECT COUNT(*) FROM $walletDb.wallets WHERE balance < 0;")
@@ -175,8 +208,8 @@ $balanceDelta = [decimal]$snapshot.totalWalletBalance - [decimal]$baseline.total
 $expectedTransferCountPassed = if ($Mode -eq 'idempotency') { $transferCount -eq 1 } else { $transferCount -gt 0 }
 
 Add-QueryEvidence 'Transfer status summary' "SELECT status, COUNT(*) AS count, COALESCE(SUM(amount), 0) AS amount_sum FROM $transferDb.transfers WHERE idempotency_key LIKE '$keyPattern' $keyCollate GROUP BY status ORDER BY status;"
-Add-QueryEvidence 'Outbox status summary' "SELECT o.status, COUNT(*) AS count FROM $transferDb.transfers t JOIN $transferDb.outbox_events o ON o.event_key = CAST(t.id AS CHAR) WHERE t.idempotency_key LIKE '$keyPattern' $keyCollate GROUP BY o.status ORDER BY o.status;"
-Add-QueryEvidence 'Succeeded transfer wallet transaction coverage' "SELECT t.id AS transfer_id, t.amount, SUM(CASE WHEN wt.transaction_type = 'WITHDRAW' THEN 1 ELSE 0 END) AS withdrawals, SUM(CASE WHEN wt.transaction_type = 'DEPOSIT' THEN 1 ELSE 0 END) AS deposits FROM $transferDb.transfers t LEFT JOIN $walletDb.wallet_transactions wt ON wt.reference_id = CAST(t.id AS CHAR) AND wt.reference_type = 'TRANSFER' WHERE t.idempotency_key LIKE '$keyPattern' $keyCollate AND t.status = 'SUCCEEDED' GROUP BY t.id, t.amount ORDER BY t.id;"
+Add-QueryEvidence 'Outbox status summary' "SELECT o.status, COUNT(*) AS count FROM $transferDb.transfers t JOIN $transferDb.outbox_events o ON $outboxEventKey = $transferIdText WHERE t.idempotency_key LIKE '$keyPattern' $keyCollate GROUP BY o.status ORDER BY o.status;"
+Add-QueryEvidence 'Succeeded transfer wallet transaction coverage' "SELECT t.id AS transfer_id, t.amount, SUM(CASE WHEN wt.transaction_type = 'WITHDRAW' THEN 1 ELSE 0 END) AS withdrawals, SUM(CASE WHEN wt.transaction_type = 'DEPOSIT' THEN 1 ELSE 0 END) AS deposits FROM $transferDb.transfers t LEFT JOIN $walletDb.wallet_transactions wt ON $walletReferenceId = $transferIdText AND wt.reference_type = 'TRANSFER' WHERE t.idempotency_key LIKE '$keyPattern' $keyCollate AND t.status = 'SUCCEEDED' GROUP BY t.id, t.amount ORDER BY t.id;"
 Add-QueryEvidence 'Ledger coverage' "SELECT t.status AS transfer_status, COUNT(*) AS transfer_count, SUM(CASE WHEN le.id IS NOT NULL THEN 1 ELSE 0 END) AS ledger_count FROM $transferDb.transfers t LEFT JOIN $ledgerDb.ledger_entries le ON le.transfer_id = t.id WHERE t.idempotency_key LIKE '$keyPattern' $keyCollate GROUP BY t.status ORDER BY t.status;"
 
 $passed = $expectedTransferCountPassed -and

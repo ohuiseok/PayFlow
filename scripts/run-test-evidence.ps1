@@ -11,7 +11,7 @@ param(
     [int]$Rate = 420,
     [string]$Duration = '5m',
     [int]$Amount = 1000,
-    [int]$OutboxRecoveryWaitSeconds = 15,
+    [int]$OutboxRecoveryWaitSeconds = 180,
     [string]$K6Image = 'grafana/k6:latest',
     [int]$SenderCount = 10,
     [long]$FundingPerSender = 0,

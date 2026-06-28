@@ -20,6 +20,10 @@ services:
         condition: service_healthy
     networks:
       - payflow-network
+    ulimits:
+      nofile:
+        soft: 8192
+        hard: 8192
     mem_limit: ${NGINX_MEM_LIMIT:-64m}
     restart: unless-stopped
 
