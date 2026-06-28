@@ -1,0 +1,10 @@
+{
+  "amount": 1000,
+  "users": [
+    {
+      "senderUserId": 1,
+      "receiverUserId": 2,
+      "token": "REPLACE_WITH_SENDER_JWT"
+    }
+  ]
+}
