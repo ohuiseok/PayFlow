@@ -75,8 +75,10 @@ services:
       - "${MYSQL_PORT:-3306}:3306"
     command:
       - --innodb-buffer-pool-size=${MYSQL_BUFFER_POOL_SIZE:-384M}
-      - --max-connections=${MYSQL_MAX_CONNECTIONS:-80}
+      - --max-connections=${MYSQL_MAX_CONNECTIONS:-300}
       - --performance-schema=OFF
+      - --wait-timeout=60
+      - --interactive-timeout=60
     volumes:
       - mysql_data:/var/lib/mysql
       - ./infrastructure/mysql/init-scripts:/docker-entrypoint-initdb.d:ro

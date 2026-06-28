@@ -1,0 +1,14 @@
+{
+  "baseUrl": "https://app.pay-flow.cloud",
+  "ec2Host": "EC2_PUBLIC_IP_OR_HOST",
+  "sshUser": "ubuntu",
+  "sshKeyPath": "C:\\path\\to\\ec2-key.pem",
+  "mySqlContainer": "payflow-mysql",
+  "mode": "concurrent",
+  "vus": 1000,
+  "rate": 420,
+  "duration": "2m",
+  "amount": 1000,
+  "senderCount": 50,
+  "skipJUnit": false
+}

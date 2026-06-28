@@ -6,12 +6,24 @@ param(
     [string]$TestUsersFile = 'k6\test-users.local.json',
     [string]$ResultRoot = 'results',
     [string]$BaseUrl = 'http://localhost:8080',
+    [string]$PrepareBaseUrl,
     [int]$Vus = 1000,
     [int]$Rate = 420,
     [string]$Duration = '5m',
     [int]$Amount = 1000,
     [int]$OutboxRecoveryWaitSeconds = 15,
     [string]$K6Image = 'grafana/k6:latest',
+    [int]$SenderCount = 10,
+    [long]$FundingPerSender = 0,
+    [ValidateSet('LocalDocker', 'SshDocker')]
+    [string]$SqlExecution = 'LocalDocker',
+    [string]$SshHost,
+    [string]$SshUser = 'ubuntu',
+    [string]$SshKeyPath,
+    [string]$MySqlContainer,
+    [switch]$AutoPrepareUsers,
+    [switch]$AllowMockFunding,
+    [switch]$UseSshInternalFunding,
     [switch]$KafkaOutage,
     [switch]$SkipJUnit
 )
@@ -50,6 +62,49 @@ $resultRootPath = if ([IO.Path]::IsPathRooted($ResultRoot)) {
 }
 $resultDir = Join-Path $resultRootPath $RunId
 
+function Convert-DurationToSeconds {
+    param([string]$Value)
+    if ($Value -match '^(\d+)(s|m|h)$') {
+        $number = [long]$Matches[1]
+        switch ($Matches[2]) {
+            's' { return $number }
+            'm' { return $number * 60 }
+            'h' { return $number * 3600 }
+        }
+    }
+    throw "Unsupported duration '$Value'. Use values such as 30s, 5m, or 1h."
+}
+
+if ($AutoPrepareUsers) {
+    $accountBaseUrl = if ($PrepareBaseUrl) { $PrepareBaseUrl } else { $BaseUrl }
+    if ($Mode -eq 'hot-wallet' -or $Mode -eq 'idempotency') {
+        $SenderCount = 1
+    }
+    if ($FundingPerSender -le 0) {
+        $requestCount = if ($Mode -eq 'throughput') {
+            [long]$Rate * (Convert-DurationToSeconds $Duration)
+        } else {
+            [long]$Vus
+        }
+        $FundingPerSender = [long][math]::Ceiling(($requestCount * $Amount * 1.20) / $SenderCount)
+    }
+    $prepareArgs = @{
+        BaseUrl = $accountBaseUrl
+        Amount = $Amount
+        OutputPath = $TestUsersFile
+        SenderCount = $SenderCount
+        FundingPerSender = $(if ($UseSshInternalFunding) { 0 } else { $FundingPerSender })
+        AutoCreate = $true
+        AllowMockFunding = [bool]$AllowMockFunding
+    }
+    $accountStatePath = Join-Path $workspace 'k6\test-accounts.local.json'
+    if (Test-Path -LiteralPath $accountStatePath) {
+        Remove-Item -LiteralPath $accountStatePath -Force
+        Write-Host "Removed stale account state: $accountStatePath"
+    }
+    & (Join-Path $PSScriptRoot 'prepare-test-users.ps1') @prepareArgs
+}
+
 if (-not (Test-Path -LiteralPath $dataPath)) {
     throw "Test user data does not exist: $dataPath. Copy k6/test-users.example.json to k6/test-users.local.json and set real JWT values."
 }
@@ -58,13 +113,29 @@ if ((Get-Content -LiteralPath $dataPath -Raw) -match 'REPLACE_WITH') {
 }
 
 New-Item -ItemType Directory -Path $resultDir -Force | Out-Null
-$previousErrorActionPreference = $ErrorActionPreference
-$ErrorActionPreference = 'Continue'
-& docker info *> $null
-$dockerInfoExitCode = $LASTEXITCODE
-$ErrorActionPreference = $previousErrorActionPreference
-if ($dockerInfoExitCode -ne 0) {
-    throw 'Docker Desktop is not running. Start Docker Desktop and run docker compose up -d --build first.'
+$localK6 = Get-Command k6 -ErrorAction SilentlyContinue
+if ($SqlExecution -eq 'LocalDocker' -or -not $localK6) {
+    $previousErrorActionPreference = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    & docker info *> $null
+    $dockerInfoExitCode = $LASTEXITCODE
+    $ErrorActionPreference = $previousErrorActionPreference
+    if ($dockerInfoExitCode -ne 0) {
+        throw 'Docker is required for local SQL or the k6 Docker fallback. Start Docker Desktop or install k6 locally.'
+    }
+}
+if ($UseSshInternalFunding) {
+    if ($SqlExecution -ne 'SshDocker' -or -not $SshHost) {
+        throw 'UseSshInternalFunding requires SqlExecution=SshDocker and SshHost.'
+    }
+    & (Join-Path $PSScriptRoot 'seed-remote-wallets.ps1') `
+        -TestUsersFile $dataPath `
+        -FundingPerSender $FundingPerSender `
+        -RunId $RunId `
+        -SshHost $SshHost `
+        -SshUser $SshUser `
+        -SshKeyPath $SshKeyPath `
+        -ResultDir $resultDir
 }
 $gitSha = (& git -C $workspace rev-parse HEAD 2>$null)
 $metadata = [ordered]@{
@@ -78,12 +149,26 @@ $metadata = [ordered]@{
     duration = $Duration
     amount = $Amount
     kafkaOutage = [bool]$KafkaOutage
+    sqlExecution = $SqlExecution
+    senderCount = $SenderCount
+    fundingPerSender = $FundingPerSender
+    fundingMethod = $(if ($UseSshInternalFunding) { 'EC2_INTERNAL_WALLET_API' } else { 'BANKING_API' })
     testUsersFile = Split-Path -Leaf $dataPath
 }
 $metadata | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $resultDir 'run-metadata.json') -Encoding utf8
 
 Write-Host "[1/4] Capturing SQL baseline..."
-& (Join-Path $PSScriptRoot 'verify-test-evidence.ps1') -RunId $RunId -Phase Before -ResultDir $resultDir -Mode $Mode
+$sqlArgs = @{
+    RunId = $RunId
+    ResultDir = $resultDir
+    Mode = $Mode
+    SqlExecution = $SqlExecution
+    SshHost = $SshHost
+    SshUser = $SshUser
+    SshKeyPath = $SshKeyPath
+    MySqlContainer = $MySqlContainer
+}
+& (Join-Path $PSScriptRoot 'verify-test-evidence.ps1') @sqlArgs -Phase Before
 if ($LASTEXITCODE -ne 0) {
     throw 'Failed to capture SQL baseline.'
 }
@@ -95,7 +180,10 @@ $kafkaStopped = $false
 $k6ExitCode = 1
 
 try {
-    if ($KafkaOutage) {
+if ($KafkaOutage) {
+        if ($SqlExecution -eq 'SshDocker') {
+            throw 'KafkaOutage is not yet supported through remote SSH execution.'
+        }
         Write-Host "Stopping Kafka for Outbox recovery evidence..."
         & docker stop $kafkaContainer | Out-Null
         if ($LASTEXITCODE -ne 0) {
@@ -106,7 +194,6 @@ try {
 
     Write-Host "[2/4] Running k6 scenario '$Mode'..."
     $k6Log = Join-Path $resultDir 'k6-console.log'
-    $localK6 = Get-Command k6 -ErrorAction SilentlyContinue
     $previousErrorActionPreference = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
     if ($localK6) {
@@ -128,10 +215,6 @@ try {
         $k6ExitCode = $LASTEXITCODE
     } else {
         Write-Host "Local k6 was not found; using Docker image $K6Image"
-        $network = (& docker inspect --format '{{range $name, $config := .NetworkSettings.Networks}}{{$name}}{{end}}' $gatewayContainer 2>$null).Trim()
-        if (-not $network) {
-            throw "Could not resolve the Docker network from $gatewayContainer"
-        }
         $workspacePrefix = $workspace.TrimEnd('\') + '\'
         if (-not $dataPath.StartsWith($workspacePrefix, [StringComparison]::OrdinalIgnoreCase)) {
             throw 'Docker k6 fallback requires TestUsersFile to be inside the workspace.'
@@ -139,13 +222,22 @@ try {
         if (-not $resultDir.StartsWith($workspacePrefix, [StringComparison]::OrdinalIgnoreCase)) {
             throw 'Docker k6 fallback requires ResultRoot to be inside the workspace.'
         }
-        $dataRelative = [IO.Path]::GetRelativePath($workspace, $dataPath).Replace('\', '/')
-        $resultRelative = [IO.Path]::GetRelativePath($workspace, $resultDir).Replace('\', '/')
+        $dataRelative = $dataPath.Substring($workspace.TrimEnd('\', '/').Length).TrimStart('\', '/').Replace('\', '/')
+        $resultRelative = $resultDir.Substring($workspace.TrimEnd('\', '/').Length).TrimStart('\', '/').Replace('\', '/')
         $dockerBaseUrl = if ($BaseUrl -eq 'http://localhost:8080') { 'http://api-gateway:8080' } else { $BaseUrl }
         $dockerArgs = @(
-            'run', '--rm', '--network', $network,
+            'run', '--rm',
             '--mount', "type=bind,source=$workspace,target=/work",
-            $K6Image,
+            $K6Image
+        )
+        if ($BaseUrl -eq 'http://localhost:8080') {
+            $network = (& docker inspect --format '{{range $name, $config := .NetworkSettings.Networks}}{{$name}}{{end}}' $gatewayContainer 2>$null).Trim()
+            if (-not $network) {
+                throw "Could not resolve the Docker network from $gatewayContainer"
+            }
+            $dockerArgs = @('run', '--rm', '--network', $network, '--mount', "type=bind,source=$workspace,target=/work", $K6Image)
+        }
+        $dockerArgs += @(
             'run',
             '-e', "MODE=$Mode",
             '-e', "RUN_ID=$RunId",
@@ -173,7 +265,7 @@ try {
 }
 
 Write-Host "[3/4] Waiting for Outbox and ledger convergence, then verifying SQL..."
-& (Join-Path $PSScriptRoot 'verify-test-evidence.ps1') -RunId $RunId -Phase After -ResultDir $resultDir -Mode $Mode -WaitSeconds $OutboxRecoveryWaitSeconds
+& (Join-Path $PSScriptRoot 'verify-test-evidence.ps1') @sqlArgs -Phase After -WaitSeconds $OutboxRecoveryWaitSeconds
 $sqlExitCode = $LASTEXITCODE
 
 $junitExitCode = 0

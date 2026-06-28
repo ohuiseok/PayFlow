@@ -16,6 +16,8 @@ out/
 logs/
 results/
 k6/test-users.local.json
+k6/test-accounts.local.json
+scripts/test-evidence.ec2.local.json
 
 # Environment
 .env
