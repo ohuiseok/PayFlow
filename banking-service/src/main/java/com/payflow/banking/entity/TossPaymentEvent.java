@@ -5,12 +5,18 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "toss_payment_events")
+@Table(
+        name = "toss_payment_events",
+        indexes = {
+                @Index(name = "idx_toss_payment_events_order", columnList = "toss_payment_order_id")
+        }
+)
 public class TossPaymentEvent {
 
     @Id
@@ -35,7 +41,7 @@ public class TossPaymentEvent {
     @Column(unique = true, length = 255)
     private String eventIdempotencyKey;
 
-    @Column(nullable = false, length = 4000)
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String payloadJson;
 
     @Column(nullable = false, updatable = false)

@@ -7,6 +7,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
@@ -17,6 +18,10 @@ import java.time.LocalDateTime;
 @Entity
 @Table(
         name = "banking_transfers",
+        indexes = {
+                @Index(name = "idx_banking_transfers_user", columnList = "user_id"),
+                @Index(name = "idx_banking_transfers_status_next_check", columnList = "status, next_result_check_at")
+        },
         uniqueConstraints = {
                 @UniqueConstraint(name = "uk_banking_transfers_idempotency_key", columnNames = "idempotencyKey")
         }

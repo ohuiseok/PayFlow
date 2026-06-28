@@ -54,7 +54,7 @@ public class TossPaymentOrder {
     @Column(length = 500)
     private String checkoutUrl;
 
-    @Column(length = 4000)
+    @Column(columnDefinition = "TEXT")
     private String rawResponseJson;
 
     @Column(nullable = false, updatable = false)

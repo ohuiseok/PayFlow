@@ -7,6 +7,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
@@ -14,7 +15,12 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "payment_charges")
+@Table(
+        name = "payment_charges",
+        indexes = {
+                @Index(name = "idx_payment_charges_user_status", columnList = "user_id, status")
+        }
+)
 public class PaymentCharge {
 
     @Id

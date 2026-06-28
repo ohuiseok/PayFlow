@@ -5,12 +5,19 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "banking_api_logs")
+@Table(
+        name = "banking_api_logs",
+        indexes = {
+                @Index(name = "idx_banking_api_logs_transfer", columnList = "banking_transfer_id"),
+                @Index(name = "idx_banking_api_logs_request_id", columnList = "request_id")
+        }
+)
 public class BankingApiLog {
 
     @Id

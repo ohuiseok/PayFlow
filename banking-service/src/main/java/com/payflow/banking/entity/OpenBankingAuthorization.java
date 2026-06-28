@@ -7,13 +7,19 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "open_banking_authorizations")
+@Table(
+        name = "open_banking_authorizations",
+        indexes = {
+                @Index(name = "idx_open_banking_authorizations_user_status", columnList = "user_id, status")
+        }
+)
 public class OpenBankingAuthorization {
 
     @Id

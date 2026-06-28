@@ -17,8 +17,11 @@ spring:
       hibernate:
         format_sql: ${HIBERNATE_FORMAT_SQL:false}
   flyway:
-    enabled: ${SPRING_FLYWAY_ENABLED:true}
+    enabled: ${SPRING_FLYWAY_ENABLED:false}
     locations: classpath:db/migration
+    baseline-on-migrate: ${SPRING_FLYWAY_BASELINE_ON_MIGRATE:true}
+    baseline-version: ${SPRING_FLYWAY_BASELINE_VERSION:5}
+    baseline-description: Hibernate initial schema
 
 clients:
   wallet-service:
