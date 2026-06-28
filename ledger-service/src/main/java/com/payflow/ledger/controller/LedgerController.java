@@ -4,6 +4,7 @@ import com.payflow.ledger.dto.LedgerEntryResponse;
 import com.payflow.ledger.dto.PaymentLedgerRequest;
 import com.payflow.ledger.dto.TransferFailureEventResponse;
 import com.payflow.ledger.service.LedgerService;
+import com.payflow.ledger.entity.LedgerSourceType;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +14,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -25,6 +28,15 @@ public class LedgerController {
     @PostMapping("/internal/payment-charge")
     public LedgerEntryResponse recordPaymentCharge(@Valid @RequestBody PaymentLedgerRequest request) {
         return ledgerService.recordPaymentCharge(request);
+    }
+
+    @GetMapping("/internal/payment-entry")
+    public ResponseEntity<LedgerEntryResponse> findPaymentEntry(
+            @RequestParam LedgerSourceType sourceType,
+            @RequestParam Long sourceId
+    ) {
+        LedgerEntryResponse entry = ledgerService.findPaymentEntry(sourceType, sourceId);
+        return entry == null ? ResponseEntity.notFound().build() : ResponseEntity.ok(entry);
     }
 
     @GetMapping("/entries")

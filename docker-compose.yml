@@ -258,6 +258,8 @@ services:
       SPRING_FLYWAY_BASELINE_VERSION: ${BANKING_FLYWAY_BASELINE_VERSION:-5}
       WALLET_SERVICE_URL: http://wallet-service:8082
       LEDGER_SERVICE_URL: http://ledger-service:8084
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
+      PAYMENT_SETTLEMENT_TOPIC: ${PAYMENT_SETTLEMENT_TOPIC:-payment.settlement}
       FRONTEND_ORIGIN: ${FRONTEND_BASE_URL:-http://localhost:19006}
       INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET}
       GATEWAY_INTERNAL_SECRET: ${GATEWAY_INTERNAL_SECRET}
@@ -286,6 +288,8 @@ services:
       mysql:
         condition: service_healthy
       wallet-service:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8086/actuator/health >/dev/null 2>&1"]
@@ -414,12 +418,16 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
       SPRING_JPA_HIBERNATE_DDL_AUTO: ${SETTLEMENT_JPA_DDL_AUTO:-validate}
       SPRING_KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
+      LEDGER_SERVICE_URL: http://ledger-service:8084
+      PAYMENT_SETTLEMENT_TOPIC: ${PAYMENT_SETTLEMENT_TOPIC:-payment.settlement}
       INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET}
       GATEWAY_INTERNAL_SECRET: ${GATEWAY_INTERNAL_SECRET}
     depends_on:
       mysql:
         condition: service_healthy
       kafka:
+        condition: service_healthy
+      ledger-service:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8085/actuator/health >/dev/null 2>&1"]

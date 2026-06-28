@@ -18,6 +18,10 @@ gateway:
   request-filter:
     enabled: false
 
+settlement:
+  outbox:
+    enabled: false
+
 openbanking:
   client-id: test-client-id
   callback-url: http://localhost:8080/api/bank/openbanking/callback

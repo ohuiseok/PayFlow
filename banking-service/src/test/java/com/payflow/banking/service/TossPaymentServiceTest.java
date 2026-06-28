@@ -22,6 +22,7 @@ import com.payflow.banking.entity.TossPaymentStatus;
 import com.payflow.banking.repository.PaymentChargeRepository;
 import com.payflow.banking.repository.TossPaymentEventRepository;
 import com.payflow.banking.repository.TossPaymentOrderRepository;
+import com.payflow.banking.settlement.PaymentSettlementOutboxRepository;
 import com.payflow.banking.support.error.BusinessException;
 import com.payflow.banking.support.error.ErrorCode;
 import com.payflow.banking.toss.TossPaymentResult;
@@ -52,6 +53,9 @@ class TossPaymentServiceTest {
     @Autowired
     TossPaymentEventRepository tossPaymentEventRepository;
 
+    @Autowired
+    PaymentSettlementOutboxRepository paymentSettlementOutboxRepository;
+
     @MockitoBean
     TossPaymentsClient tossPaymentsClient;
 
@@ -63,6 +67,7 @@ class TossPaymentServiceTest {
 
     @BeforeEach
     void setUp() {
+        paymentSettlementOutboxRepository.deleteAll();
         tossPaymentEventRepository.deleteAll();
         tossPaymentOrderRepository.deleteAll();
         paymentChargeRepository.deleteAll();
@@ -115,6 +120,7 @@ class TossPaymentServiceTest {
         assertThat(second.status()).isEqualTo("COMPLETED");
         verify(walletClient, times(1)).deposit(eq(10L), any(WalletBalanceChangeRequest.class), eq(true), any());
         verify(ledgerClient, times(1)).recordPaymentCharge(any(LedgerPaymentRecordRequest.class), eq(true), any());
+        assertThat(paymentSettlementOutboxRepository.count()).isEqualTo(1);
     }
 
     @Test

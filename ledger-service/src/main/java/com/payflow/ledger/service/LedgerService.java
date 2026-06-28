@@ -55,6 +55,13 @@ public class LedgerService {
                 .orElseGet(() -> savePaymentLedgerEntryIdempotently(request)));
     }
 
+    @Transactional(readOnly = true)
+    public LedgerEntryResponse findPaymentEntry(LedgerSourceType sourceType, Long sourceId) {
+        return ledgerEntryRepository.findBySourceTypeAndSourceId(sourceType, sourceId)
+                .map(LedgerEntryResponse::from)
+                .orElse(null);
+    }
+
     private LedgerEntry savePaymentLedgerEntryIdempotently(PaymentLedgerRequest request) {
         try {
             return ledgerEntryRepository.save(createPaymentLedgerEntry(request));

@@ -4,6 +4,8 @@ server:
 spring:
   application:
     name: banking-service
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/payflow_banking?serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
     username: ${SPRING_DATASOURCE_USERNAME:payflow}
@@ -72,3 +74,13 @@ management:
   endpoint:
     health:
       show-details: ${MANAGEMENT_HEALTH_SHOW_DETAILS:never}
+
+topics:
+  payment-settlement: ${PAYMENT_SETTLEMENT_TOPIC:payment.settlement}
+
+settlement:
+  outbox:
+    enabled: ${SETTLEMENT_OUTBOX_ENABLED:true}
+    fixed-delay: ${SETTLEMENT_OUTBOX_FIXED_DELAY:2000}
+    max-retries: ${SETTLEMENT_OUTBOX_MAX_RETRIES:5}
+  zone: ${SETTLEMENT_ZONE:Asia/Seoul}

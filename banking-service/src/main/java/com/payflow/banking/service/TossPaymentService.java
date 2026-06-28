@@ -21,6 +21,7 @@ import com.payflow.banking.entity.TossPaymentStatus;
 import com.payflow.banking.repository.PaymentChargeRepository;
 import com.payflow.banking.repository.TossPaymentEventRepository;
 import com.payflow.banking.repository.TossPaymentOrderRepository;
+import com.payflow.banking.settlement.PaymentSettlementEventPublisher;
 import com.payflow.banking.support.error.BusinessException;
 import com.payflow.banking.support.error.ErrorCode;
 import com.payflow.banking.toss.TossPaymentCancelResult;
@@ -60,6 +61,7 @@ public class TossPaymentService {
     private final TossPaymentsProperties tossPaymentsProperties;
     private final WalletClient walletClient;
     private final LedgerClient ledgerClient;
+    private final PaymentSettlementEventPublisher settlementEventPublisher;
 
     @Value("${internal.secret:}")
     private String internalSecret;
@@ -103,6 +105,7 @@ public class TossPaymentService {
         }
 
         charge.markPaymentApproved();
+        settlementEventPublisher.publishCharge(charge, result.paymentKey(), result.approvedAt());
         reflectChargeToWallet(charge);
         return TossChargeResponse.from(charge, order);
     }
@@ -161,6 +164,15 @@ public class TossPaymentService {
         TossPaymentCancelResult result = tossPaymentsClient.cancel(paymentKey, request.cancelReason(), request.cancelAmount());
         applyResult(order, result.payment());
         saveEvent(order, "CANCEL_RESPONSE", paymentKey, result.transactionKey(), result.payment().status().name(), null, result.payment().rawJson());
+        if (result.canceledAmount() != null && result.canceledAmount().compareTo(BigDecimal.ZERO) > 0) {
+            settlementEventPublisher.publishCancel(
+                    charge,
+                    paymentKey,
+                    result.transactionKey(),
+                    result.canceledAmount(),
+                    null
+            );
+        }
         try {
             if (charge.getWalletId() != null && result.canceledAmount() != null && result.canceledAmount().compareTo(BigDecimal.ZERO) > 0) {
                 walletClient.withdraw(

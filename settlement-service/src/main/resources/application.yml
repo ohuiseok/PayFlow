@@ -7,6 +7,8 @@ spring:
   batch:
     job:
       enabled: false
+    jdbc:
+      initialize-schema: ${SPRING_BATCH_JDBC_INITIALIZE_SCHEMA:never}
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/payflow_settlement?serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
     username: ${SPRING_DATASOURCE_USERNAME:payflow}
@@ -19,7 +21,9 @@ spring:
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
-        spring.json.trusted.packages: com.payflow.transfer.event,com.payflow.settlement.event
+        spring.json.trusted.packages: com.payflow.settlement.event
+    listener:
+      auto-startup: ${SPRING_KAFKA_LISTENER_AUTO_STARTUP:true}
   jpa:
     hibernate:
       ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:validate}
@@ -39,3 +43,15 @@ management:
   endpoint:
     health:
       show-details: ${MANAGEMENT_HEALTH_SHOW_DETAILS:never}
+
+clients:
+  ledger-service:
+    url: ${LEDGER_SERVICE_URL:http://localhost:8084}
+
+topics:
+  payment-settlement: ${PAYMENT_SETTLEMENT_TOPIC:payment.settlement}
+
+settlement:
+  fee-rate: ${SETTLEMENT_FEE_RATE:0.027}
+  daily-cron: ${SETTLEMENT_DAILY_CRON:0 0 1 * * *}
+  zone: ${SETTLEMENT_ZONE:Asia/Seoul}
