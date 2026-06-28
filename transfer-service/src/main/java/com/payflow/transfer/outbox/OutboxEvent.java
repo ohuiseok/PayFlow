@@ -7,6 +7,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
@@ -17,6 +18,9 @@ import java.util.UUID;
 @Entity
 @Table(
         name = "outbox_events",
+        indexes = {
+                @Index(name = "idx_outbox_events_status", columnList = "status")
+        },
         uniqueConstraints = {
                 @UniqueConstraint(name = "uk_outbox_events_event_id", columnNames = "eventId")
         }
