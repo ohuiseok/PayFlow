@@ -26,7 +26,7 @@ spring:
         spring.json.trusted.packages: com.payflow.transfer.event
   jpa:
     hibernate:
-      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:validate}
+      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:update}
     open-in-view: false
     properties:
       hibernate:
