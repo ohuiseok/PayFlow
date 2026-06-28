@@ -10,8 +10,6 @@ spring:
     properties:
       hibernate:
         format_sql: false
-  flyway:
-    enabled: false
   batch:
     job:
       enabled: false

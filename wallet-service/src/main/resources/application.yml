@@ -20,15 +20,11 @@ spring:
       port: ${REDIS_PORT:6379}
   jpa:
     hibernate:
-      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:validate}
+      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:update}
     open-in-view: false
     properties:
       hibernate:
         format_sql: ${HIBERNATE_FORMAT_SQL:false}
-  flyway:
-    enabled: ${SPRING_FLYWAY_ENABLED:true}
-    locations: classpath:db/migration
-
 management:
   endpoints:
     web:

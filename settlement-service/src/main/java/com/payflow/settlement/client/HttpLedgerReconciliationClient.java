@@ -12,11 +12,10 @@ public class HttpLedgerReconciliationClient implements LedgerReconciliationClien
     private final RestClient restClient;
 
     public HttpLedgerReconciliationClient(
-            RestClient.Builder builder,
             @Value("${clients.ledger-service.url:http://localhost:8084}") String baseUrl,
             @Value("${internal.secret:}") String internalSecret
     ) {
-        this.restClient = builder.baseUrl(baseUrl)
+        this.restClient = RestClient.builder().baseUrl(baseUrl)
                 .defaultHeader("X-Internal-Secret", internalSecret)
                 .build();
     }
