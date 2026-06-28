@@ -16,6 +16,7 @@ spring:
             corsConfigurations:
               '[/**]':
                 allowedOriginPatterns:
+                  - "https://payflow-launchpad.vercel.app"
                   - "https://pay-flow.cloud"
                   - "https://www.pay-flow.cloud"
                   - "https://app.pay-flow.cloud"
