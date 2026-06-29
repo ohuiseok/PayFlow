@@ -55,7 +55,9 @@ class TransferCompensationControllerTest {
     @BeforeEach
     void setUp() {
         transferRepository.deleteAll();
-        when(distributedLock.tryLock(any(), any(), any(Duration.class))).thenReturn(true);
+        when(distributedLock.tryLock(
+                any(), any(), any(Duration.class), any(Duration.class), any(Duration.class)
+        )).thenReturn(true);
         when(walletClient.getWalletByUserId(eq(1L), eq(true), any())).thenReturn(new WalletResponse(10L, 1L, new BigDecimal("10000"), "ACTIVE"));
         when(walletClient.getWalletByUserId(eq(2L), eq(true), any())).thenReturn(new WalletResponse(20L, 2L, BigDecimal.ZERO, "ACTIVE"));
         when(walletClient.withdraw(eq(10L), any(WalletBalanceChangeRequest.class), eq(true), any()))

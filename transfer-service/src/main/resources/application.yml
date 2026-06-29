@@ -53,7 +53,9 @@ topics:
 
 transfer:
   wallet-lock:
-    ttl: ${TRANSFER_WALLET_LOCK_TTL:5s}
+    ttl: ${TRANSFER_WALLET_LOCK_TTL:30s}
+    wait-timeout: ${TRANSFER_WALLET_LOCK_WAIT_TIMEOUT:20s}
+    retry-interval: ${TRANSFER_WALLET_LOCK_RETRY_INTERVAL:25ms}
 
 outbox:
   publisher:

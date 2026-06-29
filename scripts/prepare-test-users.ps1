@@ -6,6 +6,7 @@ param(
     [string]$OutputPath = 'k6\test-users.local.json',
     [string]$StatePath = 'k6\test-accounts.local.json',
     [int]$SenderCount = 1,
+    [int]$ReceiverCount = 0,
     [long]$FundingPerSender = 0,
     [switch]$AutoCreate,
     [switch]$AllowMockFunding
@@ -219,6 +220,7 @@ if (-not $AutoCreate) {
     }
     $senders = @($account)
     $receiver = [pscustomobject]@{ userId = $ReceiverUserId }
+    $receivers = @($receiver)
 } else {
     if ($SenderCount -lt 1) {
         throw 'SenderCount must be at least one.'
@@ -233,14 +235,24 @@ if (-not $AutoCreate) {
     }
 
     $accounts = @($state.accounts)
-    $receiver = @($accounts | Where-Object { $_.kind -eq 'receiver' }) | Select-Object -First 1
-    if ($null -eq $receiver) {
+    if ($ReceiverCount -le 0) {
+        $ReceiverCount = $SenderCount
+    }
+    if ($ReceiverCount -lt 1) {
+        throw 'ReceiverCount must be at least one.'
+    }
+
+    $receivers = @($accounts | Where-Object { $_.kind -eq 'receiver' })
+    while ($receivers.Count -lt $ReceiverCount) {
+        $index = $receivers.Count + 1
         $receiver = [pscustomobject]@{
             kind = 'receiver'; phone = New-TestPhone; password = New-TestPassword
-            name = 'PayFlow Evidence Receiver'; userId = 0L; token = ''
+            name = "PayFlow Evidence Receiver $index"; userId = 0L; token = ''
         }
         $accounts += $receiver
+        $receivers += $receiver
     }
+    $receivers = @($receivers | Select-Object -First $ReceiverCount)
     $senders = @($accounts | Where-Object { $_.kind -eq 'sender' })
     while ($senders.Count -lt $SenderCount) {
         $index = $senders.Count + 1
@@ -254,8 +266,10 @@ if (-not $AutoCreate) {
     $senders = @($senders | Select-Object -First $SenderCount)
     $state.accounts = $accounts
 
-    Ensure-Account $receiver
-    Write-Utf8Json -Path $resolvedStatePath -Value $state
+    foreach ($receiver in $receivers) {
+        Ensure-Account $receiver
+        Write-Utf8Json -Path $resolvedStatePath -Value $state
+    }
     foreach ($sender in $senders) {
         Ensure-Account $sender
         Ensure-MockFunding -Account $sender -RequiredAmount $FundingPerSender
@@ -265,16 +279,18 @@ if (-not $AutoCreate) {
 
 $testData = [ordered]@{
     amount = $Amount
-    users = @($senders | ForEach-Object {
+    users = @(for ($index = 0; $index -lt $senders.Count; $index++) {
+        $sender = $senders[$index]
+        $pairedReceiver = $receivers[$index % $receivers.Count]
         [ordered]@{
-            senderUserId = [long]$_.userId
-            receiverUserId = [long]$receiver.userId
-            token = [string]$_.token
+            senderUserId = [long]$sender.userId
+            receiverUserId = [long]$pairedReceiver.userId
+            token = [string]$sender.token
         }
     })
 }
 Write-Utf8Json -Path $resolvedOutputPath -Value $testData -Depth 5
 
 Write-Host "Test user data created: $resolvedOutputPath"
-Write-Host "senders: $($senders.Count), receiverUserId: $($receiver.userId)"
+Write-Host "senders: $($senders.Count), receivers: $($receivers.Count)"
 Write-Host 'JWTs and synthetic credentials were written only to ignored local files.'

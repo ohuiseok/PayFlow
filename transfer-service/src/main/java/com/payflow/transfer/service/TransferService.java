@@ -48,8 +48,14 @@ public class TransferService {
     @Value("${internal.secret:}")
     private String internalSecret;
 
-    @Value("${transfer.wallet-lock.ttl:5s}")
+    @Value("${transfer.wallet-lock.ttl:30s}")
     private Duration walletLockTtl;
+
+    @Value("${transfer.wallet-lock.wait-timeout:20s}")
+    private Duration walletLockWaitTimeout;
+
+    @Value("${transfer.wallet-lock.retry-interval:25ms}")
+    private Duration walletLockRetryInterval;
 
     public TransferResponse createTransfer(CreateTransferRequest request, String idempotencyKey, Long senderUserId) {
         String normalizedIdempotencyKey = normalizeIdempotencyKey(idempotencyKey);
@@ -67,7 +73,10 @@ public class TransferService {
             throw new IllegalStateException("Failed to initialize transfer");
         }
         if (!initialTransfer.created()) {
-            return resolveExistingTransfer(initialTransfer.transfer(), requestHash);
+            TransferResponse existing = resolveExistingTransfer(initialTransfer.transfer(), requestHash);
+            if (existing.status() != TransferStatus.REQUESTED) {
+                return existing;
+            }
         }
         return processCreatedTransfer(initialTransfer.transfer(), transactionTemplate);
     }
@@ -75,6 +84,14 @@ public class TransferService {
     @Transactional(readOnly = true)
     public TransferResponse getTransfer(Long transferId, Long requestUserId) {
         Transfer transfer = transferRepository.findById(transferId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.TRANSFER_NOT_FOUND));
+        validateParticipant(transfer, requestUserId);
+        return TransferResponse.from(transfer);
+    }
+
+    @Transactional(readOnly = true)
+    public TransferResponse getTransferByIdempotencyKey(String idempotencyKey, Long requestUserId) {
+        Transfer transfer = transferRepository.findByIdempotencyKey(normalizeIdempotencyKey(idempotencyKey))
                 .orElseThrow(() -> new BusinessException(ErrorCode.TRANSFER_NOT_FOUND));
         validateParticipant(transfer, requestUserId);
         return TransferResponse.from(transfer);
@@ -177,12 +194,26 @@ public class TransferService {
             var receiverWallet = walletClient.getWalletByUserId(transfer.getReceiverUserId(), true, internalSecret);
             String lockKey = "transfer:wallet-lock:" + senderWallet.walletId();
             String ownerToken = UUID.randomUUID().toString();
-            if (!distributedLock.tryLock(lockKey, ownerToken, walletLockTtl)) {
+            if (!distributedLock.tryLock(
+                    lockKey,
+                    ownerToken,
+                    walletLockTtl,
+                    walletLockWaitTimeout,
+                    walletLockRetryInterval
+            )) {
                 throw new BusinessException(ErrorCode.WALLET_LOCK_CONFLICT);
             }
 
             try {
-                markTransferStarted(transactionTemplate, transferId, senderWallet.walletId(), receiverWallet.walletId());
+                Transfer claimedTransfer = claimTransfer(
+                        transactionTemplate,
+                        transferId,
+                        senderWallet.walletId(),
+                        receiverWallet.walletId()
+                );
+                if (claimedTransfer.getStatus() != TransferStatus.PROCESSING) {
+                    return TransferResponse.from(claimedTransfer);
+                }
                 String referenceId = transferId.toString();
                 walletClient.withdraw(
                         senderWallet.walletId(),
@@ -204,15 +235,28 @@ public class TransferService {
             } finally {
                 releaseLockQuietly(lockKey, ownerToken);
             }
+        } catch (BusinessException exception) {
+            if (exception.getErrorCode() == ErrorCode.WALLET_LOCK_CONFLICT) {
+                throw exception;
+            }
+            return markTransferFailed(transactionTemplate, transferId, resolveMessage(exception));
         } catch (RuntimeException exception) {
             return markTransferFailed(transactionTemplate, transferId, resolveMessage(exception));
         }
     }
 
-    private void markTransferStarted(TransactionTemplate transactionTemplate, Long transferId, Long senderWalletId, Long receiverWalletId) {
-        transactionTemplate.executeWithoutResult(status -> {
+    private Transfer claimTransfer(
+            TransactionTemplate transactionTemplate,
+            Long transferId,
+            Long senderWalletId,
+            Long receiverWalletId
+    ) {
+        return transactionTemplate.execute(status -> {
             Transfer transfer = findTransferForUpdate(transferId);
-            transfer.start(senderWalletId, receiverWalletId);
+            if (transfer.getStatus() == TransferStatus.REQUESTED) {
+                transfer.start(senderWalletId, receiverWalletId);
+            }
+            return transfer;
         });
     }
 

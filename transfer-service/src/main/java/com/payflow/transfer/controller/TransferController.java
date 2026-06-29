@@ -55,6 +55,14 @@ public class TransferController {
         return transferService.getTransfer(transferId, requestUserId);
     }
 
+    @GetMapping("/by-idempotency-key")
+    public TransferResponse getTransferByIdempotencyKey(
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
+            @RequestHeader("X-User-Id") Long requestUserId
+    ) {
+        return transferService.getTransferByIdempotencyKey(idempotencyKey, requestUserId);
+    }
+
     // [M-3] page, size 쿼리 파라미터로 페이지네이션을 지원한다.
     // 예: GET /transfers?page=0&size=20 (기본값: page=0, size=20)
     // Page<TransferResponse>를 직렬화하면 content, totalElements, totalPages, number 등이 함께 반환된다.

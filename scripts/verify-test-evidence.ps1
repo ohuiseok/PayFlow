@@ -21,6 +21,9 @@ param(
     [string]$SshKeyPath,
     [string]$MySqlContainer,
 
+    [long]$ExpectedTransferCount = 0,
+    [long]$ExpectedSucceededCount = 0,
+
     [int]$WaitSeconds = 0
 )
 
@@ -195,6 +198,7 @@ if ($WaitSeconds -gt 0) {
 ) | Set-Content -LiteralPath $logPath -Encoding utf8
 
 $transferCount = [int](Invoke-MySql "SELECT COUNT(*) FROM $transferDb.transfers WHERE idempotency_key LIKE '$keyPattern' $keyCollate;")
+$succeededTransferCount = [int](Invoke-MySql "SELECT COUNT(*) FROM $transferDb.transfers WHERE idempotency_key LIKE '$keyPattern' $keyCollate AND status = 'SUCCEEDED';")
 $duplicateIdempotency = [int](Invoke-MySql "SELECT COUNT(*) FROM (SELECT idempotency_key FROM $transferDb.transfers WHERE idempotency_key LIKE '$keyPattern' $keyCollate GROUP BY idempotency_key HAVING COUNT(*) > 1) duplicated;")
 $duplicateWalletTransactions = [int](Invoke-MySql "SELECT COUNT(*) FROM (SELECT wt.wallet_id, wt.transaction_type, wt.reference_type, wt.reference_id FROM $walletDb.wallet_transactions wt JOIN $transferDb.transfers t ON $walletReferenceId = $transferIdText WHERE t.idempotency_key LIKE '$keyPattern' $keyCollate AND wt.reference_type = 'TRANSFER' GROUP BY wt.wallet_id, wt.transaction_type, wt.reference_type, wt.reference_id HAVING COUNT(*) > 1) duplicated;")
 $succeededTransactionAnomalies = [int](Invoke-MySql "SELECT COUNT(*) FROM (SELECT t.id, SUM(CASE WHEN wt.transaction_type = 'WITHDRAW' THEN 1 ELSE 0 END) withdrawals, SUM(CASE WHEN wt.transaction_type = 'DEPOSIT' THEN 1 ELSE 0 END) deposits FROM $transferDb.transfers t LEFT JOIN $walletDb.wallet_transactions wt ON $walletReferenceId = $transferIdText AND wt.reference_type = 'TRANSFER' WHERE t.idempotency_key LIKE '$keyPattern' $keyCollate AND t.status = 'SUCCEEDED' GROUP BY t.id HAVING withdrawals <> 1 OR deposits <> 1) anomalies;")
@@ -205,7 +209,18 @@ $duplicateLedger = [int](Invoke-MySql "SELECT COUNT(*) FROM (SELECT le.transfer_
 $negativeBalances = [int](Invoke-MySql "SELECT COUNT(*) FROM $walletDb.wallets WHERE balance < 0;")
 $compensationRequired = [int](Invoke-MySql "SELECT COUNT(*) FROM $transferDb.transfers WHERE idempotency_key LIKE '$keyPattern' $keyCollate AND status = 'COMPENSATION_REQUIRED';")
 $balanceDelta = [decimal]$snapshot.totalWalletBalance - [decimal]$baseline.totalWalletBalance
-$expectedTransferCountPassed = if ($Mode -eq 'idempotency') { $transferCount -eq 1 } else { $transferCount -gt 0 }
+$expectedTransferCountPassed = if ($ExpectedTransferCount -gt 0) {
+    $transferCount -eq $ExpectedTransferCount
+} elseif ($Mode -eq 'idempotency') {
+    $transferCount -eq 1
+} else {
+    $transferCount -gt 0
+}
+$expectedSucceededCountPassed = if ($ExpectedSucceededCount -gt 0) {
+    $succeededTransferCount -eq $ExpectedSucceededCount
+} else {
+    $true
+}
 
 Add-QueryEvidence 'Transfer status summary' "SELECT status, COUNT(*) AS count, COALESCE(SUM(amount), 0) AS amount_sum FROM $transferDb.transfers WHERE idempotency_key LIKE '$keyPattern' $keyCollate GROUP BY status ORDER BY status;"
 Add-QueryEvidence 'Outbox status summary' "SELECT o.status, COUNT(*) AS count FROM $transferDb.transfers t JOIN $transferDb.outbox_events o ON $outboxEventKey = $transferIdText WHERE t.idempotency_key LIKE '$keyPattern' $keyCollate GROUP BY o.status ORDER BY o.status;"
@@ -213,6 +228,7 @@ Add-QueryEvidence 'Succeeded transfer wallet transaction coverage' "SELECT t.id 
 Add-QueryEvidence 'Ledger coverage' "SELECT t.status AS transfer_status, COUNT(*) AS transfer_count, SUM(CASE WHEN le.id IS NOT NULL THEN 1 ELSE 0 END) AS ledger_count FROM $transferDb.transfers t LEFT JOIN $ledgerDb.ledger_entries le ON le.transfer_id = t.id WHERE t.idempotency_key LIKE '$keyPattern' $keyCollate GROUP BY t.status ORDER BY t.status;"
 
 $passed = $expectedTransferCountPassed -and
+    $expectedSucceededCountPassed -and
     $duplicateIdempotency -eq 0 -and
     $duplicateWalletTransactions -eq 0 -and
     $succeededTransactionAnomalies -eq 0 -and
@@ -229,7 +245,11 @@ $summary = [ordered]@{
     passed = $passed
     mode = $Mode
     transferCount = $transferCount
+    expectedTransferCount = $ExpectedTransferCount
     expectedTransferCountPassed = $expectedTransferCountPassed
+    succeededTransferCount = $succeededTransferCount
+    expectedSucceededCount = $ExpectedSucceededCount
+    expectedSucceededCountPassed = $expectedSucceededCountPassed
     totalWalletBalanceBefore = [decimal]$baseline.totalWalletBalance
     totalWalletBalanceAfter = $snapshot.totalWalletBalance
     totalWalletBalanceDelta = $balanceDelta

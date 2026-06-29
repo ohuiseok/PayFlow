@@ -147,6 +147,24 @@ services:
     mem_limit: ${KAFKA_MEM_LIMIT:-1024m}
     restart: unless-stopped
 
+  kafka-init:
+    image: apache/kafka:3.8.0
+    container_name: ${PROJECT_NAME:-payflow}-kafka-init
+    environment:
+      KAFKA_BOOTSTRAP_SERVER: kafka:9092
+      PAYFLOW_KAFKA_TOPICS: ${PAYFLOW_KAFKA_TOPICS:-transfer.completed transfer.failed payment.settlement}
+      KAFKA_TOPIC_PARTITIONS: ${KAFKA_TOPIC_PARTITIONS:-6}
+      KAFKA_TOPIC_REPLICATION_FACTOR: ${KAFKA_TOPIC_REPLICATION_FACTOR:-1}
+    volumes:
+      - ./infrastructure/kafka/init-topics.sh:/opt/payflow/init-topics.sh:ro
+    entrypoint: ["/bin/sh", "/opt/payflow/init-topics.sh"]
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - payflow-network
+    restart: "no"
+
   api-gateway:
     build:
       context: ./api-gateway
@@ -288,6 +306,8 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8086/actuator/health >/dev/null 2>&1"]
       interval: 10s
@@ -316,6 +336,9 @@ services:
       GATEWAY_INTERNAL_SECRET: ${GATEWAY_INTERNAL_SECRET}
       TRANSFER_COMPLETED_TOPIC: ${TRANSFER_COMPLETED_TOPIC:-transfer.completed}
       TRANSFER_FAILED_TOPIC: ${TRANSFER_FAILED_TOPIC:-transfer.failed}
+      TRANSFER_WALLET_LOCK_TTL: ${TRANSFER_WALLET_LOCK_TTL:-30s}
+      TRANSFER_WALLET_LOCK_WAIT_TIMEOUT: ${TRANSFER_WALLET_LOCK_WAIT_TIMEOUT:-20s}
+      TRANSFER_WALLET_LOCK_RETRY_INTERVAL: ${TRANSFER_WALLET_LOCK_RETRY_INTERVAL:-25ms}
     depends_on:
       mysql:
         condition: service_healthy
@@ -323,6 +346,8 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8083/actuator/health >/dev/null 2>&1"]
       interval: 10s
@@ -388,6 +413,8 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8084/actuator/health >/dev/null 2>&1"]
       interval: 10s
@@ -419,6 +446,8 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
       ledger-service:
         condition: service_healthy
     healthcheck:

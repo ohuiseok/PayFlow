@@ -10,5 +10,6 @@
   "duration": "2m",
   "amount": 1000,
   "senderCount": 50,
+  "receiverCount": 50,
   "skipJUnit": false
 }

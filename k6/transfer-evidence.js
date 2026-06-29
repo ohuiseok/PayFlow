@@ -1,5 +1,5 @@
 import http from 'k6/http';
-import { check } from 'k6';
+import { check, sleep } from 'k6';
 import exec from 'k6/execution';
 import { Counter } from 'k6/metrics';
 
@@ -26,6 +26,7 @@ const businessSucceeded = new Counter('business_succeeded');
 const businessFailed = new Counter('business_failed');
 const compensationRequired = new Counter('compensation_required');
 const invalidResponses = new Counter('invalid_responses');
+const recoveredAfterTimeout = new Counter('recovered_after_timeout');
 
 function numberEnv(name, fallback) {
     const value = Number(__ENV[name]);
@@ -74,8 +75,73 @@ export const options = {
         http_req_failed: ['rate<0.01'],
         invalid_responses: ['count==0'],
         dropped_iterations: ['count==0'],
+        business_failed: ['count==0'],
+        compensation_required: ['count==0'],
     },
 };
+
+function recordBusinessStatus(status) {
+    if (status === 'SUCCEEDED') {
+        businessSucceeded.add(1);
+        return true;
+    }
+    if (status === 'COMPENSATION_REQUIRED') {
+        compensationRequired.add(1);
+        return true;
+    }
+    if (typeof status === 'string') {
+        businessFailed.add(1);
+        return true;
+    }
+    return false;
+}
+
+function recoverTimedOutTransfer(user, key) {
+    for (let attempt = 0; attempt < 10; attempt += 1) {
+        sleep(0.5);
+        const lookup = http.get(`${baseUrl}/api/transfers/by-idempotency-key`, {
+            headers: {
+                Authorization: `Bearer ${user.token}`,
+                'Idempotency-Key': key,
+            },
+            tags: { endpoint: 'get-transfer-by-idempotency-key', mode },
+        });
+        if (lookup.status === 404) {
+            continue;
+        }
+        let body;
+        try {
+            body = lookup.json();
+        } catch (_) {
+            return false;
+        }
+        if (body.status === 'REQUESTED' || body.status === 'PROCESSING') {
+            continue;
+        }
+        if (lookup.status === 200 && recordBusinessStatus(body.status)) {
+            recoveredAfterTimeout.add(1);
+            return true;
+        }
+        return false;
+    }
+    return false;
+}
+
+function postTransfer(user, key, attempt) {
+    return http.post(
+        `${baseUrl}/api/transfers`,
+        JSON.stringify({ receiverUserId: Number(user.receiverUserId), amount }),
+        {
+            headers: {
+                Authorization: `Bearer ${user.token}`,
+                'Content-Type': 'application/json',
+                'Idempotency-Key': key,
+            },
+            tags: { endpoint: 'create-transfer', mode, attempt: String(attempt) },
+            responseCallback: http.expectedStatuses(201, 409),
+        },
+    );
+}
 
 function selectUser() {
     if (mode === 'hot-wallet' || mode === 'idempotency') {
@@ -93,18 +159,15 @@ function idempotencyKey() {
 
 export default function () {
     const user = selectUser();
-    const response = http.post(
-        `${baseUrl}/api/transfers`,
-        JSON.stringify({ receiverUserId: Number(user.receiverUserId), amount }),
-        {
-            headers: {
-                Authorization: `Bearer ${user.token}`,
-                'Content-Type': 'application/json',
-                'Idempotency-Key': idempotencyKey(),
-            },
-            tags: { endpoint: 'create-transfer', mode },
-        },
-    );
+    const key = idempotencyKey();
+    let response;
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+        response = postTransfer(user, key, attempt);
+        if (response.status !== 409) {
+            break;
+        }
+        sleep(0.1 * attempt);
+    }
 
     let body;
     try {
@@ -120,16 +183,11 @@ export default function () {
 
     if (!valid) {
         invalidResponses.add(1);
+        recoverTimedOutTransfer(user, key);
         return;
     }
 
-    if (body.status === 'SUCCEEDED') {
-        businessSucceeded.add(1);
-    } else if (body.status === 'COMPENSATION_REQUIRED') {
-        compensationRequired.add(1);
-    } else {
-        businessFailed.add(1);
-    }
+    recordBusinessStatus(body.status);
 }
 
 function metricValue(data, name, key, fallback = 0) {
@@ -151,6 +209,7 @@ function evidenceSummary(data) {
         businessFailed: metricValue(data, 'business_failed', 'count'),
         compensationRequired: metricValue(data, 'compensation_required', 'count'),
         invalidResponses: metricValue(data, 'invalid_responses', 'count'),
+        recoveredAfterTimeout: metricValue(data, 'recovered_after_timeout', 'count'),
         droppedIterations: metricValue(data, 'dropped_iterations', 'count'),
         achievedBusinessTps: metricValue(
             data,
@@ -181,6 +240,7 @@ export function handleSummary(data) {
         `business failed: ${summary.businessFailed}`,
         `compensation required: ${summary.compensationRequired}`,
         `invalid responses: ${summary.invalidResponses}`,
+        `recovered after timeout: ${summary.recoveredAfterTimeout}`,
         `dropped iterations: ${summary.droppedIterations}`,
         `achieved business TPS: ${summary.achievedBusinessTps.toFixed(2)}`,
         `response avg/p95/p99: ${summary.responseTimeMs.avg.toFixed(2)} / ${summary.responseTimeMs.p95.toFixed(2)} / ${summary.responseTimeMs.p99.toFixed(2)} ms`,

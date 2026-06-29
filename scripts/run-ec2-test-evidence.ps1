@@ -66,6 +66,7 @@ function Initialize-Config {
         duration = '2m'
         amount = 1000
         senderCount = 50
+        receiverCount = 50
         skipJUnit = $false
     }
     Write-Utf8Json -Path $resolvedConfigPath -Value $config
@@ -129,6 +130,25 @@ if ($sshExitCode -ne 0) {
     throw "SSH or remote Docker check failed: $sshTarget. $($sshCheckOutput -join ' ')"
 }
 
+$requiredKafkaTopics = @('transfer.completed', 'transfer.failed')
+$kafkaContainer = ([string]$config.mySqlContainer) -replace '-mysql$', '-kafka'
+if ($kafkaContainer -notmatch '^[A-Za-z0-9_.-]+$') {
+    throw 'Derived Kafka container name contains unsupported characters.'
+}
+$previousPreference = $ErrorActionPreference
+$ErrorActionPreference = 'Continue'
+$topicOutput = & ssh @sshBaseArgs $sshTarget "docker exec $kafkaContainer /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list" 2>&1
+$topicExitCode = $LASTEXITCODE
+$ErrorActionPreference = $previousPreference
+if ($topicExitCode -ne 0) {
+    throw "Kafka topic readiness check failed on EC2: $($topicOutput -join ' ')"
+}
+$availableTopics = @($topicOutput | ForEach-Object { ([string]$_).Trim() } | Where-Object { $_ })
+$missingTopics = @($requiredKafkaTopics | Where-Object { $_ -notin $availableTopics })
+if ($missingTopics.Count -gt 0) {
+    throw "Required Kafka topics are missing on EC2: $($missingTopics -join ', '). Deploy kafka-init before running evidence tests."
+}
+
 if (-not (Get-Command k6 -ErrorAction SilentlyContinue) -and -not (Test-DockerEngine)) {
     $dockerDesktop = 'C:\Program Files\Docker\Docker\Docker Desktop.exe'
     if (Test-Path -LiteralPath $dockerDesktop) {
@@ -189,6 +209,11 @@ try {
         Duration = [string]$config.duration
         Amount = [int]$config.amount
         SenderCount = [int]$config.senderCount
+        ReceiverCount = $(if ($config.PSObject.Properties.Name -contains 'receiverCount') {
+            [int]$config.receiverCount
+        } else {
+            0
+        })
         SqlExecution = 'SshDocker'
         SshHost = [string]$config.ec2Host
         SshUser = [string]$config.sshUser

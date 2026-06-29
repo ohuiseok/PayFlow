@@ -50,7 +50,9 @@ class TransferServiceTest {
     @BeforeEach
     void setUp() {
         transferRepository.deleteAll();
-        when(distributedLock.tryLock(any(), any(), any(Duration.class))).thenReturn(true);
+        when(distributedLock.tryLock(
+                any(), any(), any(Duration.class), any(Duration.class), any(Duration.class)
+        )).thenReturn(true);
         when(walletClient.getWalletByUserId(eq(1L), eq(true), any())).thenReturn(new WalletResponse(10L, 1L, new BigDecimal("10000"), "ACTIVE"));
         when(walletClient.getWalletByUserId(eq(2L), eq(true), any())).thenReturn(new WalletResponse(20L, 2L, BigDecimal.ZERO, "ACTIVE"));
         when(walletClient.withdraw(eq(10L), any(WalletBalanceChangeRequest.class), eq(true), any()))
@@ -69,22 +71,55 @@ class TransferServiceTest {
         assertThat(response.status()).isEqualTo(TransferStatus.SUCCEEDED);
         verify(walletClient).withdraw(eq(10L), any(WalletBalanceChangeRequest.class), eq(true), any());
         verify(walletClient).deposit(eq(20L), any(WalletBalanceChangeRequest.class), eq(true), any());
-        verify(distributedLock).tryLock(eq("transfer:wallet-lock:10"), any(), any(Duration.class));
+        verify(distributedLock).tryLock(
+                eq("transfer:wallet-lock:10"),
+                any(),
+                any(Duration.class),
+                any(Duration.class),
+                any(Duration.class)
+        );
         verify(distributedLock).unlock(eq("transfer:wallet-lock:10"), any());
         verify(transferEventPublisher).publishCompleted(any());
     }
 
     @Test
     void createTransferFailsWithoutMovingMoneyWhenSenderWalletLockIsBusy() {
-        when(distributedLock.tryLock(any(), any(), any(Duration.class))).thenReturn(false);
+        when(distributedLock.tryLock(
+                any(), any(), any(Duration.class), any(Duration.class), any(Duration.class)
+        )).thenReturn(false);
 
-        var response = transferService.createTransfer(new CreateTransferRequest(2L, new BigDecimal("3000")), "key-lock", 1L);
+        assertThatThrownBy(() -> transferService.createTransfer(
+                new CreateTransferRequest(2L, new BigDecimal("3000")), "key-lock", 1L
+        ))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.WALLET_LOCK_CONFLICT);
 
-        assertThat(response.status()).isEqualTo(TransferStatus.FAILED);
+        assertThat(transferRepository.findByIdempotencyKey("key-lock").orElseThrow().getStatus())
+                .isEqualTo(TransferStatus.REQUESTED);
         verify(walletClient, never()).withdraw(any(), any(WalletBalanceChangeRequest.class), eq(true), any());
         verify(walletClient, never()).deposit(any(), any(WalletBalanceChangeRequest.class), eq(true), any());
         verify(distributedLock, never()).unlock(any(), any());
-        verify(transferEventPublisher).publishFailed(any());
+        verify(transferEventPublisher, never()).publishFailed(any());
+    }
+
+    @Test
+    void retryWithSameIdempotencyKeyProcessesRequestedTransferAfterLockContention() {
+        when(distributedLock.tryLock(
+                any(), any(), any(Duration.class), any(Duration.class), any(Duration.class)
+        )).thenReturn(false, true);
+
+        assertThatThrownBy(() -> transferService.createTransfer(
+                new CreateTransferRequest(2L, new BigDecimal("3000")), "key-retry", 1L
+        )).isInstanceOf(BusinessException.class);
+
+        var retried = transferService.createTransfer(
+                new CreateTransferRequest(2L, new BigDecimal("3000")), "key-retry", 1L
+        );
+
+        assertThat(retried.status()).isEqualTo(TransferStatus.SUCCEEDED);
+        assertThat(transferRepository.count()).isEqualTo(1);
+        verify(walletClient, times(1)).withdraw(eq(10L), any(WalletBalanceChangeRequest.class), eq(true), any());
     }
 
     @Test
@@ -183,6 +218,30 @@ class TransferServiceTest {
         assertThat(response.status()).isEqualTo(TransferStatus.SUCCEEDED);
         assertThat(transferRepository.count()).isEqualTo(1);
         verify(walletClient, times(1)).withdraw(eq(10L), any(WalletBalanceChangeRequest.class), eq(true), any());
+    }
+
+    @Test
+    void getTransferByIdempotencyKeyReturnsResultToParticipant() {
+        var created = transferService.createTransfer(
+                new CreateTransferRequest(2L, new BigDecimal("3000")), "key-lookup", 1L
+        );
+
+        var found = transferService.getTransferByIdempotencyKey("key-lookup", 1L);
+
+        assertThat(found.transferId()).isEqualTo(created.transferId());
+        assertThat(found.status()).isEqualTo(TransferStatus.SUCCEEDED);
+    }
+
+    @Test
+    void getTransferByIdempotencyKeyRejectsNonParticipant() {
+        transferService.createTransfer(
+                new CreateTransferRequest(2L, new BigDecimal("3000")), "key-lookup", 1L
+        );
+
+        assertThatThrownBy(() -> transferService.getTransferByIdempotencyKey("key-lookup", 3L))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.RESOURCE_OWNER_MISMATCH);
     }
 
     @Test

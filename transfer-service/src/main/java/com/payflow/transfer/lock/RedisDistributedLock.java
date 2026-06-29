@@ -24,9 +24,29 @@ public class RedisDistributedLock implements DistributedLock {
     private final StringRedisTemplate redisTemplate;
 
     @Override
-    public boolean tryLock(String key, String ownerToken, Duration ttl) {
-        Boolean acquired = redisTemplate.opsForValue().setIfAbsent(key, ownerToken, ttl);
-        return Boolean.TRUE.equals(acquired);
+    public boolean tryLock(
+            String key,
+            String ownerToken,
+            Duration ttl,
+            Duration waitTimeout,
+            Duration retryInterval
+    ) {
+        long deadline = System.nanoTime() + waitTimeout.toNanos();
+        do {
+            Boolean acquired = redisTemplate.opsForValue().setIfAbsent(key, ownerToken, ttl);
+            if (Boolean.TRUE.equals(acquired)) {
+                return true;
+            }
+            if (System.nanoTime() >= deadline) {
+                return false;
+            }
+            try {
+                Thread.sleep(Math.max(1L, retryInterval.toMillis()));
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                return false;
+            }
+        } while (true);
     }
 
     @Override

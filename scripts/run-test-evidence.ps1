@@ -14,6 +14,7 @@ param(
     [int]$OutboxRecoveryWaitSeconds = 180,
     [string]$K6Image = 'grafana/k6:latest',
     [int]$SenderCount = 10,
+    [int]$ReceiverCount = 0,
     [long]$FundingPerSender = 0,
     [ValidateSet('LocalDocker', 'SshDocker')]
     [string]$SqlExecution = 'LocalDocker',
@@ -79,6 +80,9 @@ if ($AutoPrepareUsers) {
     $accountBaseUrl = if ($PrepareBaseUrl) { $PrepareBaseUrl } else { $BaseUrl }
     if ($Mode -eq 'hot-wallet' -or $Mode -eq 'idempotency') {
         $SenderCount = 1
+        $ReceiverCount = 1
+    } elseif ($ReceiverCount -le 0) {
+        $ReceiverCount = $SenderCount
     }
     if ($FundingPerSender -le 0) {
         $requestCount = if ($Mode -eq 'throughput') {
@@ -93,6 +97,7 @@ if ($AutoPrepareUsers) {
         Amount = $Amount
         OutputPath = $TestUsersFile
         SenderCount = $SenderCount
+        ReceiverCount = $ReceiverCount
         FundingPerSender = $(if ($UseSshInternalFunding) { 0 } else { $FundingPerSender })
         AutoCreate = $true
         AllowMockFunding = [bool]$AllowMockFunding
@@ -104,6 +109,14 @@ if ($AutoPrepareUsers) {
     }
     & (Join-Path $PSScriptRoot 'prepare-test-users.ps1') @prepareArgs
 }
+
+$expectedIterations = if ($Mode -eq 'throughput') {
+    [long]$Rate * (Convert-DurationToSeconds $Duration)
+} else {
+    [long]$Vus
+}
+$expectedTransferCount = if ($Mode -eq 'idempotency') { 1L } else { $expectedIterations }
+$expectedSucceededCount = $expectedTransferCount
 
 if (-not (Test-Path -LiteralPath $dataPath)) {
     throw "Test user data does not exist: $dataPath. Copy k6/test-users.example.json to k6/test-users.local.json and set real JWT values."
@@ -151,8 +164,12 @@ $metadata = [ordered]@{
     kafkaOutage = [bool]$KafkaOutage
     sqlExecution = $SqlExecution
     senderCount = $SenderCount
+    receiverCount = $ReceiverCount
     fundingPerSender = $FundingPerSender
     fundingMethod = $(if ($UseSshInternalFunding) { 'EC2_INTERNAL_WALLET_API' } else { 'BANKING_API' })
+    expectedIterations = $expectedIterations
+    expectedTransferCount = $expectedTransferCount
+    expectedSucceededCount = $expectedSucceededCount
     testUsersFile = Split-Path -Leaf $dataPath
 }
 $metadata | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $resultDir 'run-metadata.json') -Encoding utf8
@@ -167,6 +184,8 @@ $sqlArgs = @{
     SshUser = $SshUser
     SshKeyPath = $SshKeyPath
     MySqlContainer = $MySqlContainer
+    ExpectedTransferCount = $expectedTransferCount
+    ExpectedSucceededCount = $expectedSucceededCount
 }
 & (Join-Path $PSScriptRoot 'verify-test-evidence.ps1') @sqlArgs -Phase Before
 if ($LASTEXITCODE -ne 0) {
