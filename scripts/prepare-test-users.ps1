@@ -5,6 +5,7 @@ param(
     [int]$Amount = 1000,
     [string]$OutputPath = 'k6\test-users.local.json',
     [string]$StatePath = 'k6\test-accounts.local.json',
+    [string]$StateIdentity,
     [int]$SenderCount = 1,
     [int]$ReceiverCount = 0,
     [long]$FundingPerSender = 0,
@@ -17,6 +18,7 @@ Set-StrictMode -Version Latest
 
 $workspace = Split-Path -Parent $PSScriptRoot
 $baseUrlValue = $BaseUrl.TrimEnd('/')
+$stateIdentityValue = if ($StateIdentity) { $StateIdentity.TrimEnd('/') } else { $baseUrlValue }
 
 function Resolve-WorkspacePath {
     param([string]$Path)
@@ -227,11 +229,15 @@ if (-not $AutoCreate) {
     }
     if (Test-Path -LiteralPath $resolvedStatePath) {
         $state = Get-Content -LiteralPath $resolvedStatePath -Raw | ConvertFrom-Json
-        if ($state.baseUrl -ne $baseUrlValue) {
-            throw "The saved account state belongs to $($state.baseUrl), not $baseUrlValue. Use a different StatePath or delete the old state."
+        if ($state.baseUrl -ne $stateIdentityValue) {
+            if ($StateIdentity -and $state.baseUrl -match '^http://127\.0\.0\.1:\d+$') {
+                $state.baseUrl = $stateIdentityValue
+            } else {
+                throw "The saved account state belongs to $($state.baseUrl), not $stateIdentityValue. Use a different StatePath or delete the old state."
+            }
         }
     } else {
-        $state = [pscustomobject]@{ baseUrl = $baseUrlValue; accounts = @() }
+        $state = [pscustomobject]@{ baseUrl = $stateIdentityValue; accounts = @() }
     }
 
     $accounts = @($state.accounts)

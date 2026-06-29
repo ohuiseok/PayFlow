@@ -9,7 +9,7 @@
   "rate": 420,
   "duration": "2m",
   "amount": 1000,
-  "senderCount": 50,
-  "receiverCount": 50,
+  "senderCount": 200,
+  "receiverCount": 200,
   "skipJUnit": false
 }

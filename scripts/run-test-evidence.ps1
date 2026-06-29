@@ -7,6 +7,7 @@ param(
     [string]$ResultRoot = 'results',
     [string]$BaseUrl = 'http://localhost:8080',
     [string]$PrepareBaseUrl,
+    [string]$AccountStateIdentity,
     [int]$Vus = 1000,
     [int]$Rate = 420,
     [string]$Duration = '5m',
@@ -96,6 +97,7 @@ if ($AutoPrepareUsers) {
         BaseUrl = $accountBaseUrl
         Amount = $Amount
         OutputPath = $TestUsersFile
+        StateIdentity = $AccountStateIdentity
         SenderCount = $SenderCount
         ReceiverCount = $ReceiverCount
         FundingPerSender = $(if ($UseSshInternalFunding) { 0 } else { $FundingPerSender })
@@ -104,8 +106,7 @@ if ($AutoPrepareUsers) {
     }
     $accountStatePath = Join-Path $workspace 'k6\test-accounts.local.json'
     if (Test-Path -LiteralPath $accountStatePath) {
-        Remove-Item -LiteralPath $accountStatePath -Force
-        Write-Host "Removed stale account state: $accountStatePath"
+        Write-Host "Reusing test account state: $accountStatePath"
     }
     & (Join-Path $PSScriptRoot 'prepare-test-users.ps1') @prepareArgs
 }

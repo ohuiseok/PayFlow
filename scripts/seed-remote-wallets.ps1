@@ -45,15 +45,21 @@ function Invoke-RemoteWalletShell {
     $encoded = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($Script))
     $remoteCommand = "echo '$encoded' | base64 -d | docker exec -i $WalletContainer sh"
     $sshArgs = @($sshArgsBase) + @($sshTarget, $remoteCommand)
-    $previousPreference = $ErrorActionPreference
-    $ErrorActionPreference = 'Continue'
-    $output = & ssh @sshArgs 2>&1
-    $exitCode = $LASTEXITCODE
-    $ErrorActionPreference = $previousPreference
-    if ($exitCode -ne 0) {
-        throw "Remote wallet request failed: $($output -join ' ')"
+    for ($attempt = 1; $attempt -le 4; $attempt++) {
+        $previousPreference = $ErrorActionPreference
+        $ErrorActionPreference = 'Continue'
+        $output = & ssh @sshArgs 2>&1
+        $exitCode = $LASTEXITCODE
+        $ErrorActionPreference = $previousPreference
+        if ($exitCode -eq 0) {
+            return ($output -join [Environment]::NewLine).Trim()
+        }
+        if ($attempt -lt 4) {
+            Write-Warning "Remote wallet request attempt $attempt failed; retrying with the same idempotent reference."
+            Start-Sleep -Seconds (2 * $attempt)
+        }
     }
-    return ($output -join [Environment]::NewLine).Trim()
+    throw "Remote wallet request failed after 4 attempts: $($output -join ' ')"
 }
 
 $seeded = @()

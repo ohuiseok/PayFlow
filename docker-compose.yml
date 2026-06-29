@@ -1,7 +1,14 @@
 name: ${PROJECT_NAME:-payflow}
 
+x-default-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: ${DOCKER_LOG_MAX_SIZE:-10m}
+    max-file: ${DOCKER_LOG_MAX_FILES:-3}
+
 services:
   nginx:
+    logging: *default-logging
     image: nginx:1.27-alpine
     container_name: ${PROJECT_NAME:-payflow}-nginx
     ports:
@@ -28,6 +35,7 @@ services:
     restart: unless-stopped
 
   certbot:
+    logging: *default-logging
     image: certbot/certbot:latest
     container_name: ${PROJECT_NAME:-payflow}-certbot
     volumes:
@@ -37,6 +45,7 @@ services:
     restart: unless-stopped
 
   sample-react:
+    logging: *default-logging
     build:
       context: ./sample-react
       args:
@@ -61,6 +70,7 @@ services:
     restart: unless-stopped
 
   mysql:
+    logging: *default-logging
     image: mysql:8.4
     container_name: ${PROJECT_NAME:-payflow}-mysql
     environment:
@@ -98,6 +108,7 @@ services:
     restart: unless-stopped
 
   redis:
+    logging: *default-logging
     image: redis:7-alpine
     container_name: ${PROJECT_NAME:-payflow}-redis
     ports:
@@ -114,6 +125,7 @@ services:
     restart: unless-stopped
 
   kafka:
+    logging: *default-logging
     image: apache/kafka:3.8.0
     container_name: ${PROJECT_NAME:-payflow}-kafka
     ports:
@@ -148,6 +160,7 @@ services:
     restart: unless-stopped
 
   kafka-init:
+    logging: *default-logging
     image: apache/kafka:3.8.0
     container_name: ${PROJECT_NAME:-payflow}-kafka-init
     environment:
@@ -166,6 +179,7 @@ services:
     restart: "no"
 
   api-gateway:
+    logging: *default-logging
     build:
       context: ./api-gateway
     container_name: ${PROJECT_NAME:-payflow}-api-gateway
@@ -200,6 +214,7 @@ services:
     restart: unless-stopped
 
   user-service:
+    logging: *default-logging
     build:
       context: ./user-service
     container_name: ${PROJECT_NAME:-payflow}-user-service
@@ -232,6 +247,7 @@ services:
     restart: unless-stopped
 
   wallet-service:
+    logging: *default-logging
     build:
       context: ./wallet-service
     container_name: ${PROJECT_NAME:-payflow}-wallet-service
@@ -262,6 +278,7 @@ services:
     restart: unless-stopped
 
   banking-service:
+    logging: *default-logging
     build:
       context: ./banking-service
     container_name: ${PROJECT_NAME:-payflow}-banking-service
@@ -320,6 +337,7 @@ services:
     restart: unless-stopped
 
   transfer-service:
+    logging: *default-logging
     build:
       context: ./transfer-service
     container_name: ${PROJECT_NAME:-payflow}-transfer-service
@@ -360,6 +378,7 @@ services:
     restart: unless-stopped
 
   reward-service:
+    logging: *default-logging
     build:
       context: ./reward-service
     container_name: ${PROJECT_NAME:-payflow}-reward-service
@@ -395,6 +414,7 @@ services:
     restart: unless-stopped
 
   ledger-service:
+    logging: *default-logging
     build:
       context: ./ledger-service
     container_name: ${PROJECT_NAME:-payflow}-ledger-service
@@ -427,6 +447,7 @@ services:
     restart: unless-stopped
 
   settlement-service:
+    logging: *default-logging
     build:
       context: ./settlement-service
     container_name: ${PROJECT_NAME:-payflow}-settlement-service

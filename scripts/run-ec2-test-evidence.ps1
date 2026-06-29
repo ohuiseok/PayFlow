@@ -1,5 +1,7 @@
 param(
-    [string]$ConfigPath = 'scripts\test-evidence.ec2.local.json'
+    [string]$ConfigPath = 'scripts\test-evidence.ec2.local.json',
+    [int]$SenderCount = 0,
+    [int]$ReceiverCount = 0
 )
 
 $ErrorActionPreference = 'Stop'
@@ -65,8 +67,8 @@ function Initialize-Config {
         rate = 420
         duration = '2m'
         amount = 1000
-        senderCount = 50
-        receiverCount = 50
+        senderCount = 200
+        receiverCount = 200
         skipJUnit = $false
     }
     Write-Utf8Json -Path $resolvedConfigPath -Value $config
@@ -204,12 +206,15 @@ try {
         Mode = [string]$config.mode
         BaseUrl = [string]$config.baseUrl
         PrepareBaseUrl = "http://127.0.0.1:$tunnelPort"
+        AccountStateIdentity = [string]$config.baseUrl
         Vus = [int]$config.vus
         Rate = [int]$config.rate
         Duration = [string]$config.duration
         Amount = [int]$config.amount
-        SenderCount = [int]$config.senderCount
-        ReceiverCount = $(if ($config.PSObject.Properties.Name -contains 'receiverCount') {
+        SenderCount = $(if ($SenderCount -gt 0) { $SenderCount } else { [int]$config.senderCount })
+        ReceiverCount = $(if ($ReceiverCount -gt 0) {
+            $ReceiverCount
+        } elseif ($config.PSObject.Properties.Name -contains 'receiverCount') {
             [int]$config.receiverCount
         } else {
             0
