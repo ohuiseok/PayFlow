@@ -33,8 +33,8 @@
 
 | Screen | API |
 | --- | --- |
-| Login | `POST /api/auth/login` |
-| Signup Role | `POST /api/auth/signup` |
+| Login | `POST /api/users/login` |
+| Signup Role | `POST /api/users` |
 | My Profile | `GET /api/users/me` |
 | Wallet Summary | `GET /api/wallets/me` |
 | Wallet History | `GET /api/wallets/me/transactions` |
@@ -73,3 +73,5 @@
 부모가 승인 후 보상을 지급할 수 있다.
 
 자녀 화면에서 잔액과 최근 돈 기록을 확인할 수 있다.
+
+정산 실행/조회는 현재 운영 API이며 sample-react 화면 범위에 포함하지 않는다.

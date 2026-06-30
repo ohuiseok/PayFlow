@@ -8,14 +8,15 @@
 
 ## PayFlow 연결
 
-PayFlow의 정산 서비스는 송금 거래를 기준으로 수수료를 계산할 수 있다.
+PayFlow의 정산 서비스는 Toss `CHARGE` 합계를 기준으로 수수료를 계산한다.
 
 ```text
-수수료 = 송금액 * 수수료율
-최소 수수료, 최대 수수료, 반올림 정책 적용
+수수료 = 승인 총액 * 수수료율
+기본 수수료율 = 0.027
+반올림 = 원 단위 HALF_UP
 ```
 
-수수료 정책은 시간이 지나며 바뀔 수 있으므로, 정산 결과에는 어떤 정책으로 계산했는지 근거가 남아야 한다.
+현재 수수료율은 환경 변수로 주입되고 `settlement_runs.fee_amount`만 저장한다. 정책 버전, 적용 시작일, 최소/최대 수수료는 아직 구현하지 않았다. 시간이 지나며 정책이 바뀔 수 있으므로 운영 확장 시 계산 근거를 별도로 남겨야 한다.
 
 ## 실무 포인트
 
@@ -55,7 +56,7 @@ PayFlow의 정산 서비스는 송금 거래를 기준으로 수수료를 계산
 
 ### PayFlow에서 확인할 위치
 
-settlement fee calculator, fee policy table, settlement result
+`DailySettlementJobListener`, `settlement.fee-rate`, `settlement_runs.fee_amount`
 
 ### 면접에서 설명하기
 
@@ -109,9 +110,9 @@ Fee Calculation Model 개념은 PayFlow에서 다음 이유로 중요하다.
 #### PayFlow 예시 답변
 
 ```text
-Fee Calculation Model 개념은 PayFlow에서 송금 금액에서 수수료를 일관된 정책으로 계산하고 근거를 남기기 위해 필요하다.
+Fee Calculation Model 개념은 PayFlow에서 Toss 승인 총액의 수수료를 일관되게 계산하기 위해 필요하다.
 이 개념이 없으면 수수료율 변경 후 과거 거래를 새 정책으로 다시 계산해 정산 금액이 달라질 수 있다.
-그래서 코드에서는 수수료 정책 버전, 적용일, 최소/최대 수수료, 반올림 정책을 저장하고,
+현재 코드는 환경 변수 요율과 원 단위 HALF_UP을 적용하고, 향후 정책 버전과 적용일을 저장해야 하며,
 운영에서는 정책 버전별 수수료 합계, 계산 실패, 경계 금액 차이를 확인해야 한다.
 ```
 

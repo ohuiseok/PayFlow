@@ -60,6 +60,8 @@ EXPO_PUBLIC_USE_DUMMY_DATA=false
 자녀 계정에서 표시되는 user ID를 부모 계정의 가족 연결 화면에 입력하면 즉시 ACTIVE 링크가 생성됩니다.
 회원가입 시 백엔드가 지갑을 자동 생성하므로, 신규 계정도 충전/보상/출금 플로우를 바로 시작할 수 있습니다.
 
+`settlement-service`의 일별 정산 API는 운영 기능이므로 현재 샘플 앱에는 정산 화면을 두지 않습니다.
+
 ## 예상 화면
 
 필수 화면 흐름 이미지는 `assets/mockups/rendered/payflow-mvp-flow.png`에 있습니다.

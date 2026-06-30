@@ -20,13 +20,14 @@ PayFlow는 청년 정책 참여 미션 및 지원금 지급 플랫폼입니다. 
 -> 기관 승인
 -> 기관 지갑에서 청년 지갑으로 보상 송금
 -> 지갑 거래 이력과 원장 기록 생성
+-> Toss 승인/취소 이벤트 일별 정산과 원장 대사
 ```
 
 ## Tech Stack
 
 | 영역 | 기술 |
 | --- | --- |
-| Backend | Java, Spring Boot, Spring Web, Spring Data JPA |
+| Backend | Java, Spring Boot, Spring Web, Spring Data JPA, Spring Batch |
 | Gateway | Spring Cloud Gateway |
 | Database | MySQL |
 | Cache/Lock | Redis |
@@ -46,7 +47,7 @@ PayFlow는 청년 정책 참여 미션 및 지원금 지급 플랫폼입니다. 
 | transfer-service | 사용자 간 송금, 멱등성, Redis 락, outbox 이벤트 |
 | reward-service | 기관-청년 참여자 연결, 미션 생성/제출/승인/보상 지급 |
 | ledger-service | 송금 이벤트 소비, 원장/실패 기록 |
-| settlement-service | 정산 확장 영역 |
+| settlement-service | Toss 승인/취소 이벤트 수집, 일별 집계, 수수료 계산, 원장 대사 |
 
 ## Local Run
 
@@ -110,5 +111,7 @@ API smoke test:
 - 송금 중 동일 지갑에 대한 경쟁 상태를 줄이기 위해 Redis 락을 사용합니다.
 - 송금 완료/실패 이벤트는 transfer-service DB에 outbox로 저장한 뒤 Kafka로 발행합니다.
 - ledger-service는 Kafka 이벤트를 소비하고 같은 transferId를 중복 기록하지 않습니다.
+- banking-service는 Toss 승인/취소와 정산 outbox를 같은 트랜잭션에 저장합니다.
+- settlement-service는 `payment.settlement`를 멱등 소비하고 Spring Batch로 기준일별 원장 대사를 수행합니다.
 - Open Banking 응답은 HTTP 성공과 금융 성공을 분리해 상태로 모델링합니다.
 

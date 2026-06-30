@@ -22,7 +22,7 @@ PayFlow는 서비스별 DB를 분리합니다. 다른 서비스의 테이블을 
 erDiagram
     USERS {
         BIGINT id PK
-        VARCHAR email UK
+        VARCHAR phone_number UK
         VARCHAR password_hash
         VARCHAR name
         VARCHAR role
@@ -271,6 +271,40 @@ erDiagram
         DATETIME created_at
     }
 
+    PAYMENT_SETTLEMENT_OUTBOX {
+        BIGINT id PK
+        VARCHAR event_id UK
+        VARCHAR status
+        INT retry_count
+        DATETIME created_at
+    }
+
+    SETTLEMENT_TRANSACTIONS {
+        BIGINT id PK
+        VARCHAR event_id UK
+        VARCHAR transaction_type
+        BIGINT charge_id
+        DECIMAL amount
+        DATETIME occurred_at
+    }
+
+    SETTLEMENT_RUNS {
+        BIGINT id PK
+        DATE business_date UK
+        VARCHAR status
+        BIGINT discrepancy_count
+        DECIMAL expected_net_amount
+    }
+
+    SETTLEMENT_ITEMS {
+        BIGINT id PK
+        BIGINT settlement_run_id FK
+        VARCHAR event_id UK
+        VARCHAR status
+        DECIMAL expected_amount
+        DECIMAL ledger_amount
+    }
+
     USERS ||--o| WALLETS : owns
     WALLETS ||--o{ WALLET_TRANSACTIONS : records
     LEDGER_ENTRIES ||--|{ LEDGER_LINES : has
@@ -287,6 +321,9 @@ erDiagram
     TRANSFERS ||..o{ LEDGER_ENTRIES : source
     PAYMENT_CHARGES ||..o{ LEDGER_ENTRIES : source
     TRANSFERS ||..o| TRANSFER_FAILURE_EVENTS : transfer_id
+    PAYMENT_CHARGES ||..o{ PAYMENT_SETTLEMENT_OUTBOX : schedules
+    SETTLEMENT_RUNS ||--o{ SETTLEMENT_ITEMS : contains
+    SETTLEMENT_TRANSACTIONS ||..o| SETTLEMENT_ITEMS : reconciled_as
 ```
 
 ## Core Tables
@@ -295,7 +332,7 @@ erDiagram
 
 사용자 계정, 역할, 상태를 저장합니다.
 
-- `email` UNIQUE
+- `phone_number` UNIQUE
 - `role`: `PARENT`, `CHILD`
 - 인증 이후 사용자 식별은 Gateway가 주입한 `X-User-Id` 기준
 
@@ -419,6 +456,42 @@ Toss 웹훅을 수신한 기록을 보관합니다.
 
 - `transfer_id` UNIQUE — 중복 저장 방지
 
+### payment_settlement_outbox
+
+Toss 승인·취소 상태와 정산 이벤트 발행 의도를 banking DB의 같은 트랜잭션에 저장합니다.
+
+- `event_id` UNIQUE
+- 상태: `PENDING`, `PUBLISHED`, `FAILED`
+- `retry_count`, `last_error`, `published_at`으로 발행 결과 추적
+
+### settlement_transactions
+
+`payment.settlement` 원천 이벤트를 저장합니다.
+
+- `event_id` UNIQUE — Kafka 재전달 중복 방지
+- `transaction_type`: `CHARGE`, `CANCEL`
+- `ledger_source_type`: `TOSS_CHARGE`, `TOSS_CANCEL`
+- `occurred_at`: 정산 기준일 분류에 사용하는 발생 시각
+
+### settlement_runs
+
+기준일별 배치 실행과 집계 결과를 저장합니다.
+
+- `business_date` UNIQUE
+- 상태: `RUNNING`, `COMPLETED`, `WITH_DISCREPANCY`, `FAILED`
+- 승인액, 취소액, 수수료, 예상 순정산액, 불일치 건수
+
+### settlement_items
+
+거래별 원장 대사 결과를 저장합니다.
+
+- `event_id` UNIQUE
+- `settlement_run_id` FK
+- 상태: `MATCHED`, `MISSING_LEDGER`, `AMOUNT_MISMATCH`
+- 예상 금액, 원장 금액, 원장 entry ID, 불일치 사유
+
+Spring Batch 실행 상태는 별도의 `BATCH_*` 메타데이터 테이블에 저장합니다.
+
 ## Modeling Decisions
 
 | 결정 | 이유 |
@@ -431,5 +504,6 @@ Toss 웹훅을 수신한 기록을 보관합니다.
 | outbox 테이블 사용 | DB 변경과 Kafka 발행 사이의 유실을 막기 위해 |
 | 보상 retry metadata 저장 | 운영자가 재시도 횟수와 실패 사유를 API로 확인할 수 있게 하기 위해 |
 | ledger 원장 불변 | 정정이 필요한 경우 새 전표로 남기는 회계 원칙을 따르기 위해 |
+| 정산 원천/실행/항목 분리 | 이벤트 수집, 기준일 집계, 거래별 대사 근거를 독립적으로 추적하기 위해 |
 
 

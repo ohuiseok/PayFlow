@@ -79,7 +79,7 @@ const BASE_URL = __ENV.BASE_URL || 'http://localhost:8080/api';
 
 export default function () {
   const login = http.post(`${BASE_URL}/users/login`, JSON.stringify({
-    email: __ENV.TEST_EMAIL,
+    phoneNumber: __ENV.TEST_PHONE_NUMBER,
     password: __ENV.TEST_PASSWORD,
   }), {
     headers: { 'Content-Type': 'application/json' },
@@ -167,6 +167,8 @@ GET /api/ledgers/transfer-failures
 ```
 
 ## Result
+
+정산 배치는 현재 HTTP 송금 부하 시나리오의 직접 측정 대상이 아닙니다. 별도 성능 검증에서는 기준일 거래 수, chunk 처리 시간, 거래별 ledger HTTP 호출 수, `WITH_DISCREPANCY` 집계 시간을 측정해야 합니다.
 
 실제 실행 후 아래 표를 채웁니다.
 

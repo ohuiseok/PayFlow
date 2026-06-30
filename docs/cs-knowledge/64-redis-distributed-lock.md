@@ -166,7 +166,7 @@ Redis lock key, TTL, owner token, DB transaction을 함께 사용한다.
 
 ### 대안과 선택 이유
 
-서비스 간 REST 호출만으로 후속 처리를 연결하는 방식도 있지만, 원장이나 정산 서비스 장애가 송금 응답에 직접 영향을 준다. PayFlow는 Kafka와 Outbox로 시간적 결합을 낮추고, Consumer 멱등성과 DLQ로 중복/실패를 감당하는 방식이 더 적합하다.
+PayFlow의 Redis lock은 transfer-service의 sender wallet 동시 송금을 조율한다. settlement batch 자체에는 Redis 분산 락이 없으며 Spring Batch job 식별자와 DB unique 제약에 의존한다.
 
 ### PayFlow에서 확인할 위치
 

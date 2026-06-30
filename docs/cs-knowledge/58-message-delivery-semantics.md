@@ -126,7 +126,7 @@ at-least-once를 기본으로 보고 Consumer 멱등성과 unique constraint를 
 
 ### 대안과 선택 이유
 
-서비스 간 REST 호출만으로 후속 처리를 연결하는 방식도 있지만, 원장이나 정산 서비스 장애가 송금 응답에 직접 영향을 준다. PayFlow는 Kafka와 Outbox로 시간적 결합을 낮추고, Consumer 멱등성과 DLQ로 중복/실패를 감당하는 방식이 더 적합하다.
+PayFlow는 transfer→ledger와 banking→settlement 흐름에서 Outbox와 Consumer unique 제약을 조합한다. DLT는 ledger에는 적용되어 있지만 settlement에는 아직 없다.
 
 ### PayFlow에서 확인할 위치
 
@@ -166,7 +166,7 @@ Kafka producer/consumer config, ledger processed_event, outbox table
 
 Message Delivery Semantics 개념은 PayFlow에서 다음 이유로 중요하다.
 
-- Kafka와 메시징 개념은 PayFlow에서 송금 완료 이후 원장과 정산을 느슨하게 연결하면서도 이벤트를 잃지 않기 위해 필요하다.
+- Kafka와 메시징 개념은 PayFlow에서 송금-원장과 Toss-정산을 느슨하게 연결하면서도 이벤트를 잃지 않기 위해 필요하다.
 - Kafka topic/partition/offset, outbox_event, processed_event, DLQ가 이벤트 처리의 기준이다.
 - 이벤트 유실, 중복 소비, 순서 뒤바뀜, Consumer lag, DLQ 적체가 원장 누락이나 중복 기록으로 이어질 수 있다.
 - partition key 설계, 처리 후 offset commit, Outbox, processed_event 유니크 제약, DLQ와 재처리 도구로 방어한다.
@@ -185,7 +185,7 @@ Message Delivery Semantics 개념은 PayFlow에서 다음 이유로 중요하다
 
 ```text
 Message Delivery Semantics 개념은 PayFlow에서 이벤트 유실과 중복 사이의 trade-off를 이해하고 안전한 전달 모델을 선택하기 위해 필요하다.
-이 개념이 없으면 at-most-once로 처리하면 송금 완료 이벤트가 유실되어 원장과 정산이 누락될 수 있다.
+이 개념이 없으면 at-most-once 처리에서 송금 원장이나 Toss 정산 이벤트가 유실될 수 있다.
 그래서 코드에서는 at-least-once를 전제로 Consumer 멱등성과 유니크 제약, 재처리를 설계하고,
 운영에서는 유실 의심 이벤트, 중복 수신, 처리 실패 후 재시도 결과를 확인해야 한다.
 ```

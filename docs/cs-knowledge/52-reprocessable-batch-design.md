@@ -12,7 +12,7 @@
 
 정산 배치가 중간에 실패하면 이미 처리된 거래와 아직 처리되지 않은 거래가 섞일 수 있다. 재실행 시 이미 정산된 거래가 다시 반영되면 중복 정산이 발생한다.
 
-따라서 정산 대상 거래별 처리 상태, 정산 배치 ID, 유니크 제약조건이 필요하다.
+현재 구현은 `business_date` unique인 `settlement_runs`, `event_id` unique인 `settlement_items`, Spring Batch 메타데이터로 중복을 제어한다. 아래의 별도 대상 스냅샷 모델은 더 강한 재처리 설계를 위한 개선안이다.
 
 ## 실무 포인트
 
@@ -52,7 +52,7 @@
 
 ### PayFlow에서 확인할 위치
 
-settlement batch execution table, settlement target/result table
+`settlement_runs`, `settlement_items`, Spring Batch `BATCH_*` tables, `DailySettlementJobService`
 
 ### 면접에서 설명하기
 
@@ -77,7 +77,7 @@ settlement batch execution table, settlement target/result table
 ### 테이블 설계 예시
 
 ```text
-settlement_batch
+권장 settlement_batch
 - batch_id
 - business_date
 - status              // CREATED, RUNNING, COMPLETED, FAILED, CANCELED
@@ -85,7 +85,7 @@ settlement_batch
 - finished_at
 - requested_by
 
-settlement_target
+권장 settlement_target
 - batch_id
 - transfer_id
 - amount
@@ -94,7 +94,7 @@ settlement_target
 - failure_reason
 - unique(batch_id, transfer_id)
 
-settlement_result
+권장 settlement_result
 - result_id
 - batch_id
 - merchant_id
@@ -115,7 +115,7 @@ settlement_result
 
 재실행 버튼 하나로 모든 것을 해결하려고 하면 위험하다. "같은 입력의 재처리"와 "새 기준의 재산정"은 운영 화면과 API에서 명확히 구분해야 한다.
 
-### PayFlow 적용 예시
+### 확장 설계 예시
 
 ```text
 1. 2026-05-30 정산 배치 생성
@@ -179,7 +179,7 @@ Reprocessable Batch Design 개념은 PayFlow에서 다음 이유로 중요하다
 ```text
 Reprocessable Batch Design 개념은 PayFlow에서 정산 배치가 실패해도 같은 기준으로 다시 실행해 안전하게 복구하기 위해 필요하다.
 이 개념이 없으면 이미 처리된 거래가 재실행에서 다시 포함되어 중복 정산이 발생할 수 있다.
-그래서 코드에서는 배치 실행 ID, 거래별 처리 상태, 결과 유니크 제약, 실패 지점 재시작을 적용하고,
+현재 코드는 Spring Batch 실행 메타데이터와 기준일/eventId 유니크 제약을 적용하고, 향후 대상 스냅샷과 실패 건 전용 재처리를 보강해야 하며,
 운영에서는 재처리 횟수, skip/duplicate 건수, 배치 재실행 후 합계를 확인해야 한다.
 ```
 

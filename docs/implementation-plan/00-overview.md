@@ -8,7 +8,7 @@
 
 PayFlow는 포트폴리오용 결제 MVP다.
 
-핵심 목표는 "사용자 지갑, 충전, 송금, 가족 정책 미션 지원금, 원장 기록"이 실제로 작동하고 테스트로 설명되는 것이다.
+핵심 목표는 "사용자 지갑, 충전, 송금, 정책 미션 지원금, 원장 기록, Toss PG 일별 정산"이 실제로 작동하고 테스트로 설명되는 것이다.
 
 ## MVP 서비스
 
@@ -25,6 +25,8 @@ transfer-service
 reward-service
 
 ledger-service
+
+settlement-service
 
 ## 인프라
 
@@ -43,8 +45,9 @@ Docker Compose
 5. 미션 제출 이력은 `reward_tasks` 상태 전이로 표현한다.
 6. 사용 기록은 별도 테이블 없이 지갑 거래와 지급 완료 미션으로 조회한다.
 7. 원장은 `ledger_entries`, `ledger_lines`로 복식부기 형태를 유지한다.
-8. 서비스 간 호출은 동기 HTTP로 시작한다.
+8. 잔액 변경과 원장 조회는 동기 HTTP, 거래 이벤트 전달은 Kafka를 사용한다.
 9. 실패 복구는 상태값과 재시도 가능한 API로 설명한다.
+10. 정산은 기준일, 실행 상태, 거래별 대사 결과를 저장해 재호출과 차이 추적이 가능해야 한다.
 
 ## 구현 순서
 
@@ -56,8 +59,9 @@ Docker Compose
 6. transfer-service
 7. reward-service
 8. ledger-service
-9. api-gateway
-10. 통합 테스트와 문서 검증
+9. settlement-service
+10. api-gateway
+11. 통합 테스트와 문서 검증
 
 ## 완료 기준
 
@@ -71,16 +75,19 @@ Docker Compose
 
 송금과 보상 지급이 원장에 기록된다.
 
+Toss PG 승인/취소가 정산 이벤트로 수집되고 전일 배치에서 원장과 대사된다.
+
 동일 요청 재시도 시 중복 충전, 중복 송금, 중복 보상이 발생하지 않는다.
 
 주요 실패 케이스가 상태값과 테스트로 설명된다.
-## 결제 수단 확장 계획
+## 구현된 결제 수단 확장
 
-기존 MVP는 `banking-service`의 계좌 기반 충전 흐름을 중심으로 한다. 다음 단계에서는 같은 충전 도메인 안에 Toss Payments PG 충전과 Open Banking 계좌 연결을 추가한다.
+초기 계좌 기반 충전 흐름에 Toss Payments PG 충전과 Open Banking 계좌 연결을 추가했다.
 
 - Toss 충전은 별도 `payment_charges`, `toss_payment_orders`, `toss_payment_events` 테이블로 외부 결제 상태를 추적한다.
 - Open Banking 계좌 연결은 `open_banking_authorizations` 테이블과 확장된 `bank_accounts`로 인증/계좌 동기화 상태를 저장한다.
 - 지갑 잔액 변경은 계속 `wallet-service`의 내부 입금 API만 사용한다.
 - 화면은 기관 홈의 `Toss 충전` 버튼과 `Open Banking 계좌 연결` 버튼을 기준으로 재구성한다.
 - 상세 계획은 `docs/implementation-plan/08-toss-pg-extension.md`를 따른다.
+- 정산 구현은 `docs/implementation-plan/09-settlement-service.md`를 따른다.
 

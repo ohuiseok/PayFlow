@@ -149,6 +149,15 @@ MSA 기반 지갑/결제 시스템 PayFlow 만들기
 
 ## Part 11. 트러블슈팅과 회고
 
+## Part 12. Toss PG 일별 정산과 원장 대사
+
+- banking settlement outbox와 `payment.settlement`
+- 정산 consumer의 `event_id` 멱등성
+- Spring Batch 기준일/chunk 설계
+- 승인·취소 집계와 수수료 계산
+- `MATCHED`, `MISSING_LEDGER`, `AMOUNT_MISMATCH`
+- 현재 한계: DLT, 운영 권한, migration, 모니터링
+
 핵심 메시지:
 
 - 구현 중 마주친 문제와 남은 한계를 솔직하게 구분했다.

@@ -45,7 +45,7 @@ partition key를 아무 값이나 넣거나 랜덤으로 둔다.
 
 ### 대안과 선택 이유
 
-서비스 간 REST 호출만으로 후속 처리를 연결하는 방식도 있지만, 원장이나 정산 서비스 장애가 송금 응답에 직접 영향을 준다. PayFlow는 Kafka와 Outbox로 시간적 결합을 낮추고, Consumer 멱등성과 DLQ로 중복/실패를 감당하는 방식이 더 적합하다.
+PayFlow의 송금 이벤트와 Toss 정산 이벤트는 각각의 업무 key로 파티션 순서를 설계해야 한다. banking settlement outbox는 `chargeId`를 event key로 사용한다.
 
 ### PayFlow에서 확인할 위치
 
@@ -85,7 +85,7 @@ Partition 전략은 성능 설정이 아니라 순서 보장의 단위를 정하
 
 Kafka Partition Strategy 개념은 PayFlow에서 다음 이유로 중요하다.
 
-- Kafka는 PayFlow에서 송금 완료 후 원장과 정산을 비동기로 연결하면서 서비스 간 결합도를 낮추기 위해 필요하다.
+- Kafka는 PayFlow에서 송금-원장과 Toss-정산을 각각 비동기로 연결한다.
 - Kafka topic/partition/offset, outbox_event, processed_event, DLQ가 이벤트 처리의 기준이다.
 - partition key, offset commit, consumer group 설정이 잘못되면 이벤트 순서가 꼬이거나 처리 누락처럼 보일 수 있다.
 - topic 설계, key 선택, consumer group 분리, 처리 후 offset commit, consumer 멱등성으로 방어한다.

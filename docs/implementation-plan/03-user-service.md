@@ -16,28 +16,29 @@ user-service는 인증과 사용자 기본 정보를 담당한다.
 
 ## APIs
 
-### POST /auth/signup
+### POST /users
 
 요청:
 
-`email`, `password`, `name`, `role`
+`phoneNumber`, `password`, `name`, `inviteCode`
 
 처리:
 
-1. email 중복을 확인한다.
+1. 정규화한 phoneNumber 중복을 확인한다.
 2. password를 해시한다.
-3. `users`를 생성한다.
-4. wallet-service에 지갑 생성을 요청한다.
+3. 유효한 기관 초대 코드가 있으면 `PARENT`, 없으면 `CHILD` 역할을 결정한다.
+4. `users`를 생성한다.
+5. wallet-service에 지갑 생성을 요청한다.
 
 응답:
 
-`userId`, `email`, `name`, `role`
+`userId`, `phoneNumber`, `name`, `role`, `status`
 
-### POST /auth/login
+### POST /users/login
 
 요청:
 
-`email`, `password`
+`phoneNumber`, `password`
 
 처리:
 
@@ -47,7 +48,7 @@ user-service는 인증과 사용자 기본 정보를 담당한다.
 
 응답:
 
-`accessToken`, `user`
+`accessToken`, `tokenType`, `expiresIn`
 
 ### GET /users/me
 
@@ -67,11 +68,11 @@ user-service는 인증과 사용자 기본 정보를 담당한다.
 
 ## Validation
 
-email은 unique다.
+phoneNumber는 정규화 후 unique다.
 
 password는 최소 길이와 복잡도 정책을 적용한다.
 
-role은 `PARENT`, `CHILD`만 허용한다.
+role은 클라이언트가 직접 지정하지 않고 기관 초대 코드로 결정한다.
 
 탈퇴 또는 잠긴 사용자는 로그인할 수 없다.
 
@@ -79,7 +80,7 @@ role은 `PARENT`, `CHILD`만 허용한다.
 
 회원 가입 성공
 
-중복 email 가입 실패
+중복 phoneNumber 가입 실패
 
 로그인 성공
 

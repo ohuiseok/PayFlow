@@ -261,6 +261,38 @@ public DefaultErrorHandler kafkaErrorHandler(KafkaTemplate<?, ?> template) {
 }
 ```
 
+동일한 위험이 `settlement-service`의 `PaymentSettlementEventConsumer`에도 적용된다. 이 consumer는 JSON 파싱 예외를 listener 밖으로 전파하지만 별도 DLT/error handler 설정이 없다. 정산 토픽에도 제한 재시도와 DLT를 적용해야 한다.
+
+---
+
+### [H-7] 정산 수동 실행 API에 관리자 역할 검증 없음
+
+**영향 파일**: `settlement-service/.../SettlementController.java`
+
+`POST /settlements/daily/{businessDate}`는 Gateway/JWT와 내부 secret 검증은 받지만, controller 또는 service에서 운영자 역할을 확인하지 않는다. 현재는 로그인한 일반 사용자도 Gateway 경로를 통해 과거 기준일 배치를 실행할 수 있다.
+
+수정 방향: Gateway route와 controller에 관리자/운영자 역할 검증을 추가하고, 실행자와 실행 사유를 audit log로 남긴다.
+
+---
+
+### [H-8] 정산 스키마가 Hibernate update와 항상 실행되는 SQL에 의존
+
+**영향 파일**: `settlement-service/src/main/resources/application.yml`, `batch-schema.sql`
+
+현재 `ddl-auto=update`가 정산 도메인 테이블을 만들고 `spring.sql.init.mode=always`가 Batch 메타데이터 DDL을 기동할 때마다 실행한다. `db/migration/V2`, `V3` 파일은 남아 있지만 Flyway 의존성과 설정은 제거되어 실제 적용 경로가 아니다.
+
+수정 방향: 운영 전 Flyway 한 경로로 통합하고 `ddl-auto=validate`로 전환한다. 기존 데이터베이스의 baseline 및 Batch 메타데이터 전환 절차도 함께 문서화한다.
+
+---
+
+### [H-9] banking settlement outbox의 다중 인스턴스 중복 발행 가능성
+
+**영향 파일**: `banking-service/.../PaymentSettlementOutboxRelay.java`
+
+relay가 `PENDING`, `FAILED` 행을 조회한 뒤 별도 claim 상태나 분산 락 없이 발행한다. banking-service가 여러 인스턴스로 실행되면 같은 행을 동시에 읽어 중복 발행할 수 있다. consumer의 `event_id` unique 제약이 중복 저장을 막지만 불필요한 Kafka 발행과 부하는 남는다.
+
+수정 방향: 원자적 claim(`PROCESSING`) 또는 ShedLock을 적용하고 stale claim 복구와 적체 지표를 추가한다.
+
 ---
 
 ### [H-6] TossPaymentService.cancel: 동시 취소 멱등성 미보장

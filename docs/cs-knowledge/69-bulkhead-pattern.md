@@ -8,7 +8,7 @@ Bulkhead Pattern은 시스템의 자원을 격리해 한 영역의 장애가 전
 
 ## PayFlow 연결
 
-정산 배치가 DB 커넥션을 모두 사용하면 송금 API가 영향을 받을 수 있다. 외부 서비스 호출이 스레드를 모두 점유하면 정상 요청도 처리되지 못한다.
+정산과 송금은 별도 서비스/DB라 정산 DB pool 고갈이 송금 DB pool을 직접 고갈시키지는 않는다. 다만 정산의 거래별 ledger HTTP 호출이 ledger-service 자원을 점유하면 원장 API가 영향을 받을 수 있다.
 
 자원 풀을 분리하면 장애 범위를 줄일 수 있다.
 
@@ -30,7 +30,7 @@ Bulkhead Pattern은 시스템의 자원을 격리해 한 영역의 장애가 전
 
 ### 대표 장애 시나리오
 
-정산 배치가 DB 커넥션을 독점해 송금 API가 느려진다.
+정산 배치의 ledger HTTP 호출이 ledger-service connection/thread pool을 독점한다.
 
 ### 잘못된 구현 예시
 
@@ -104,8 +104,8 @@ Bulkhead Pattern 개념은 PayFlow에서 다음 이유로 중요하다.
 #### PayFlow 예시 답변
 
 ```text
-Bulkhead Pattern 개념은 PayFlow에서 정산 배치나 외부 호출 장애가 송금 API 자원을 모두 잡아먹지 않게 하기 위해 필요하다.
-이 개념이 없으면 정산 배치가 DB 커넥션을 모두 사용해 실시간 송금 API가 커넥션을 얻지 못할 수 있다.
+Bulkhead Pattern 개념은 PayFlow에서 정산 배치의 ledger 조회나 외부 호출 장애가 공유 downstream 자원을 모두 잡아먹지 않게 하기 위해 필요하다.
+이 개념이 없으면 정산의 거래별 원장 조회가 ledger-service 자원을 점유해 다른 원장 요청이 지연될 수 있다.
 그래서 코드에서는 API/Batch 자원 풀 분리, 스레드 풀 격리, 서비스별 connection pool 제한을 적용하고,
 운영에서는 풀별 사용률, batch 실행 중 API latency, rejected task를 확인해야 한다.
 ```

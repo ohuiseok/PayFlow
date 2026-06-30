@@ -6,7 +6,7 @@
 
 분산 시스템은 여러 대의 컴퓨터, 여러 개의 프로세스, 여러 개의 서비스가 네트워크를 통해 협력해서 하나의 기능을 제공하는 시스템이다.
 
-PayFlow에서는 `user-service`, `wallet-service`, `transfer-service`, `ledger-service`, `settlement-service`, `api-gateway`가 각각 독립된 프로세스로 실행된다. 이들은 각자 다른 책임을 가지고, HTTP 호출이나 Kafka 이벤트를 통해 함께 결제 흐름을 완성한다.
+PayFlow에서는 `api-gateway`, `user-service`, `wallet-service`, `banking-service`, `transfer-service`, `reward-service`, `ledger-service`, `settlement-service`가 각각 독립된 프로세스로 실행된다. 이들은 각자 다른 책임을 가지고, HTTP 호출이나 Kafka 이벤트를 통해 함께 결제 흐름을 완성한다.
 
 분산 시스템에서 가장 중요한 사실은 다음과 같다.
 
@@ -31,8 +31,9 @@ Client
   -> transfer-service outbox
   -> Kafka
   -> ledger-service
-  -> settlement-service
 ```
+
+정산은 이 송금 토픽의 다음 단계가 아니다. `banking-service`가 Toss 승인·취소를 별도 `payment.settlement` 토픽으로 발행하고 `settlement-service`가 소비한다.
 
 이 흐름 중 어느 지점에서도 문제가 생길 수 있다.
 
@@ -50,7 +51,7 @@ Client
 - Transactional Outbox로 DB 저장과 이벤트 발행 사이의 불일치를 줄인다.
 - Kafka Consumer도 멱등하게 처리한다.
 - Saga와 보상 트랜잭션으로 부분 실패를 복구한다.
-- Circuit Breaker, Retry, Timeout으로 장애 전파를 줄인다.
+- 일부 재시도/timeout과 실패 상태로 장애를 제한한다. 공통 Circuit Breaker 정책은 개선 과제다.
 - 원장과 대사로 최종 데이터 정합성을 검증한다.
 
 ## 단일 시스템과의 차이

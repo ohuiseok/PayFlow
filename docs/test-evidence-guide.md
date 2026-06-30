@@ -134,4 +134,13 @@ results/<실행 ID>/
 - SQL: 전체 잔액 증감, 중복 지갑 거래, 성공 송금의 출금·입금 누락, Outbox 미발행, 성공 원장 누락이 모두 0이어야 한다.
 - JUnit: transfer-service와 ledger-service 테스트의 failure와 error가 모두 0이어야 한다.
 
+현재 증적 스크립트의 통합 판정에는 settlement-service가 포함되지 않는다. 정산 회귀는 별도로 실행한다.
+
+```powershell
+cd settlement-service
+.\gradlew.bat test --rerun-tasks
+```
+
+이 테스트는 이벤트 중복 수집, 승인/취소 집계, 수수료 계산, 원장 대사와 완료 기준일 재호출을 검증하지만 실제 Kafka broker 경로는 검증하지 않는다.
+
 전체 지갑 잔액 비교는 테스트 도중 다른 요청이 없는 격리 환경을 전제로 한다. 송금 API는 HTTP 201이어도 본문 상태가 `FAILED`일 수 있으므로 k6 결과의 `businessSucceeded`와 `achievedBusinessTps`를 성능 근거로 사용한다.

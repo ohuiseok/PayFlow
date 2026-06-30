@@ -43,6 +43,7 @@ Idempotency-Key: unique-business-request-key
 | `/api/missions/**` | reward-service |
 | `/api/cashbook/**` | reward-service |
 | `/api/ledgers/**` | ledger-service |
+| `/api/settlements/**` | settlement-service |
 
 ## Auth/User
 
@@ -52,10 +53,10 @@ Idempotency-Key: unique-business-request-key
 
 ```json
 {
-  "email": "parent@example.com",
+  "phoneNumber": "01011112222",
   "password": "password123!",
   "name": "Agency",
-  "role": "PARENT"
+  "inviteCode": "PAYFLOW-PARENT-2024"
 }
 ```
 
@@ -65,7 +66,7 @@ Idempotency-Key: unique-business-request-key
 
 ```json
 {
-  "email": "parent@example.com",
+  "phoneNumber": "01011112222",
   "password": "password123!"
 }
 ```
@@ -288,6 +289,21 @@ reward-payment-{missionId}
 
 특정 송금의 실패 추적 정보를 조회합니다.
 
+## Settlement
+
+### POST /api/settlements/daily/{businessDate}
+
+ISO 날짜(`yyyy-MM-dd`)의 Toss PG 정산을 수동 실행합니다. 완료되었거나 차이가 있는 실행이 이미 존재하면 기존 결과를 반환합니다. 현재 JWT 인증은 적용되지만 관리자 역할 제한은 추가 과제입니다.
+
+### GET /api/settlements/daily/{businessDate}
+
+기준일의 거래 건수, 승인액, 취소액, 수수료, 예상 순정산액, 원장 불일치 건수와 실행 상태를 조회합니다. 실행 이력이 없으면 404를 반환합니다.
+
+```text
+status = RUNNING | COMPLETED | WITH_DISCREPANCY | FAILED
+expectedNetAmount = grossAmount - cancelAmount - feeAmount
+```
+
 ## Internal API Contract
 
 외부 포트폴리오에는 숨기되, 설계 설명에서는 아래 내부 호출을 언급하면 좋습니다.
@@ -298,6 +314,9 @@ reward-service   -> transfer-service
 banking-service  -> wallet-service
 transfer-service -> Kafka
 ledger-service   <- Kafka
+banking-service  -> payment.settlement (Kafka, outbox)
+settlement-service <- payment.settlement
+settlement-service -> ledger-service /ledgers/internal/payment-entry
 ```
 
 

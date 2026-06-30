@@ -271,7 +271,7 @@ docs/implementation-plan/02-database-and-migration.md
 
 ### Phase 2 — High (다음 스프린트)
 
-- [x] **[H-1]** user, wallet, transfer, reward, settlement 서비스: `ddl-auto=validate` + Flyway 전환
+- [ ] **[H-1]** user, wallet, transfer, reward, settlement 서비스: `ddl-auto=validate` + Flyway 전환 (`settlement-service`는 현재 `ddl-auto=update`와 `batch-schema.sql` 사용)
 - [x] **[H-2]** UserService.createUser: 지갑 생성 `@Retryable` + `WalletProvisioningService` 재시도 보상 로직 추가
 - [x] **[H-3]** TokenCryptoService: 암호화 키 미설정 시 `@PostConstruct`에서 기동 실패 처리
 - [x] **[H-4]** CreateUserRequest: 기관 담당자 역할 자가 선택 제한 (`inviteCode` 기반, `MessageDigest.isEqual()` 상수 시간 비교)
@@ -301,5 +301,15 @@ docs/implementation-plan/02-database-and-migration.md
   - `GET /api/ledgers/transfer-failures`
   - `GET /api/ledgers/transfer-failures/{transferId}`
 - [x] documentation updated for Kafka/outbox/failure tracking flow
+- [x] banking-service Toss 승인/취소 `payment_settlement_outbox` 저장
+- [x] banking outbox relay의 `payment.settlement` 발행과 제한 재시도
+- [x] settlement-service `event_id` 기반 멱등 소비
+- [x] Spring Batch 기준일별 집계와 원장 대사
+- [x] 정산 수동 실행/조회 API
+- [x] 정산 배치 통합 테스트
+- [ ] settlement consumer DLT와 독성 메시지 격리
+- [ ] banking settlement outbox 적체/재시도 소진 모니터링 API
+- [ ] 정산 수동 실행 API 관리자 역할 제한
+- [ ] settlement 스키마를 Flyway로 단일화
 
 

@@ -120,7 +120,25 @@ transfer-service
 
 원장은 정책 지원금 지급 근거와 장애 추적 근거로 사용한다.
 
-## 8. User Journey
+## 8. Toss PG Settlement Flow
+
+```text
+Toss 승인/취소 확정
+-> banking-service가 payment_settlement_outbox 저장
+-> relay가 Kafka payment.settlement 발행
+-> settlement-service가 event_id 기준 멱등 소비
+-> settlement_transactions 저장
+
+매일 01:00 Asia/Seoul
+-> 전일 settlement_transactions를 100건 단위로 조회
+-> ledger-service /ledgers/internal/payment-entry 호출
+-> settlement_items에 MATCHED / MISSING_LEDGER / AMOUNT_MISMATCH 저장
+-> settlement_runs에 승인액, 취소액, 수수료, 예상 순정산액 저장
+```
+
+기본 수수료는 승인액의 2.7%를 원 단위 `HALF_UP`으로 반올림한다. 예상 순정산액은 `승인액 - 취소액 - 수수료`다. 수동 실행과 결과 조회는 `/api/settlements/daily/{businessDate}`를 사용한다.
+
+## 9. User Journey
 
 ```text
 1. 기관 담당자와 청년 참여자가 회원가입한다.
@@ -132,4 +150,5 @@ transfer-service
 7. 기관 담당자가 승인 또는 반려한다.
 8. 승인된 미션은 지원금 지급 API를 통해 청년 지갑으로 송금된다.
 9. 지갑 거래 내역과 원장 기록으로 결과를 확인한다.
+10. Toss PG 거래는 정산 이벤트로 수집되고 다음 날 원장과 대사된다.
 ```

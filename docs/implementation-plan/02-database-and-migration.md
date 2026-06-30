@@ -18,6 +18,8 @@ MVP 데이터 모델은 현재 구현할 결제 흐름에 필요한 테이블만
 
 `payflow_ledger`
 
+`payflow_settlement`
+
 ## user-service
 
 ### users
@@ -26,11 +28,11 @@ MVP 데이터 모델은 현재 구현할 결제 흐름에 필요한 테이블만
 
 필드:
 
-`id`, `email`, `password_hash`, `name`, `role`, `status`, `created_at`, `updated_at`
+`id`, `phone_number`, `password_hash`, `name`, `role`, `status`, `created_at`, `updated_at`
 
 제약:
 
-`email` unique
+`phone_number` unique
 
 `role` in `PARENT`, `CHILD`
 

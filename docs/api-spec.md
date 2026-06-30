@@ -28,6 +28,7 @@
 /api/payments/**  -> banking-service
 /api/transfers/** -> transfer-service
 /api/ledgers/**   -> ledger-service
+/api/settlements/** -> settlement-service
 /api/families/**  -> reward-service
 /api/missions/**  -> reward-service
 /api/cashbook/**  -> reward-service
@@ -224,6 +225,53 @@ POST /api/transfers/compensations/{transferId}/refund
 ```
 
 출금 후 입금 실패처럼 이미 돈이 움직인 중간 실패를 복구하기 위한 운영 API다.
+
+## Settlement API
+
+Toss PG 승인·취소 이벤트를 기준일별로 집계하고 `ledger-service`의 결제 원장과 대사한다. Gateway를 통과하므로 JWT 인증이 필요하다. 현재 별도 관리자 역할 검증은 구현되어 있지 않아 운영 전 권한 분리가 필요하다.
+
+### POST /api/settlements/daily/{businessDate}
+
+`businessDate`는 ISO 날짜(`yyyy-MM-dd`)다. 해당 날짜의 정산 배치를 실행한다. 이미 `COMPLETED` 또는 `WITH_DISCREPANCY`인 실행이 있으면 새 배치를 만들지 않고 기존 결과를 반환한다.
+
+```json
+{
+  "id": 1,
+  "businessDate": "2026-06-30",
+  "status": "COMPLETED",
+  "transactionCount": 2,
+  "discrepancyCount": 0,
+  "grossAmount": 10000,
+  "cancelAmount": 1000,
+  "feeAmount": 270,
+  "expectedNetAmount": 8730,
+  "completedAt": "2026-07-01T01:00:03"
+}
+```
+
+집계식:
+
+```text
+grossAmount       = CHARGE 합계
+cancelAmount      = CANCEL 합계
+feeAmount         = grossAmount × feeRate (기본 0.027, 원 단위 HALF_UP)
+expectedNetAmount = grossAmount - cancelAmount - feeAmount
+```
+
+### GET /api/settlements/daily/{businessDate}
+
+기준일의 정산 결과를 조회한다. 실행 이력이 없으면 `404 Not Found`를 반환한다.
+
+### 내부 원장 대사 API
+
+정산 배치는 다음 내부 API로 거래별 원장을 조회한다. 외부 클라이언트용 API가 아니며 `X-Internal-Secret` 검증을 거친다.
+
+```text
+GET /ledgers/internal/payment-entry?sourceType=TOSS_CHARGE&sourceId={chargeId}
+GET /ledgers/internal/payment-entry?sourceType=TOSS_CANCEL&sourceId={chargeId}
+```
+
+원장이 없으면 `MISSING_LEDGER`, 금액이 다르면 `AMOUNT_MISMATCH`, 일치하면 `MATCHED`로 기록한다.
 
 ## Policy Mission API
 

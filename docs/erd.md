@@ -106,6 +106,19 @@ erDiagram
         DATETIME updated_at
     }
 
+    PAYMENT_SETTLEMENT_OUTBOX {
+        BIGINT id PK
+        VARCHAR event_id UK
+        VARCHAR topic
+        VARCHAR event_key
+        TEXT payload
+        VARCHAR status "PENDING | PUBLISHED | FAILED"
+        INT retry_count
+        VARCHAR last_error
+        DATETIME created_at
+        DATETIME published_at
+    }
+
     TRANSFERS {
         BIGINT id PK
         BIGINT sender_user_id
@@ -175,11 +188,54 @@ erDiagram
         VARCHAR currency
     }
 
+    SETTLEMENT_TRANSACTIONS {
+        BIGINT id PK
+        VARCHAR event_id UK
+        VARCHAR transaction_type "CHARGE | CANCEL"
+        BIGINT charge_id
+        BIGINT user_id
+        VARCHAR payment_key
+        DECIMAL amount
+        VARCHAR currency
+        VARCHAR ledger_source_type
+        DATETIME occurred_at
+        DATETIME created_at
+    }
+
+    SETTLEMENT_RUNS {
+        BIGINT id PK
+        DATE business_date UK
+        VARCHAR status
+        BIGINT transaction_count
+        BIGINT discrepancy_count
+        DECIMAL gross_amount
+        DECIMAL cancel_amount
+        DECIMAL fee_amount
+        DECIMAL expected_net_amount
+        DATETIME started_at
+        DATETIME completed_at
+        VARCHAR failure_reason
+    }
+
+    SETTLEMENT_ITEMS {
+        BIGINT id PK
+        BIGINT settlement_run_id FK
+        VARCHAR event_id UK
+        BIGINT charge_id
+        VARCHAR transaction_type
+        DECIMAL expected_amount
+        DECIMAL ledger_amount
+        BIGINT ledger_entry_id
+        VARCHAR status
+        VARCHAR discrepancy_reason
+    }
+
     USERS ||--|| WALLETS : owns
     WALLETS ||--o{ WALLET_TRANSACTIONS : records
     USERS ||--o{ BANK_ACCOUNTS : links
     BANK_ACCOUNTS ||--o{ BANKING_TRANSFERS : used_by
     USERS ||--o{ PAYMENT_CHARGES : charges
+    PAYMENT_CHARGES ||--o{ PAYMENT_SETTLEMENT_OUTBOX : schedules
     USERS ||--o{ TRANSFERS : sends
     USERS ||--o{ TRANSFERS : receives
     USERS ||--o{ PARENT_CHILD_LINKS : agency
@@ -188,6 +244,8 @@ erDiagram
     USERS ||--o{ REWARD_TASKS : youth
     TRANSFERS ||--o{ OUTBOX_EVENTS : emits
     LEDGER_ENTRIES ||--o{ LEDGER_LINES : contains
+    SETTLEMENT_RUNS ||--o{ SETTLEMENT_ITEMS : contains
+    SETTLEMENT_TRANSACTIONS ||--o| SETTLEMENT_ITEMS : reconciled_as
 ```
 
 ## Important Constraints
@@ -200,6 +258,10 @@ erDiagram
 | 정책 미션 | 승인 후 지급 완료 시 `paid_transfer_id` 저장 |
 | 송금 | `idempotency_key`와 `request_hash`로 중복 송금 방지 |
 | 원장 | `source_type`, `source_id` 기준 중복 원장 기록 방지 |
+| 결제 정산 Outbox | `event_id` unique, 상태와 재시도 횟수 저장 |
+| 정산 원천 거래 | `event_id` unique로 Kafka 재전달 중복 방지 |
+| 정산 실행 | `business_date` unique로 기준일별 실행 식별 |
+| 정산 항목 | `event_id` unique, `settlement_run_id` FK, 실행/상태 인덱스 |
 
 ## Status Values
 
@@ -227,9 +289,25 @@ REQUESTED -> BANK_PROCESSING -> COMPLETED
           -> COMPENSATION_REQUIRED -> COMPENSATED
 ```
 
+### Settlement Run
+
+```text
+RUNNING -> COMPLETED
+        -> WITH_DISCREPANCY
+        -> FAILED
+```
+
+### Reconciliation
+
+```text
+MATCHED | MISSING_LEDGER | AMOUNT_MISMATCH
+```
+
 ## Design Notes
 
 - 지갑 잔액의 단일 진실 공급자는 `wallet-service`다.
 - 정책 미션 지원금 지급은 `reward-service`가 직접 잔액을 바꾸지 않고 `transfer-service`를 호출한다.
 - `parent_child_links`, `reward_tasks`는 현재 정책 도메인에서도 재사용한다.
-- 정산 확장은 `ledger_entries`, `ledger_lines`, 향후 `settlement-service`를 중심으로 진행한다.
+- Toss PG 정산은 `payment_settlement_outbox` → Kafka → `settlement_transactions` 순서로 원천 이벤트를 보존한다.
+- `settlement_runs`는 기준일 집계 결과를, `settlement_items`는 거래별 원장 대사 결과를 보존한다.
+- Spring Batch job/step 실행 상태는 `BATCH_*` 메타데이터 테이블에 저장한다. 가독성을 위해 도메인 ERD에서는 생략했다.

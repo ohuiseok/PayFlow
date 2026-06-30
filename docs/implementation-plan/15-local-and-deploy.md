@@ -22,6 +22,10 @@ reward-service
 
 ledger-service
 
+settlement-service
+
+Kafka
+
 nginx
 
 ## Docker Compose
@@ -60,6 +64,8 @@ docker compose logs -f api-gateway
 
 `payflow_ledger`
 
+`payflow_settlement`
+
 ## Environment Variables
 
 `SPRING_DATASOURCE_URL`
@@ -71,6 +77,16 @@ docker compose logs -f api-gateway
 `JWT_SECRET`
 
 `SERVICE_BASE_URL`
+
+`SPRING_KAFKA_BOOTSTRAP_SERVERS`
+
+`PAYMENT_SETTLEMENT_TOPIC`
+
+`SETTLEMENT_FEE_RATE`
+
+`SETTLEMENT_DAILY_CRON`
+
+`SETTLEMENT_ZONE`
 
 ## Health Check
 

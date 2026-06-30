@@ -67,6 +67,8 @@ flowchart LR
     pay --> transfer[기관 지갑에서 청년 지갑으로 송금]
     transfer --> history[지갑 거래 내역]
     transfer --> ledger[원장 기록]
+    charge --> settlementEvent[Toss 승인/취소 정산 이벤트]
+    settlementEvent --> settlement[일별 정산과 원장 대사]
 ```
 
 ## 6. MVP 범위
@@ -79,6 +81,7 @@ flowchart LR
 - 정책 미션 생성, 제출, 승인, 반려, 지원금 지급
 - 청년 지원금 사용 내역 조회
 - 송금 완료 이벤트 기반 원장 기록
+- Toss PG 승인/취소 이벤트 기반 일별 정산과 원장 대사
 - Docker Compose 기반 로컬 실행 환경
 
 ## 7. 유지하는 내부 구조
@@ -106,7 +109,7 @@ flowchart LR
 | transfer-service | 기관 지갑에서 청년 지갑으로 지원금 송금, 멱등성, Outbox |
 | reward-service | 참여자 연결, 정책 미션 상태 관리, 지원금 지급 요청 |
 | ledger-service | 송금/충전 이벤트 기반 원장 기록 |
-| settlement-service | 향후 기관별 예산 집행 정산 확장 영역 |
+| settlement-service | Toss PG 승인/취소 이벤트 수집, 일별 집계, 수수료 계산, 원장 대사 |
 
 ## 9. 핵심 정책
 
@@ -114,6 +117,8 @@ flowchart LR
 - `reward-service`는 지원금 지급을 직접 처리하지 않고 `transfer-service`에 송금을 요청한다.
 - 지원금 지급은 `reward-payment-{missionId}` 형태의 멱등키를 사용한다.
 - 승인/반려/지급 상태는 정책 집행 근거로 남긴다.
+- 정산은 `Asia/Seoul` 기준 전일 거래를 대상으로 하며, 기본 수수료율은 2.7%다.
+- 정산 소비와 결과 저장은 `event_id` unique 제약으로 중복 반영을 방지한다.
 - 내부 코드의 `parent`, `child`, `mission`, `reward` 명칭은 리팩터링 비용을 줄이기 위해 유지한다.
 
 ## 10. 프로젝트 방향

@@ -12,7 +12,7 @@ JWT 검증
 
 MVP API 라우팅
 
-공통 traceId 생성
+외부 신뢰 헤더 제거와 내부 Gateway secret 주입
 
 ## Routes
 
@@ -23,16 +23,17 @@ MVP API 라우팅
 | `/api/wallets/**` | wallet-service |
 | `/api/bank/**` | banking-service |
 | `/api/transfers/**` | transfer-service |
-| `/api/ledger/**` | ledger-service |
+| `/api/ledgers/**` | ledger-service |
+| `/api/settlements/**` | settlement-service |
 | `/api/families/**` | reward-service |
 | `/api/missions/**` | reward-service |
 | `/api/cashbook/**` | reward-service |
 
 ## Public Paths
 
-`/api/auth/signup`
+`POST /api/users`
 
-`/api/auth/login`
+`POST /api/users/login`
 
 `/actuator/health`
 
@@ -44,7 +45,11 @@ MVP API 라우팅
 
 `X-User-Role`
 
-`X-Trace-Id`
+`X-User-Phone-Number`
+
+`X-Internal-Request`
+
+`X-Gateway-Secret`
 
 ## Security Rules
 
