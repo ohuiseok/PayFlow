@@ -71,7 +71,7 @@ EC2_SSH_KEY_PATH=C:\keys\payflow.pem
 .\scripts\run-test-evidence.ps1 -Mode concurrent -Vus 1000 -Duration 2m
 ```
 
-420 TPS 처리량 테스트:
+420 TPS 목표 처리량 테스트(목표 부하 설정이며, 실행 결과의 실측 TPS와 구분):
 
 ```powershell
 .\scripts\run-test-evidence.ps1 -Mode throughput -Rate 420 -Duration 5m
@@ -144,3 +144,39 @@ cd settlement-service
 이 테스트는 이벤트 중복 수집, 승인/취소 집계, 수수료 계산, 원장 대사와 완료 기준일 재호출을 검증하지만 실제 Kafka broker 경로는 검증하지 않는다.
 
 전체 지갑 잔액 비교는 테스트 도중 다른 요청이 없는 격리 환경을 전제로 한다. 송금 API는 HTTP 201이어도 본문 상태가 `FAILED`일 수 있으므로 k6 결과의 `businessSucceeded`와 `achievedBusinessTps`를 성능 근거로 사용한다.
+
+## 4. 최신 검증 결과
+
+블로그·포트폴리오에는 설정값이나 목표치가 아니라 아래 통합 판정 통과 결과를 사용한다.
+
+- 실행 ID: `20260629-214652`
+- 대상: `https://app.pay-flow.cloud`
+- Git SHA: `011e4b93f160781ff04f108fa040f972b356c818`
+- 조건: `1,000 VU`, 송금 `1,000건`, 송신자 200명, 수신자 200명, 건당 1,000원
+- 결과: 업무 성공 1,000건, 업무 실패 0건, 비정상 응답 0건, dropped iteration 0건
+- 처리량: 실측 `28.20 TPS`, 전체 실행 시간 `35.46초`
+- 응답시간: 평균 `20,470.26ms`, p95 `31,285.92ms`, p99 `31,845.22ms`
+- 잔액 정합성: 테스트 전·후 총액 7,230,000원, 증감 0원, 음수 잔액 0건
+- 중복·누락: 중복 멱등키 0건, 중복 지갑 거래 0건, 성공 송금 거래 이상 0건
+- Outbox·원장: 누락 Outbox 0건, 미발행 Outbox 0건, 성공 송금 원장 누락 0건, 중복 원장 0건
+- 회귀 테스트: transfer-service와 ledger-service JUnit 41건 통과, 실패·오류·skip 0건
+
+근거 파일:
+
+```text
+results/20260629-214652/run-metadata.json
+results/20260629-214652/k6-summary.json
+results/20260629-214652/sql-summary.json
+results/20260629-214652/junit/junit-summary.json
+results/20260629-214652/evidence-summary.json
+```
+
+현재 저장된 증적에는 변경 전·후 성능을 동일 조건으로 비교한 결과와 420 TPS 처리량 모드의 완료 결과가 없다. 따라서 `50 → 420 TPS`, `1.2s → 140ms`, `8.4배`, `88% 개선`은 성과로 사용하지 않는다. Kafka 장애 주입 통합 실행 결과도 없으므로 “이벤트 유실 완전 방지” 대신 Outbox SQL 검증과 relay 단위 테스트가 통과했다고 표현한다.
+
+### 블로그용 주요 성과
+
+- 1,000 VU 동시 송금 1,000건을 실행해 업무 성공 1,000건, 실패·비정상 응답·dropped iteration 0건을 확인했다.
+- 실측 처리량은 28.20 TPS였으며 평균 응답시간은 20.47초, p95는 31.29초로 측정돼 성능 병목을 수치로 확인했다.
+- 테스트 전·후 전체 지갑 잔액 증감 0원, 음수 잔액·중복 지갑 거래·성공 송금 거래 이상 각각 0건으로 정합성을 검증했다.
+- 송금 1,000건에서 누락·미발행 Outbox와 성공 송금 원장 누락이 각각 0건이었고, Kafka 발행 실패 및 오래된 `PROCESSING` 이벤트 복구를 포함한 Outbox 회귀 테스트가 통과했다.
+- transfer-service와 ledger-service 회귀 테스트 41건이 모두 통과했다.
