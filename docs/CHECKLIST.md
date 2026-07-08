@@ -1,17 +1,17 @@
-﻿# PayFlow Implementation Checklist
+﻿# PayFlow 구현 체크리스트
 
 > 도메인 전환 안내: 현재 PayFlow는 **청년 정책 참여 미션 및 지원금 지급 플랫폼**으로 설명한다. 내부 구현 호환성을 위해 `PARENT`/`CHILD`, `/api/families`, `/api/missions`, `/api/cashbook`, `reward-service` 같은 명칭은 유지하지만, 문서와 발표에서는 각각 **기관 담당자**, **청년 참여자**, **참여자 연결**, **정책 미션**, **지원금 사용 내역**, **정책 미션/지원금 서비스**로 해석한다.
 
-## Current Verified Status - 2026-06-18
+## 현재 검증 상태 - 2026-06-18
 
-- [x] Backend service tests passed for `user-service`, `wallet-service`, `banking-service`, `transfer-service`, `reward-service`, and `ledger-service`.
-- [x] `docker compose config --quiet` passed.
-- [x] `sample-react` API adapters are aligned with the current MVP backend routes.
-- [x] `sample-react` `npm run check` passed, including type check, web export, dummy Playwright e2e, and mocked API-mode Playwright e2e.
-- [x] Agency mission approval screen now queries real mission data and calls approve plus pay APIs.
-- [x] Agency family linking screen now matches the current direct-link backend contract.
-- [x] Dedicated parent credit summary backend endpoint is implemented and connected from the frontend.
-- [ ] Full Docker Compose runtime smoke test remains pending because Docker Desktop was not running locally.
+- [x] `user-service`, `wallet-service`, `banking-service`, `transfer-service`, `reward-service`, `ledger-service` 백엔드 서비스 테스트 통과.
+- [x] `docker compose config --quiet` 통과.
+- [x] `sample-react` API 어댑터가 현재 MVP 백엔드 라우트와 일치.
+- [x] `sample-react` `npm run check` 통과. 타입 검사, 웹 export, dummy Playwright E2E, mock API 모드 Playwright E2E 포함.
+- [x] 기관 미션 승인 화면이 실제 미션 데이터를 조회하고 approve/pay API를 호출.
+- [x] 기관 참여자 연결 화면이 현재 direct-link 백엔드 계약과 일치.
+- [x] 기관 지원금 요약 전용 백엔드 엔드포인트 구현 및 프론트엔드 연결 완료.
+- [ ] 로컬에서 Docker Desktop이 실행 중이 아니어서 전체 Docker Compose 런타임 스모크 테스트는 미확인.
 
 구현 대상만 정리한 체크리스트입니다.
 
@@ -311,5 +311,3 @@ docs/implementation-plan/02-database-and-migration.md
 - [ ] banking settlement outbox 적체/재시도 소진 모니터링 API
 - [ ] 정산 수동 실행 API 관리자 역할 제한
 - [ ] settlement 스키마를 Flyway로 단일화
-
-

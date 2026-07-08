@@ -1,10 +1,10 @@
-﻿# API Docs
+# API 문서
 
 > 도메인 전환 안내: 현재 PayFlow는 **청년 정책 참여 미션 및 지원금 지급 플랫폼**으로 설명한다. 내부 구현 호환성을 위해 `PARENT`/`CHILD`, `/api/families`, `/api/missions`, `/api/cashbook`, `reward-service` 같은 명칭은 유지하지만, 문서와 발표에서는 각각 **기관 담당자**, **청년 참여자**, **참여자 연결**, **정책 미션**, **지원금 사용 내역**, **정책 미션/지원금 서비스**로 해석한다.
 
 이 문서는 포트폴리오용 API 요약 문서입니다. 상세 구현은 각 서비스의 controller와 `docs/api-spec.md`를 함께 참고합니다.
 
-## Common Rules
+## 공통 규칙
 
 인증이 필요한 API는 다음 헤더를 사용합니다.
 
@@ -28,11 +28,11 @@ Idempotency-Key: unique-business-request-key
 }
 ```
 
-## Gateway Routes
+## 게이트웨이 라우팅
 
 외부 API는 Gateway에서 `/api` prefix로 진입하고 내부 서비스로 라우팅됩니다.
 
-| External Path | Target Service |
+| 외부 경로 | 대상 서비스 |
 | --- | --- |
 | `/api/users/**` | user-service |
 | `/api/auth/**` | user-service |
@@ -45,7 +45,7 @@ Idempotency-Key: unique-business-request-key
 | `/api/ledgers/**` | ledger-service |
 | `/api/settlements/**` | settlement-service |
 
-## Auth/User
+## 인증/사용자
 
 ### POST /api/users
 
@@ -75,7 +75,7 @@ Idempotency-Key: unique-business-request-key
 
 Gateway가 주입한 사용자 식별자를 기준으로 내 정보를 조회합니다.
 
-## Wallet
+## 지갑
 
 ### GET /api/wallets/users/{userId}
 
@@ -107,7 +107,7 @@ Gateway가 주입한 사용자 식별자를 기준으로 내 정보를 조회합
 
 wallet-service는 `referenceType` + `referenceId`로 같은 원천 거래가 잔액에 중복 반영되는 것을 막습니다.
 
-## Banking
+## 뱅킹
 
 ### POST /api/bank/accounts
 
@@ -158,7 +158,7 @@ Idempotency-Key: deposit-parent-20260620-001
 
 은행 출금 실패 또는 권한 제약으로 격리된 거래를 지갑 환불로 보상합니다.
 
-## Transfer
+## 송금
 
 ### POST /api/transfers
 
@@ -208,7 +208,7 @@ transfer REQUESTED 생성
 
 transfer-service outbox 발행 상태를 운영 관점에서 조회합니다.
 
-## Family/Mission/Reward
+## 참여자 연결/미션/지원금
 
 ### POST /api/families/links
 
@@ -265,7 +265,7 @@ transfer-service outbox 발행 상태를 운영 관점에서 조회합니다.
 reward-payment-{missionId}
 ```
 
-## Cashbook
+## 사용 내역
 
 ### GET /api/cashbook/parent/summary
 
@@ -279,7 +279,7 @@ reward-payment-{missionId}
 
 청년의 최근 돈 기록을 조회합니다.
 
-## Ledger
+## 원장
 
 ### GET /api/ledgers/transfer-failures
 
@@ -289,7 +289,7 @@ reward-payment-{missionId}
 
 특정 송금의 실패 추적 정보를 조회합니다.
 
-## Settlement
+## 정산
 
 ### POST /api/settlements/daily/{businessDate}
 
@@ -304,7 +304,7 @@ status = RUNNING | COMPLETED | WITH_DISCREPANCY | FAILED
 expectedNetAmount = grossAmount - cancelAmount - feeAmount
 ```
 
-## Internal API Contract
+## 내부 API 계약
 
 외부 포트폴리오에는 숨기되, 설계 설명에서는 아래 내부 호출을 언급하면 좋습니다.
 
@@ -318,5 +318,3 @@ banking-service  -> payment.settlement (Kafka, outbox)
 settlement-service <- payment.settlement
 settlement-service -> ledger-service /ledgers/internal/payment-entry
 ```
-
-

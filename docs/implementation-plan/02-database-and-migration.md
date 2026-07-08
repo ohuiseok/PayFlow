@@ -4,7 +4,7 @@
 
 MVP 데이터 모델은 현재 구현할 결제 흐름에 필요한 테이블만 둔다.
 
-## Databases
+## 데이터베이스
 
 `payflow_user`
 
@@ -182,7 +182,7 @@ MVP 데이터 모델은 현재 구현할 결제 흐름에 필요한 테이블만
 
 전표별 차변 합계와 대변 합계가 같아야 한다.
 
-## Migration Rules
+## 마이그레이션 규칙
 
 Flyway를 사용한다.
 
@@ -284,5 +284,3 @@ Open Banking OAuth 연결과 토큰 상태를 저장한다.
 기존 `bank_accounts`에 다음 필드를 추가한다.
 
 `provider_code`, `open_banking_authorization_id`, `fintech_use_num_encrypted`, `account_alias`, `linked_at`, `last_synced_at`
-
-

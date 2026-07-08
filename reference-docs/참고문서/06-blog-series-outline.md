@@ -1,15 +1,15 @@
-﻿# 블로그 시리즈 목차
+# 블로그 시리즈 목차
 
 > 도메인 전환 안내: 현재 PayFlow는 **청년 정책 참여 미션 및 지원금 지급 플랫폼**으로 설명한다. 내부 구현 호환성을 위해 `PARENT`/`CHILD`, `/api/families`, `/api/missions`, `/api/cashbook`, `reward-service` 같은 명칭은 유지하지만, 문서와 발표에서는 각각 **기관 담당자**, **청년 참여자**, **참여자 연결**, **정책 미션**, **지원금 사용 내역**, **정책 미션/지원금 서비스**로 해석한다.
 
 PayFlow를 블로그 시리즈로 올릴 때 사용할 요약 목차입니다.
 상세 발행 순서와 글별 소재는 `17-블로그-발행-로드맵.md`를 기준으로 합니다.
 
-## Series Title
+## 시리즈 제목
 
 MSA 기반 지갑/결제 시스템 PayFlow 만들기
 
-## Part 1. 프로젝트 시작과 문제 정의
+## 1편. 프로젝트 시작과 문제 정의
 
 핵심 메시지:
 
@@ -24,7 +24,7 @@ MSA 기반 지갑/결제 시스템 PayFlow 만들기
 - MVP 범위와 제외한 기능
 - 화면 흐름
 
-## Part 2. 아키텍처와 서비스 경계
+## 2편. 아키텍처와 서비스 경계
 
 핵심 메시지:
 
@@ -37,7 +37,7 @@ MSA 기반 지갑/결제 시스템 PayFlow 만들기
 - cross-service join을 피한 이유
 - 내부 API와 Kafka 이벤트의 역할 분리
 
-## Part 3. 데이터 모델과 API 계약
+## 3편. 데이터 모델과 API 계약
 
 핵심 메시지:
 
@@ -51,7 +51,7 @@ MSA 기반 지갑/결제 시스템 PayFlow 만들기
 - 외부 API와 내부 API
 - 상태값과 에러 응답
 
-## Part 4. 지갑 잔액 정합성 설계
+## 4편. 지갑 잔액 정합성 설계
 
 핵심 메시지:
 
@@ -65,7 +65,7 @@ MSA 기반 지갑/결제 시스템 PayFlow 만들기
 - 중복 입금/출금 방어
 - 금액 타입 결정
 
-## Part 5. 멱등성: 같은 요청이 두 번 와도 돈은 한 번만 움직인다
+## 5편. 멱등성: 같은 요청이 두 번 와도 돈은 한 번만 움직인다
 
 핵심 메시지:
 
@@ -79,7 +79,7 @@ MSA 기반 지갑/결제 시스템 PayFlow 만들기
 - 같은 key + 다른 body
 - wallet reference와의 차이
 
-## Part 6. 송금 상태 머신과 보상 트랜잭션
+## 6편. 송금 상태 머신과 보상 트랜잭션
 
 핵심 메시지:
 
@@ -92,7 +92,7 @@ MSA 기반 지갑/결제 시스템 PayFlow 만들기
 - refund API
 - 출금 전 실패와 출금 후 실패의 차이
 
-## Part 7. Transactional Outbox와 Kafka
+## 7편. Transactional Outbox와 Kafka
 
 핵심 메시지:
 
@@ -105,7 +105,7 @@ MSA 기반 지갑/결제 시스템 PayFlow 만들기
 - retry와 stale processing 복구
 - ledger-service 소비와 중복 방어
 
-## Part 8. Open Banking 연동에서 배운 점
+## 8편. Open Banking 연동에서 배운 점
 
 핵심 메시지:
 
@@ -119,7 +119,7 @@ MSA 기반 지갑/결제 시스템 PayFlow 만들기
 - timeout/unknown 처리
 - 권한 없는 API를 business success로 처리하지 않은 이유
 
-## Part 9. 프론트엔드와 API 연결
+## 9편. 프론트엔드와 API 연결
 
 핵심 메시지:
 
@@ -133,7 +133,7 @@ MSA 기반 지갑/결제 시스템 PayFlow 만들기
 - API adapter 정렬
 - Playwright 검증
 
-## Part 10. 테스트와 부하 테스트
+## 10편. 테스트와 부하 테스트
 
 핵심 메시지:
 
@@ -147,9 +147,9 @@ MSA 기반 지갑/결제 시스템 PayFlow 만들기
 - k6 시나리오
 - p95/p99보다 함께 봐야 하는 데이터 정합성 지표
 
-## Part 11. 트러블슈팅과 회고
+## 11편. 트러블슈팅과 회고
 
-## Part 12. Toss PG 일별 정산과 원장 대사
+## 12편. Toss PG 일별 정산과 원장 대사
 
 - banking settlement outbox와 `payment.settlement`
 - 정산 consumer의 `event_id` 멱등성
@@ -174,5 +174,3 @@ MSA 기반 지갑/결제 시스템 PayFlow 만들기
 - metrics/alert
 - 배포 전략
 - saga 확장 가능성
-
-

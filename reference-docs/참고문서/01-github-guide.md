@@ -1,10 +1,10 @@
-﻿# GitHub Guide
+# GitHub 안내 문서
 
 > 도메인 전환 안내: 현재 PayFlow는 **청년 정책 참여 미션 및 지원금 지급 플랫폼**으로 설명한다. 내부 구현 호환성을 위해 `PARENT`/`CHILD`, `/api/families`, `/api/missions`, `/api/cashbook`, `reward-service` 같은 명칭은 유지하지만, 문서와 발표에서는 각각 **기관 담당자**, **청년 참여자**, **참여자 연결**, **정책 미션**, **지원금 사용 내역**, **정책 미션/지원금 서비스**로 해석한다.
 
 이 문서는 GitHub 저장소 README 또는 포트폴리오의 GitHub 링크 설명에 사용할 수 있는 정리본입니다.
 
-## Repository Summary
+## 저장소 요약
 
 PayFlow는 청년 정책 참여 미션 및 지원금 지급 플랫폼입니다. 단순 CRUD가 아니라 지갑 잔액, 송금, 멱등성, 보상 처리, 이벤트 기반 원장 기록처럼 결제 시스템에서 중요한 주제를 포트폴리오 범위로 구현했습니다.
 
@@ -23,20 +23,20 @@ PayFlow는 청년 정책 참여 미션 및 지원금 지급 플랫폼입니다. 
 -> Toss 승인/취소 이벤트 일별 정산과 원장 대사
 ```
 
-## Tech Stack
+## 기술 스택
 
 | 영역 | 기술 |
 | --- | --- |
-| Backend | Java, Spring Boot, Spring Web, Spring Data JPA, Spring Batch |
-| Gateway | Spring Cloud Gateway |
-| Database | MySQL |
-| Cache/Lock | Redis |
-| Messaging | Kafka |
-| Frontend | React Native/Expo sample app |
-| Infra | Docker Compose, Nginx |
-| Test | JUnit, Spring Boot Test, Playwright, API smoke script |
+| 백엔드 | Java, Spring Boot, Spring Web, Spring Data JPA, Spring Batch |
+| 게이트웨이 | Spring Cloud Gateway |
+| 데이터베이스 | MySQL |
+| 캐시/락 | Redis |
+| 메시징 | Kafka |
+| 프론트엔드 | React Native/Expo 샘플 앱 |
+| 인프라 | Docker Compose, Nginx |
+| 테스트 | JUnit, Spring Boot Test, Playwright, API 스모크 스크립트 |
 
-## Services
+## 서비스 구성
 
 | 서비스 | 책임 |
 | --- | --- |
@@ -49,7 +49,7 @@ PayFlow는 청년 정책 참여 미션 및 지원금 지급 플랫폼입니다. 
 | ledger-service | 송금 이벤트 소비, 원장/실패 기록 |
 | settlement-service | Toss 승인/취소 이벤트 수집, 일별 집계, 수수료 계산, 원장 대사 |
 
-## Local Run
+## 로컬 실행
 
 ```powershell
 docker compose up --build
@@ -58,14 +58,14 @@ docker compose up --build
 기본 진입점:
 
 ```text
-Frontend: http://localhost:19006
+프론트엔드: http://localhost:19006
 API Gateway: http://localhost:8080
 Nginx: http://localhost
 ```
 
 환경 변수 예시는 `.env.example`을 기준으로 확인합니다.
 
-## Verification Commands
+## 검증 명령어
 
 백엔드 서비스 테스트:
 
@@ -86,13 +86,13 @@ Docker Compose 설정 검증:
 docker compose config --quiet
 ```
 
-API smoke test:
+API 스모크 테스트:
 
 ```powershell
 .\scripts\api-smoke.ps1
 ```
 
-## Reviewer Reading Path
+## 리뷰어 추천 읽기 순서
 
 처음 보는 리뷰어라면 아래 순서로 보면 프로젝트 의도가 가장 빨리 잡힙니다.
 
@@ -103,7 +103,7 @@ API smoke test:
 5. `docs/portfolio-open-banking.md`
 6. `reference-docs/참고문서/04-architecture.md`
 
-## Portfolio Highlights
+## 포트폴리오 강조 항목
 
 - 지갑 잔액 변경은 wallet-service에서만 수행합니다.
 - 송금 요청은 `Idempotency-Key`와 요청 본문 해시로 중복 처리를 방어합니다.
@@ -114,4 +114,3 @@ API smoke test:
 - banking-service는 Toss 승인/취소와 정산 outbox를 같은 트랜잭션에 저장합니다.
 - settlement-service는 `payment.settlement`를 멱등 소비하고 Spring Batch로 기준일별 원장 대사를 수행합니다.
 - Open Banking 응답은 HTTP 성공과 금융 성공을 분리해 상태로 모델링합니다.
-
